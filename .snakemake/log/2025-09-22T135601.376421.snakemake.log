@@ -1,5 +1,0 @@
-Assuming unrestricted shared filesystem usage.
-host: laninst-HP-Z8-Fury-G5-Workstation-Desktop-PC
-Building DAG of jobs...
-MissingRuleException:
-No rule to produce workflow/Snakefile (if you use input functions make sure that they don't raise unexpected exceptions).

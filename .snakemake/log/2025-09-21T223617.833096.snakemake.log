@@ -1,5 +1,0 @@
-TabError in file "<string>", line 3:
-inconsistent use of tabs and spaces in indentation:
-  	"hg38.chrom.sizes",
-  File "/home/ieo7429/miniforge3/envs/snakemake-env/lib/python3.13/tokenize.py", line 586, in _generate_tokens_from_c_tokenizer
-  File "/home/ieo7429/miniforge3/envs/snakemake-env/lib/python3.13/tokenize.py", line 582, in _generate_tokens_from_c_tokenizer
