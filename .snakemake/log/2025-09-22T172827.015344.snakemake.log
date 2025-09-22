@@ -1,0 +1,40 @@
+Assuming unrestricted shared filesystem usage.
+host: laninst-HP-Z8-Fury-G5-Workstation-Desktop-PC
+Building DAG of jobs...
+Using shell: /usr/bin/bash
+Provided cores: 1 (use --cores to define parallelism)
+Rules claiming more threads will be scaled down.
+Conda environments: ignored
+Job stats:
+job                  count
+-----------------  -------
+get_backbone_file        1
+get_chrom_sizes          1
+total                    2
+
+Select jobs to execute...
+Execute 1 jobs...
+[Mon Sep 22 17:28:27 2025]
+localrule get_chrom_sizes:
+    output: resources/hg38.chrom.sizes
+    jobid: 1
+    reason: Missing output files: resources/hg38.chrom.sizes
+    wildcards: assembly_code=hg38
+    resources: tmpdir=/tmp
+[Mon Sep 22 17:28:28 2025]
+Finished jobid: 1 (Rule: get_chrom_sizes)
+1 of 2 steps (50%) done
+Select jobs to execute...
+Execute 1 jobs...
+[Mon Sep 22 17:28:28 2025]
+localrule get_backbone_file:
+    input: resources/hg38.chrom.sizes
+    output: resources/hg38.no.10000.500_backbone.tsv
+    jobid: 0
+    reason: Missing output files: resources/hg38.no.10000.500_backbone.tsv; Input files updated by another job: resources/hg38.chrom.sizes
+    wildcards: assembly_code=hg38, window_mode=no, window_size=10000, step=500
+    resources: tmpdir=/tmp
+[Mon Sep 22 17:28:30 2025]
+Finished jobid: 0 (Rule: get_backbone_file)
+2 of 2 steps (100%) done
+Complete log(s): /home/ieo7429/Desktop/SelectionCaller/.snakemake/log/2025-09-22T172827.015344.snakemake.log

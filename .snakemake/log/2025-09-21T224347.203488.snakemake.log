@@ -1,0 +1,24 @@
+Assuming unrestricted shared filesystem usage.
+host: laninst-HP-Z8-Fury-G5-Workstation-Desktop-PC
+Building DAG of jobs...
+Using shell: /usr/bin/bash
+Provided cores: 1 (use --cores to define parallelism)
+Rules claiming more threads will be scaled down.
+Job stats:
+job                count
+---------------  -------
+get_chrom_sizes        1
+total                  1
+
+Select jobs to execute...
+Execute 1 jobs...
+[Sun Sep 21 22:43:47 2025]
+localrule get_chrom_sizes:
+    output: hg38.chrom.sizes, hg19.chrom.sizes
+    jobid: 0
+    reason: Missing output files: hg19.chrom.sizes, hg38.chrom.sizes
+    resources: tmpdir=/tmp
+[Sun Sep 21 22:43:48 2025]
+Finished jobid: 0 (Rule: get_chrom_sizes)
+1 of 1 steps (100%) done
+Complete log(s): /home/ieo7429/Desktop/SelectionCaller/.snakemake/log/2025-09-21T224347.203488.snakemake.log

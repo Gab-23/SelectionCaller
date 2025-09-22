@@ -1,0 +1,3 @@
+NameError in file "/home/ieo7429/Desktop/SelectionCaller/workflow/Snakefile", line 3:
+name 'rule' is not defined
+  File "/home/ieo7429/Desktop/SelectionCaller/workflow/Snakefile", line 3, in <module>

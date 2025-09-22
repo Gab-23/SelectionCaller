@@ -1,0 +1,2 @@
+FileNotFoundError in file "/home/ieo7429/Desktop/SelectionCaller/workflow/Snakefile", line 6:
+[Errno 2] No such file or directory: '/home/ieo7429/Desktop/SelectionCaller/workflow/workflow/rules/get_backbone_file.smk'

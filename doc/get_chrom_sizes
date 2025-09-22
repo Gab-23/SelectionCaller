@@ -1,0 +1,17 @@
+Documentation created on 22st September 2025 10:38
+
+rule get_chrom_sizes: 																	# define rule
+    output:																		# define output
+	    "resources/{assembly_code}.chrom.sizes"													# define output name
+    shell:																		# define shell
+        """
+	    wget -P resources/ https://hgdownload.cse.ucsc.edu/goldenpath/{wildcards.assembly_code}/bigZips/{wildcards.assembly_code}.chrom.sizes 	# define command
+        """
+
+NOTA: in this case {assembly_code} is a wildcard, so when you call it you use wildcards.assembly_code
+
+https://hgdownload.cse.ucsc.edu/goldenpath/hg19/bigZips/hg19.chrom.sizes
+https://hgdownload.cse.ucsc.edu/goldenpath/hg38/bigZips/hg38.chrom.sizes 
+
+Links used in the rule. Data from UCSC database to retrieve chromosome sizes, accessed on 21st September 2025, 22:29
+Each file is a .tsv files with first column chromosome name, second column chromosome size

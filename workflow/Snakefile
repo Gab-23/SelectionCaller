@@ -1,0 +1,2 @@
+include: "rules/get_chrom_sizes.smk"
+include: "rules/get_backbone_file.smk"

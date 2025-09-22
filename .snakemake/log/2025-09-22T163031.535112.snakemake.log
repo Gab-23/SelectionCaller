@@ -1,0 +1,2 @@
+SourceFileError in file "/home/ieo7429/Desktop/SelectionCaller/workflow/Snakefile", line 4:
+Error in source file definition: must be given as Python string or one of the predefined source file marker types (see docs)

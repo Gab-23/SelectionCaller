@@ -1,0 +1,2 @@
+FileNotFoundError in file "/home/ieo7429/Desktop/SelectionCaller/workflow/Snakefile", line 5:
+[Errno 2] No such file or directory: '/home/ieo7429/Desktop/SelectionCaller/workflow/get_chrom_sizes'

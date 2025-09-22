@@ -1,0 +1,40 @@
+Assuming unrestricted shared filesystem usage.
+host: laninst-HP-Z8-Fury-G5-Workstation-Desktop-PC
+Building DAG of jobs...
+Using shell: /usr/bin/bash
+Provided cores: 1 (use --cores to define parallelism)
+Rules claiming more threads will be scaled down.
+Conda environments: ignored
+Job stats:
+job                  count
+-----------------  -------
+get_backbone_file        1
+total                    1
+
+Select jobs to execute...
+Execute 1 jobs...
+[Mon Sep 22 16:39:54 2025]
+localrule get_backbone_file:
+    input: resources/hg38.chrom.sizes
+    output: resources/hg38.o.10000.500_backbone.tsv
+    jobid: 0
+    reason: Missing output files: resources/hg38.o.10000.500_backbone.tsv
+    wildcards: assembly_code=hg38, window_mode=o, window_size=10000, step=500
+    resources: tmpdir=/tmp
+RuleException:
+CalledProcessError in file "/home/ieo7429/Desktop/SelectionCaller/workflow/rules/get_backbone_file.smk", line 9:
+Command 'set -euo pipefail;  
+        Rscript workflow/scripts/get_backbone_file.R         --input_file=resources/hg38.chrom.sizes         --output_file=resources/hg38.o.10000.500_backbone.tsv         --window_size=10000         --mode=o         --step=500' returned non-zero exit status 1.
+[Mon Sep 22 16:39:54 2025]
+Error in rule get_backbone_file:
+    message: None
+    jobid: 0
+    input: resources/hg38.chrom.sizes
+    output: resources/hg38.o.10000.500_backbone.tsv
+    shell:
+        
+        Rscript workflow/scripts/get_backbone_file.R         --input_file=resources/hg38.chrom.sizes         --output_file=resources/hg38.o.10000.500_backbone.tsv         --window_size=10000         --mode=o         --step=500 
+        
+        (command exited with non-zero exit code)
+WorkflowError:
+Error recording metadata for finished job ([Errno 2] No such file or directory: '/home/ieo7429/Desktop/SelectionCaller/workflow/rules/envs/r_backbone.yml'). Please ensure write permissions for the directory /home/ieo7429/Desktop/SelectionCaller/.snakemake
