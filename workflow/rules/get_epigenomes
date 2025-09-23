@@ -1,0 +1,10 @@
+rule get_epigenomes:
+    output:
+	    ""
+    input:
+        ""
+    conda:
+        ""
+    shell:
+        """
+        """

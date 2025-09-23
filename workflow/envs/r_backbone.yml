@@ -1,4 +1,4 @@
-name: r_bio_env
+name: r_backbone
 channels:
   - conda-forge
   - bioconda
@@ -7,7 +7,6 @@ dependencies:
   - r-base=4.3
   - r-essentials
   - bioconductor-genomicranges
-  - bioconductor-bsgenome
   - r-dplyr
   - r-r.utils
 

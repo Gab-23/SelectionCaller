@@ -1,0 +1,12 @@
+assembly_codes:
+ - hg38
+
+window_sizes:
+ - 10000
+ - 100000
+ - 1000000
+
+steps:
+ - 500
+ - 1000
+ - 2000

@@ -1,2 +1,28 @@
 include: "rules/get_chrom_sizes.smk"
 include: "rules/get_backbone_file.smk"
+include: "rules/get_blacklisted_regions.smk"
+include: "rules/filter_backbone.smk"
+
+wildcard_constraints:
+    step = "[0-9]+"
+
+assembly_codes = config["assembly_codes"]
+window_sizes = config["window_sizes"]
+steps = config["steps"]
+
+rule all:
+    input:
+        filter_bb = expand(
+            "resources/{assembly_code}.{window_mode}.{window_size}.{step}.filtered.backbone.tsv",
+            assembly_code = assembly_codes, 
+            window_mode = "o", 
+            window_size = window_sizes, 
+            step = steps
+        ) +
+        expand(
+            "resources/{assembly_code}.{window_mode}.{window_size}.{step}.filtered.backbone.tsv",
+            assembly_code = assembly_codes, 
+            window_mode = "no", 
+            window_size = window_sizes, 
+            step = 0
+        )

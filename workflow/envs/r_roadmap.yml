@@ -1,0 +1,13 @@
+name: r_roadmap
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - r-base=4.3
+  - r-essentials
+  - bioconductor-genomicranges
+  - r-dplyr
+  - r-tidyr
+  - r-r.utils
+

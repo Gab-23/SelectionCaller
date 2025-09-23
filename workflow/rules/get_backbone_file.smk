@@ -1,6 +1,6 @@
 rule get_backbone_file:
     output:
-	    "resources/{assembly_code}.{window_mode}.{window_size}.{step}_backbone.tsv"
+	    "resources/{assembly_code}.{window_mode}.{window_size}.{step}.backbone.tsv"
     input:
         "resources/{assembly_code}.chrom.sizes"
     conda:
@@ -8,9 +8,9 @@ rule get_backbone_file:
     shell:
         """
         Rscript workflow/scripts/get_backbone_file.R \
-        --input_file={input} \
-        --output_file={output} \
-        --window_size={wildcards.window_size} \
+        --input_path={input} \
+        --output_path={output} \
         --window_mode="{wildcards.window_mode}" \
+        --window_size={wildcards.window_size} \
         --step={wildcards.step} 
         """
