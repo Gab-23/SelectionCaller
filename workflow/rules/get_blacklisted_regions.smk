@@ -1,6 +1,6 @@
 rule get_blacklisted_regions:
     output:
-	    "resources/{assembly_code}.blacklist.bed"
+	    "resources/{assembly_code}_blacklist.bed"
     input:
         "resources/{assembly_code}.chrom.sizes"
     conda:
@@ -8,6 +8,6 @@ rule get_blacklisted_regions:
     shell:
         """
 	    wget -qO- https://github.com/Boyle-Lab/Blacklist/raw/refs/heads/master/lists/{wildcards.assembly_code}-blacklist.v2.bed.gz | \
-        gunzip -c | \
+        gunzip | \
         bedtools sort -g {input} > {output}
         """

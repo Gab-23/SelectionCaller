@@ -1,7 +1,18 @@
+import pandas as pd
+
+mapping_file = "config/mapping_epigenomes_tt.tsv"
+mapping = pd.read_csv(mapping_file, 
+                      sep = "\t", 
+                      names = ["tt", "eid"], 
+                      header = None)
+
 include: "rules/get_chrom_sizes.smk"
 include: "rules/get_backbone_file.smk"
 include: "rules/get_blacklisted_regions.smk"
 include: "rules/filter_backbone.smk"
+include: "rules/get_epigenomes_paths.smk"
+include: "rules/get_epigenomes_files.smk"
+
 
 wildcard_constraints:
     step = "[0-9]+"
@@ -10,19 +21,31 @@ assembly_codes = config["assembly_codes"]
 window_sizes = config["window_sizes"]
 steps = config["steps"]
 
+file_format = config["file_format"]
+is_liftover = config["is_liftover"]
+tumor_type = config["tumor_type"] if config["tumor_type"][0] != "pancancer" else mapping.tt.tolist()
+
+epigenome_ids = mapping[mapping.tt.isin(tumor_type)]["eid"].tolist()
+
 rule all:
     input:
         filter_bb = expand(
-            "resources/{assembly_code}.{window_mode}.{window_size}.{step}.filtered.backbone.tsv",
+            "resources/{assembly_code}_{window_mode}_{window_size}_{step}_filtered_backbone.tsv",
             assembly_code = assembly_codes, 
             window_mode = "o", 
             window_size = window_sizes, 
             step = steps
         ) +
         expand(
-            "resources/{assembly_code}.{window_mode}.{window_size}.{step}.filtered.backbone.tsv",
+            "resources/{assembly_code}_{window_mode}_{window_size}_{step}_filtered_backbone.tsv",
             assembly_code = assembly_codes, 
             window_mode = "no", 
             window_size = window_sizes, 
             step = 0
+        ),
+        get_epigenomes_files =  expand(
+            "resources/roadmap_epigenomes_download_log_{tumor_type}_{is_liftover}_{file_format}",
+            tumor_type = config["tumor_type"], 
+            is_liftover = is_liftover, 
+            file_format = file_format
         )
