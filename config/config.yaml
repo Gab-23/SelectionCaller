@@ -8,8 +8,8 @@ window_sizes:
 steps:
  - 2000
 
-tumor_type:
- - LUAD
+tissue_type:
+ - BREAST
 
 is_liftover:
  - True

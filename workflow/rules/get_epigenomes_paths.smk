@@ -1,9 +1,11 @@
 rule get_epigenome_paths:
+    input:
+        mapping_file=lambda wildcards: checkpoints.get_mapping_eID_tt.get().output[0]
     output:
-	    "resources/roadmap_epigenomes_index_{tumor_type}_{is_liftover}_{file_format}"  
+	    "resources/roadmap_epigenomes_index_{tissue_type}_{is_liftover}_{file_format}"  
     params:
         input_url = "https://egg2.wustl.edu/roadmap/data/byFileType/chromhmmSegmentations/ChmmModels/imputed12marks/jointModel/final/",
-        ids = lambda wildcards: "|".join(epigenome_ids),
+        ids = lambda wildcards: "|".join(get_epigenome_ids(wildcards)),
         conditional_grep = lambda wildcards: 'grep -E hg38lift' if wildcards.is_liftover else ''
     shell:
         """

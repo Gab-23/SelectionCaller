@@ -30,7 +30,7 @@ windows <- define_windows(mode = window_mode,                                   
 
 backbone <- generate_backbone(windows)                                            # generate backbone
 
-backbone$start <- backbone$start - 1                                              # set as proper bed file coordinate (0-based, half-open)
+backbone$start <- backbone$start - 1                                              # set BED file coordinate (0-based, half-open)
 
 write.table(x = backbone,                                                         # write output
             file = output_path, 

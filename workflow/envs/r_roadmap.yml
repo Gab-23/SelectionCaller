@@ -6,8 +6,9 @@ channels:
 dependencies:
   - r-base=4.3
   - r-essentials
-  - bioconductor-genomicranges
   - r-dplyr
   - r-tidyr
   - r-r.utils
+  - bioconductor-genomicranges
+  - bioconductor-rtracklayer
 

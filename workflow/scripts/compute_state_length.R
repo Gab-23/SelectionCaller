@@ -9,46 +9,33 @@ output_path          <- args$output_path
 
 `%>%` <- magrittr::`%>%`
 
-epigenome <- read.table(file = epigenome_path,
-                        header = F,
-                        sep = "\t",
-                        col.names = c("chr", "start", "end", "stateID"))
+epigenome <- rtracklayer::import.bed(epigenome_path)
+backbone  <- rtracklayer::import.bed(backbone_path)
 
+hits <- GenomicRanges::findOverlaps(query = backbone, subject = epigenome)        # compute overlaps
 
-backbone <- read.table(file = backbone_path,
-                       header = F,
-                       sep = "\t",
-                       col.names = c("chr", "start", "end", "binID"))
-
-
-epigenome <- GenomicRanges::GRanges(epigenome)
-backbone  <- GenomicRanges::GRanges(backbone)
-
-hits <- GenomicRanges::findOverlaps(query = backbone, subject = epigenome)
-
-query <- backbone[S4Vectors::queryHits(hits)]
+query <- backbone[S4Vectors::queryHits(hits)]                                     # take overlapping regions
 subject <- epigenome[S4Vectors::subjectHits(hits)]
 
-overlap_data <- GenomicRanges::pintersect(query, subject)
+overlap_data <- GenomicRanges::pintersect(query, subject)                         # generate GRanges with data about overlaps
 GenomicRanges::mcols(overlap_data) <- NULL
 
-overlap_metadata <- cbind(GenomicRanges::mcols(query), 
+overlap_metadata <- cbind(GenomicRanges::mcols(query),                            # get binIDs and stateIDs
                           GenomicRanges::mcols(subject))
 
-GenomicRanges::mcols(overlap_data) <- overlap_metadata
+GenomicRanges::mcols(overlap_data) <- overlap_metadata                            # assign metadata
 
 overlap_data <- data.frame(overlap_data)
-
-overlap_data$width <- overlap_data$width - 1
+overlap_data$width <- overlap_data$width - 1                                      # set as proper BED file coordinate (0-based, half-open)
 
 overlap_data <- overlap_data[, c("binID", "stateID", "width")]
 
-length_counts_df <- overlap_data %>% 
-                     dplyr::group_by(binID, stateID) %>% 
-                     dplyr::mutate(length_counts = sum(width)) %>%
+length_counts_df <- overlap_data %>%                                              
+                     dplyr::group_by(binID, stateID) %>%                          # for each bin, for each state
+                     dplyr::mutate(length_counts = sum(width)) %>%                # compute bp as the overlap between a certain state and a bin
                      dplyr::distinct() %>%
                      dplyr::select(-width) %>%
-                     tidyr::pivot_wider(names_from = stateID,
+                     tidyr::pivot_wider(names_from = stateID,                     # each row is a bin, each column is a state
                                         values_from = length_counts)
 
 write.table(x = length_counts_df,                                                 # write output

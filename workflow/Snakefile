@@ -1,18 +1,12 @@
 import pandas as pd
 
-mapping_file = "config/mapping_epigenomes_tt.tsv"
-mapping = pd.read_csv(mapping_file, 
-                      sep = "\t", 
-                      names = ["tt", "eid"], 
-                      header = None)
-
 include: "rules/get_chrom_sizes.smk"
 include: "rules/get_backbone_file.smk"
 include: "rules/get_blacklisted_regions.smk"
 include: "rules/filter_backbone.smk"
 include: "rules/get_epigenomes_paths.smk"
 include: "rules/get_epigenomes_files.smk"
-
+include: "rules/get_mapping_eID_tt.smk"
 
 wildcard_constraints:
     step = "[0-9]+"
@@ -23,9 +17,13 @@ steps = config["steps"]
 
 file_format = config["file_format"]
 is_liftover = config["is_liftover"]
-tumor_type = config["tumor_type"] if config["tumor_type"][0] != "pancancer" else mapping.tt.tolist()
 
-epigenome_ids = mapping[mapping.tt.isin(tumor_type)]["eid"].tolist()
+def get_epigenome_ids(wildcards):
+    mapping_file = checkpoints.get_mapping_eID_tt.get(**wildcards).output[0]
+    mapping = pd.read_csv(mapping_file, sep = "\t", header = 0)
+    tissue_type = config["tissue_type"] if config["tissue_type"][0] != "pancancer" else mapping.tissue_type.tolist()
+    epigenome_ids = mapping[mapping.tissue_type.isin(tissue_type)]["epigenome_id"].tolist()
+    return epigenome_ids
 
 rule all:
     input:
@@ -44,8 +42,8 @@ rule all:
             step = 0
         ),
         get_epigenomes_files =  expand(
-            "resources/roadmap_epigenomes_download_log_{tumor_type}_{is_liftover}_{file_format}",
-            tumor_type = config["tumor_type"], 
+            "resources/roadmap_epigenomes_download_log_{tissue_type}_{is_liftover}_{file_format}",
+            tissue_type = config["tissue_type"], 
             is_liftover = is_liftover, 
             file_format = file_format
         )
