@@ -1,12 +1,35 @@
 import pandas as pd
 
+def get_epigenome_ids(wildcards):
+    mapping_file = checkpoints.get_mapping_eID_tt.get(**wildcards).output[0]
+    mapping = pd.read_csv(mapping_file, sep = "\t", header = 0)
+    tissue_type = config["tissue_type"] if config["tissue_type"][0] != "pancancer" else mapping.tissue_type.tolist()
+    epigenome_ids = mapping[mapping.tissue_type.isin(tissue_type)]["epigenome_id"].tolist()
+    return epigenome_ids
+
+def get_epigenome_bed(wildcards):
+    epigenome_files=checkpoints.get_epigenome_files.get(
+            tissue_type=config["tissue_type"][0],
+            is_liftover=config["is_liftover"][0],
+            file_format=config["file_format"][0]
+            ).output[0]
+
+    with open(epigenome_files) as f:
+        epigenomes = f.readlines()
+    
+    selected_epigenome = [epigenome.rstrip() for epigenome in epigenomes if epigenome.rstrip().startswith(wildcards.eID)][0]
+    
+    return "data/" + selected_epigenome
+
+
 include: "rules/get_chrom_sizes.smk"
 include: "rules/get_backbone_file.smk"
 include: "rules/get_blacklisted_regions.smk"
 include: "rules/filter_backbone.smk"
-include: "rules/get_epigenomes_paths.smk"
-include: "rules/get_epigenomes_files.smk"
+include: "rules/get_epigenome_paths.smk"
+include: "rules/get_epigenome_files.smk"
 include: "rules/get_mapping_eID_tt.smk"
+include: "rules/process_epigenome.smk"
 
 wildcard_constraints:
     step = "[0-9]+"
@@ -17,13 +40,7 @@ steps = config["steps"]
 
 file_format = config["file_format"]
 is_liftover = config["is_liftover"]
-
-def get_epigenome_ids(wildcards):
-    mapping_file = checkpoints.get_mapping_eID_tt.get(**wildcards).output[0]
-    mapping = pd.read_csv(mapping_file, sep = "\t", header = 0)
-    tissue_type = config["tissue_type"] if config["tissue_type"][0] != "pancancer" else mapping.tissue_type.tolist()
-    epigenome_ids = mapping[mapping.tissue_type.isin(tissue_type)]["epigenome_id"].tolist()
-    return epigenome_ids
+liftover_str = "_hg38lift" if is_liftover else ""
 
 rule all:
     input:
@@ -43,7 +60,27 @@ rule all:
         ),
         get_epigenomes_files =  expand(
             "resources/roadmap_epigenomes_download_log_{tissue_type}_{is_liftover}_{file_format}",
-            tissue_type = config["tissue_type"], 
+            tissue_type = config["tissue_type"][0], 
             is_liftover = is_liftover, 
             file_format = file_format
+        ),
+        process_epigenomes = lambda wildcards: expand(
+            "data/{eID}_25_imputed12marks{liftover_str}_{file_format}_{assembly_code}_{window_mode}_{window_size}_{step}.tsv",
+            eID = get_epigenome_ids(wildcards),
+            liftover_str = liftover_str,
+            file_format = file_format,
+            assembly_code = assembly_codes,
+            window_mode = "o",
+            window_size = window_sizes,
+            step = steps
+            ) + 
+        expand(
+            "data/{eID}_25_imputed12marks{liftover_str}_{file_format}_{assembly_code}_{window_mode}_{window_size}_{step}.tsv",
+            eID = get_epigenome_ids(wildcards),
+            liftover_str = liftover_str,
+            file_format = file_format,
+            assembly_code = assembly_codes,
+            window_mode = "no",
+            window_size = window_sizes,
+            step = 0
         )

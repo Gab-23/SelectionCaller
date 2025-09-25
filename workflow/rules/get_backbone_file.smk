@@ -12,5 +12,5 @@ rule get_backbone_file:
         --output_path={output} \
         --window_mode="{wildcards.window_mode}" \
         --window_size={wildcards.window_size} \
-        --step={wildcards.step} 
+        --step={wildcards.step}
         """

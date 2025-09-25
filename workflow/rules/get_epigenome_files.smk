@@ -1,4 +1,4 @@
-rule get_epigenome_files:
+checkpoint get_epigenome_files:
     output:
         "resources/roadmap_epigenomes_download_log_{tissue_type}_{is_liftover}_{file_format}"
     input:
