@@ -26,6 +26,8 @@ overlap_metadata <- cbind(GenomicRanges::mcols(query),                          
 GenomicRanges::mcols(overlap_data) <- overlap_metadata                            # assign metadata
 
 overlap_data <- data.frame(overlap_data)
+colnames(overlap_data) <- c("chr", "start", "end", "width", "strand", "binID", "stateID")
+
 overlap_data$width <- overlap_data$width - 1                                      # set as proper BED file coordinate (0-based, half-open)
 
 overlap_data <- overlap_data[, c("binID", "stateID", "width")]
@@ -33,15 +35,17 @@ overlap_data <- overlap_data[, c("binID", "stateID", "width")]
 length_counts_df <- overlap_data %>%                                              
                      dplyr::group_by(binID, stateID) %>%                          # for each bin, for each state
                      dplyr::mutate(length_counts = sum(width)) %>%                # compute bp as the overlap between a certain state and a bin
+                     dplyr::ungroup() %>%
+                     dplyr::select(-width) %>%                
                      dplyr::distinct() %>%
-                     dplyr::select(-width) %>%
                      tidyr::pivot_wider(names_from = stateID,                     # each row is a bin, each column is a state
-                                        values_from = length_counts)
+                                        values_from = length_counts,
+                                        values_fill = 0)                          # if an overlap between a bin and a state is not found, it's 0
 
 write.table(x = length_counts_df,                                                 # write output
             file = output_path, 
             quote = F, 
             sep = "\t", 
             row.names = F, 
-            col.names = F)
+            col.names = T)
 
