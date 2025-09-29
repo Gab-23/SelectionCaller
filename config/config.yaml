@@ -2,11 +2,12 @@ assembly_codes:
  - hg38
 
 window_sizes:
- - 10000
  - 1000000
 
 steps:
+ - 1000
  - 2000
+ - 5000
 
 tissue_type:
  - BREAST

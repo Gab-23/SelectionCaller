@@ -1,13 +1,4 @@
-options(scipen=999)                                                               # unable scientific notation           
-
-args <- R.utils::commandArgs(trailingOnly = TRUE, asValues = TRUE)                # read args
-
-
-epigenome_path       <- args$epigenome_path
-backbone_path        <- args$backbone_path
-output_path          <- args$output_path
-
-`%>%` <- magrittr::`%>%`
+compute_state_length <- function(epigenome_path, backbone_path, epigenome_output_path){
 
 epigenome <- rtracklayer::import.bed(epigenome_path)
 backbone  <- rtracklayer::import.bed(backbone_path)
@@ -32,7 +23,7 @@ overlap_data$width <- overlap_data$width - 1                                    
 
 overlap_data <- overlap_data[, c("binID", "stateID", "width")]
 
-length_counts_df <- overlap_data %>%                                              
+length_state_df <- overlap_data %>%                                              
                      dplyr::group_by(binID, stateID) %>%                          # for each bin, for each state
                      dplyr::mutate(length_counts = sum(width)) %>%                # compute bp as the overlap between a certain state and a bin
                      dplyr::ungroup() %>%
@@ -42,10 +33,11 @@ length_counts_df <- overlap_data %>%
                                         values_from = length_counts,
                                         values_fill = 0)                          # if an overlap between a bin and a state is not found, it's 0
 
-write.table(x = length_counts_df,                                                 # write output
-            file = output_path, 
+write.table(x = length_state_df,                                                  # write output
+            file = epigenome_output_path, 
             quote = F, 
             sep = "\t", 
             row.names = F, 
             col.names = T)
 
+}
