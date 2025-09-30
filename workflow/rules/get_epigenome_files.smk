@@ -1,8 +1,8 @@
 rule get_epigenome_files:
     output:
-        "resources/roadmap_epigenomes_download_log_{tissue_type}_{liftover_str}_{file_format}"
+        "resources/roadmap_epigenomes_download_log_{tissue_type}_{sample_type}_{liftover_str}_{file_format}"
     input:
-	    "resources/roadmap_epigenomes_index_{tissue_type}_{liftover_str}_{file_format}"  
+	    "resources/roadmap_epigenomes_index_{tissue_type}_{sample_type}_{liftover_str}_{file_format}"  
     shell:
         r"""
         xargs -I{{}} sh -c '

@@ -15,7 +15,7 @@ output_path_parts <- paste0(strsplit(x = gsub(x = output_path,
                                          replacement = ""
                                          ), 
                                     split = "_"
-                                    )[[1]][-1], 
+                                    )[[1]][c(-1,-2)], 
                            collapse = "_"
                            )
 

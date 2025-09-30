@@ -1,11 +1,19 @@
 import pandas as pd
 
 def get_epigenome_ids(wildcards):
+
     mapping_file = checkpoints.get_mapping_eID_tt.get(**wildcards).output[0]
     mapping = pd.read_csv(mapping_file, sep = "\t", header = 0)
-    tissue_type = config["tissue_type"] if config["tissue_type"][0] != "pancancer" else mapping.tissue_type.tolist()
-    epigenome_ids = mapping[mapping.tissue_type.isin(tissue_type)]["epigenome_id"].tolist()
-    return epigenome_ids
+    
+    tissue_type = config["tissue_type"] if config["tissue_type"][0] != "anyTissue" else mapping.tissue_type.tolist()
+    sample_type = config["sample_type"] if config["sample_type"][0] != "anySample" else mapping.sample_type.tolist()
+    
+    epigenome_ids = mapping[((mapping.tissue_type.isin(tissue_type)) & (mapping.sample_type.isin(sample_type)))]["epigenome_id"].tolist()
+    
+    if len(epigenome_ids) == 0:
+        raise ValueError('Empty DataFrame')
+    else:
+        return epigenome_ids
 
 include: "rules/get_chrom_sizes.smk"
 include: "rules/get_backbone_file.smk"
@@ -30,9 +38,10 @@ liftover_str = "hg38lift" if is_liftover else ""
 
 rule all:
     input:
-        get_processed_epigenones = expand(
-            "data/{tissue_type}_aggregated_{liftover_str}_{file_format}_{assembly_code}_{window_mode}_{window_size}_{step}.tsv",
+        get_processed_epigenomes = expand(
+            "data/{tissue_type}_{sample_type}_aggregated_{liftover_str}_{file_format}_{assembly_code}_{window_mode}_{window_size}_{step}.tsv",
             tissue_type = config["tissue_type"][0],
+            sample_type = config["sample_type"][0],
             liftover_str = liftover_str,
             file_format = file_format,
             assembly_code = assembly_codes,
@@ -41,8 +50,9 @@ rule all:
             step = 0
         ) + 
         expand(
-        "data/{tissue_type}_aggregated_{liftover_str}_{file_format}_{assembly_code}_{window_mode}_{window_size}_{step}.tsv",
+        "data/{tissue_type}_{sample_type}_aggregated_{liftover_str}_{file_format}_{assembly_code}_{window_mode}_{window_size}_{step}.tsv",
             tissue_type = config["tissue_type"][0],
+            sample_type = config["sample_type"][0],
             liftover_str = liftover_str,
             file_format = file_format,
             assembly_code = assembly_codes,

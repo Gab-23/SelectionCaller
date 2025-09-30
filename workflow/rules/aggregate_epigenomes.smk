@@ -1,8 +1,8 @@
 rule aggregate_epigenomes:
     output:
-        "data/{tissue_type}_aggregated_{liftover_str}_{file_format}_{assembly_code}_{window_mode}_{window_size}_{step}.tsv"
+        "data/{tissue_type}_{sample_type}_aggregated_{liftover_str}_{file_format}_{assembly_code}_{window_mode}_{window_size}_{step}.tsv"
     input:
-        "resources/epigenomes_processing_log_{tissue_type}_{liftover_str}_{file_format}_{assembly_code}_{window_mode}_{window_size}_{step}"
+        "resources/epigenomes_processing_log_{tissue_type}_{sample_type}_{liftover_str}_{file_format}_{assembly_code}_{window_mode}_{window_size}_{step}"
     conda:
         "../envs/r_roadmap.yml"
     shell:
