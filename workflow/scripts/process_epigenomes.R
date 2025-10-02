@@ -10,7 +10,7 @@ output_path            <- args$output_path
 
 `%>%` <- magrittr::`%>%`
 
-output_path_parts <- paste0(strsplit(x = gsub(x = output_path, 
+output_path_parts <- paste0(strsplit(x = gsub(x = output_path,                    # split file name into parts
                                          pattern = "resources/epigenomes_processing_log_", 
                                          replacement = ""
                                          ), 
@@ -19,19 +19,19 @@ output_path_parts <- paste0(strsplit(x = gsub(x = output_path,
                            collapse = "_"
                            )
 
-epigenomes_paths <- readLines(epigenomes_paths)
+epigenomes_paths <- readLines(epigenomes_paths)                                   # read file with epigenome paths
 
-output_files <- sapply(X = epigenomes_paths, 
+output_files <- sapply(X = epigenomes_paths,                                      # for each epigenome
                        FUN = function(x){
-                            epigenome_id <- strsplit(x = x, split = "_")[[1]][1]
-                            epigenome_output_path <- paste0(epigenome_id, "_", output_path_parts, ".tsv")
-                            state_length <- compute_state_length(x, backbone_path, epigenome_output_path)
-                            return(epigenome_output_path)
+                            epigenome_id <- strsplit(x = x, split = "_")[[1]][1]  # take the id
+                            epigenome_output_path <- paste0(epigenome_id, "_", output_path_parts, ".tsv") # build the output path
+                            state_length <- compute_state_length(x, backbone_path, epigenome_output_path) # compute the matrix bin x state
+                            return(epigenome_output_path)                                                 # return the path                             
                        }, 
                        simplify = TRUE, 
                        USE.NAMES = FALSE
                       )
 
-writeLines(text = output_files, 
+writeLines(text = output_files, #write the paths in a file
            con = output_path, 
            sep = "\n")

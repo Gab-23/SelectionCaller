@@ -1,4 +1,4 @@
-generate_backbone <- function(windows){
+generate_backbone <- function(windows){                                                       # windows is a df with chr start end
   
   `%>%` <- magrittr::`%>%`
 

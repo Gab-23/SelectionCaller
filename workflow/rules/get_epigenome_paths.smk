@@ -6,13 +6,13 @@ rule get_epigenome_paths:
     params:
         input_url = "https://egg2.wustl.edu/roadmap/data/byFileType/chromhmmSegmentations/ChmmModels/imputed12marks/jointModel/final/",
         ids = lambda wildcards: "|".join(get_epigenome_ids(wildcards)),
-        conditional_grep = lambda wildcards: 'grep -E hg38lift' if wildcards.liftover_str else ''
+        conditional_grep = lambda wildcards: '| grep -E hg38lift' if wildcards.liftover_str == 'hg38lift' else '| grep -vE hg38lift'
     shell:
         """
         wget -qO- {params.input_url} | \
         grep -oE '"E[0-9]+[^"]*"' | \
         awk -v prefix="{params.input_url}" '{{gsub(/"/, "", $1); print prefix $1}}' | \
         grep -E "{params.ids}" | \
-        grep -E "{wildcards.file_format}.bed.gz" | \
+        grep -E "{wildcards.file_format}.bed.gz" \
         {params.conditional_grep} > {output}
         """

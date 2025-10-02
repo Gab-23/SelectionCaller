@@ -1,0 +1,12 @@
+DATASET:
+    ROADMAP:
+        - add unit tests
+        - add multiple genomes
+	- add multiple samplees
+	- add multiple tisssues
+    GENE LIST:
+        - talk to ale
+    CRE LIST:
+        - talk to ale
+    Hi-C:
+        - talk to zhan

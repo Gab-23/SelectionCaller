@@ -5,16 +5,13 @@ window_sizes:
  - 1000000
 
 steps:
- - 10000
+ - 50000
 
-tissue_type:
+tissue_types:
  - BREAST
 
-sample_type:
+sample_types:
  - anySample
 
-is_liftover:
- - True
-
-file_format:
+file_formats:
  - mnemonics
