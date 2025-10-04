@@ -1,3 +1,16 @@
+include: "rules/get_chrom_sizes.smk"
+include: "rules/get_backbone_file.smk"
+include: "rules/get_blacklisted_regions.smk"
+include: "rules/filter_backbone.smk"
+include: "rules/get_epigenome_paths.smk"
+include: "rules/get_epigenome_files.smk"
+include: "rules/get_mapping_eID_tt.smk"
+include: "rules/process_epigenomes.smk"
+include: "rules/aggregate_epigenomes.smk"
+
+wildcard_constraints:
+    step = "[0-9]+"
+
 import pandas as pd
 
 def get_epigenome_ids(wildcards):
@@ -15,47 +28,30 @@ def get_epigenome_ids(wildcards):
     else:
         return epigenome_ids
 
-include: "rules/get_chrom_sizes.smk"
-include: "rules/get_backbone_file.smk"
-include: "rules/get_blacklisted_regions.smk"
-include: "rules/filter_backbone.smk"
-include: "rules/get_epigenome_paths.smk"
-include: "rules/get_epigenome_files.smk"
-include: "rules/get_mapping_eID_tt.smk"
-include: "rules/process_epigenomes.smk"
-include: "rules/aggregate_epigenomes.smk"
-
-wildcard_constraints:
-    step = "[0-9]+"
-
 assembly_codes = config["assembly_codes"]
 tissue_types = config["tissue_types"]
 sample_types = config["sample_types"]
 file_formats = config["file_formats"]
 
-#### TEMPORARY CONSTRAINTS FOR DEBUGGING PURPOSES ####
-
 if len(assembly_codes) > 1:
-    raise ValueError("Temporary error, multiple assemblies selected")
+    raise ValueError("ERROR, multiple assemblies selected")
 else:
     assembly_code = assembly_codes[0]
     is_liftover = True if assembly_code == "hg38" else False
     liftover_str = "hg38lift" if is_liftover else "noliftover"
 
 if len(tissue_types) > 1:
-    raise ValueError("Temporary error, multiple tissue_types selected")
+    raise ValueError("ERROR, multiple tissue_types selected")
 else:
     tissue_type = tissue_types[0]
 
 if len(sample_types) > 1:
-    raise ValueError("Temporary error, multiple sample types selected")
+    raise ValueError("ERROR, multiple sample types selected")
 else:
     sample_type = sample_types[0]
 
-#### TEMPORARY CONSTRAINTS FOR DEBUGGING PURPOSES ####
-
 if len(file_formats) > 1:
-    raise ValueError("Temporary error, multiple file formats selected")
+    raise ValueError("ERROR, multiple file formats selected")
 else:
     file_format = file_formats[0]
 
@@ -74,15 +70,15 @@ rule all:
             window_mode = "no",
             window_size = window_sizes,
             step = 0
-        ) + 
-        expand(
-        "data/{tissue_type}_{sample_type}_aggregated_{liftover_str}_{file_format}_{assembly_code}_{window_mode}_{window_size}_{step}.tsv",
-            tissue_type = tissue_type,
-            sample_type = sample_type,
-            liftover_str = liftover_str,
-            file_format = file_format,
-            assembly_code = assembly_code,
-            window_mode = "o",
-            window_size = window_sizes,
-            step = steps
-        )
+        ) # +
+#        expand(
+#        "data/{tissue_type}_{sample_type}_aggregated_{liftover_str}_{file_format}_{assembly_code}_{window_mode}_{window_size}_{step}.tsv",
+#            tissue_type = tissue_type,
+#            sample_type = sample_type,
+#            liftover_str = liftover_str,
+#            file_format = file_format,
+#            assembly_code = assembly_code,
+#            window_mode = "o",
+#            window_size = window_sizes,
+#            step = steps
+#        )

@@ -11,5 +11,6 @@ rule process_epigenome:
         Rscript workflow/scripts/process_epigenomes.R \
         --epigenomes_paths={input.epigenomes_paths} \
         --backbone_path={input.backbone_path} \
-        --output_path={output}
+        --output_path={output} \
+        --is_dummy_call=F
         """

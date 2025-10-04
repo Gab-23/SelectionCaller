@@ -22,6 +22,9 @@ average_epigenome <- dplyr::bind_rows(epigenome_list) %>%                       
                      dplyr::arrange(
                         as.integer(sub(x = binID, "_(.*)", "")),                  # order for chr, bin
                         as.integer(sub(x = binID, "(.*?)_", ""))) %>%
+                     dplyr::mutate(
+                        dplyr::across(where(is.numeric), ~ tidyr::replace_na(.,0))
+                     ) %>%
                      dplyr::select(
                         binID,
                         all_of(setdiff(colnames(.), "binID")[order(as.integer(sub(x = setdiff(colnames(.), "binID"), "_(.*)", "")))]) # order for chromatin state

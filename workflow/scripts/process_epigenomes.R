@@ -7,8 +7,11 @@ args <- R.utils::commandArgs(trailingOnly = TRUE, asValues = TRUE)              
 epigenomes_paths       <- args$epigenomes_paths
 backbone_path          <- args$backbone_path
 output_path            <- args$output_path
+is_dummy_call          <- as.logical(args$is_dummy_call)
 
 `%>%` <- magrittr::`%>%`
+
+if(!(is_dummy_call)){
 
 output_path_parts <- paste0(strsplit(x = gsub(x = output_path,                    # split file name into parts
                                          pattern = "resources/epigenomes_processing_log_", 
@@ -18,6 +21,12 @@ output_path_parts <- paste0(strsplit(x = gsub(x = output_path,                  
                                     )[[1]][c(-1,-2)], 
                            collapse = "_"
                            )
+
+} else {
+
+output_path_parts <- "dummy_processed"
+
+}
 
 epigenomes_paths <- readLines(epigenomes_paths)                                   # read file with epigenome paths
 
