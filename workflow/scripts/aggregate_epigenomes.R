@@ -1,4 +1,4 @@
-source("workflow/scripts/import_epigenome.R")
+source("workflow/scripts/import_table.R")
 
 options(scipen=999)                                                               # unable scientific notation           
 
@@ -11,7 +11,7 @@ output_path            <- args$output_path
 
 file_names <- readLines(input_path)
 
-epigenome_list <- lapply(X = file_names, FUN = import_epigenome)
+epigenome_list <- lapply(X = file_names, FUN = import_table)
 
 average_epigenome <- dplyr::bind_rows(epigenome_list) %>%                         # columns are matched by names, if a column is missing, filled by NA
                      dplyr::group_by(binID) %>%                                   # group by binID

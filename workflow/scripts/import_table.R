@@ -1,10 +1,10 @@
-import_epigenome <- function(epigenome_path){
+import_table <- function(table_path){
 
-    epigenome <- read.table(file = epigenome_path,
+    table <- read.table(file = table_path,
                             header = TRUE, 
                             sep = "\t", 
                             quote = "",
                             check.names = FALSE)
 
-    return(epigenome)
+    return(table)
 }

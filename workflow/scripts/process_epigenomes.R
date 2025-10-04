@@ -7,11 +7,11 @@ args <- R.utils::commandArgs(trailingOnly = TRUE, asValues = TRUE)              
 epigenomes_paths       <- args$epigenomes_paths
 backbone_path          <- args$backbone_path
 output_path            <- args$output_path
-is_dummy_call          <- as.logical(args$is_dummy_call)
+is_test_call          <- as.logical(args$is_test_call)
 
 `%>%` <- magrittr::`%>%`
 
-if(!(is_dummy_call)){
+if(!(is_test_call)){                                                             # are we calling this script to test, or for real use?
 
 output_path_parts <- paste0(strsplit(x = gsub(x = output_path,                    # split file name into parts
                                          pattern = "resources/epigenomes_processing_log_", 
