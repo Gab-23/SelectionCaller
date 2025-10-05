@@ -1,8 +1,8 @@
 rule test_aggregate_epigenomes:
     output:
-	    "unittest/roadmap/output/aggregate_epigenomes_dummy_result.tsv"
+	    "unittest/roadmap/input/aggregate_epigenomes_observed_output.tsv"
     input:
-        "unittest/roadmap/output/process_epigenomes_dummy_result"
+        "unittest/roadmap/input/process_epigenomes_observed_output"
     conda:
         "../envs/r_roadmap.yml"
     shell:

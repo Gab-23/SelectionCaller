@@ -7,6 +7,10 @@ include: "rules/get_epigenome_files.smk"
 include: "rules/get_mapping_eID_tt.smk"
 include: "rules/process_epigenomes.smk"
 include: "rules/aggregate_epigenomes.smk"
+include: "rules/test_process_epigenomes.smk"
+include: "rules/test_aggregate_epigenomes.smk"
+include: "rules/assert_roadmap_processing.smk"
+
 
 wildcard_constraints:
     step = "[0-9]+"
@@ -60,6 +64,7 @@ steps = config["steps"]
 
 rule all:
     input:
+        assert_roadmap_processing = "unittest/roadmap/output/assert_roadmap_processing_log",
         get_processed_epigenomes = expand(
             "data/{tissue_type}_{sample_type}_aggregated_{liftover_str}_{file_format}_{assembly_code}_{window_mode}_{window_size}_{step}.tsv",
             tissue_type = tissue_type,

@@ -1,17 +1,18 @@
 assembly_codes:
- - hg38
+ - hg19
 
 window_sizes:
- - 1000000
+ - 100000
 
 steps:
+ - 100000
  - 50000
 
 tissue_types:
  - BREAST
 
 sample_types:
- - anySample
+ - PrimaryCulture
 
 file_formats:
  - mnemonics
