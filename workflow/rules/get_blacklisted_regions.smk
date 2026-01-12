@@ -2,7 +2,7 @@ rule get_blacklisted_regions:
     output:
 	    "resources/blacklist/{assembly_code}.bed"
     input:
-        "resources/reference_data/chrom_sizes/{assembly_code}.clean.chrom.sizes"
+        "resources/reference_data/chrom_sizes/{assembly_code}.chrom.sizes"
     log:
         "logs/get_blacklisted_regions/{assembly_code}.log"
     conda:

@@ -4,7 +4,7 @@ rule filter_backbone:
     input:
         backbone="resources/backbone/{assembly_code}_{window_mode}_{window_size}_{step}.tsv",
         blacklist="resources/blacklist/{assembly_code}.bed",
-        chrom_sizes="resources/reference_data/chrom_sizes/{assembly_code}.clean.chrom.sizes"
+        chrom_sizes="resources/reference_data/chrom_sizes/{assembly_code}.chrom.sizes"
     log:
         "logs/filter_backbone/{assembly_code}_{window_mode}_{window_size}_{step}.log"
     conda:

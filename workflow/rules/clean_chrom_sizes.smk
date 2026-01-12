@@ -7,5 +7,5 @@ rule clean_chrom_sizes:
         "logs/clean_chrom_sizes/{assembly_code}.log"
     shell:
         """
-	    cat {input} | grep -v "_" > {output} 2> {log}
+	    cat {input} | grep -v ["_XMY"] > {output} 2> {log}
         """
