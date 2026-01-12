@@ -12,4 +12,7 @@ checkpoint assert_roadmap_processing:
         rm unittest/roadmap/input/process_epigenomes_observed_output
         rm unittest/roadmap/input/aggregate_epigenomes_observed_output.tsv
         """
+    onerror:
+        shell("echo "The checkpoint failed during assert_roadmap_processing" | \
+               mail -s "assert_roadmap_processing checkpoint failed" $USER")    
     

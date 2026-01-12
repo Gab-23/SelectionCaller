@@ -1,8 +1,10 @@
 rule get_blacklisted_regions:
     output:
-	    "resources/{assembly_code}_blacklist.bed"
+	    "resources/blacklist/{assembly_code}.bed"
     input:
-        "resources/{assembly_code}.chrom.sizes"
+        "resources/reference_data/chrom_sizes/{assembly_code}.clean.chrom.sizes"
+    log:
+        "logs/get_blacklisted_regions/{assembly_code}.log"
     conda:
         "../envs/filter_backbone.yml"
     shell:

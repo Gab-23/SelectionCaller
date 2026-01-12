@@ -1,7 +1,9 @@
 rule get_chrom_sizes:
     output:
-	    "resources/{assembly_code}.chrom.sizes"
+	    "resources/reference_data/chrom_sizes/{assembly_code}.chrom.sizes"
+    log:
+        "logs/get_chrom_sizes/{assembly_code}.log"
     shell:
         """
-	    wget -qP resources/ https://hgdownload.cse.ucsc.edu/goldenpath/{wildcards.assembly_code}/bigZips/{wildcards.assembly_code}.chrom.sizes 
+	    wget -qP resources/reference_data/chrom_sizes/ https://hgdownload.cse.ucsc.edu/goldenpath/{wildcards.assembly_code}/bigZips/{wildcards.assembly_code}.chrom.sizes 2> {log}
         """

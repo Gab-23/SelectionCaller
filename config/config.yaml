@@ -2,7 +2,7 @@ assembly_codes:
  - hg19
 
 window_sizes:
- - 100000
+ - 10000
 
 steps:
  - 100000

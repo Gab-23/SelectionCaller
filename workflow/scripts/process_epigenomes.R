@@ -1,4 +1,4 @@
-source("workflow/scripts/compute_state_length.R")
+source("workflow/scripts/helpers/compute_state_length.R")
 
 options(scipen=999)                                                               # unable scientific notation           
 
@@ -13,8 +13,8 @@ is_test_call          <- as.logical(args$is_test_call)
 
 if(!(is_test_call)){                                                             # are we calling this script to test, or for real use?
 
-output_path_parts <- paste0(strsplit(x = gsub(x = output_path,                    # split file name into parts
-                                         pattern = "resources/epigenomes_processing_log_", 
+output_path_parts <- paste0(strsplit(x = gsub(x = output_path,                   # split file name into parts
+                                         pattern = "resources/epigenomes/checks/processing/", 
                                          replacement = ""
                                          ), 
                                     split = "_"

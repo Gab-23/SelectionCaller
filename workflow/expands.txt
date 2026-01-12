@@ -1,0 +1,23 @@
+"unittest/roadmap/output/assert_roadmap_processing_log",
+        expand(
+            "data/{tissue_type}_{sample_type}_aggregated_{liftover_str}_{file_format}_{assembly_code}_{window_mode}_{window_size}_{step}.tsv",
+                tissue_type = tissue_type,
+                sample_type = sample_type,
+                liftover_str = liftover_str,
+                file_format = file_format,
+                assembly_code = assembly_code,
+                window_mode = "no",
+                window_size = window_sizes,
+                step = 0
+        ),
+        expand(
+            "data/{tissue_type}_{sample_type}_aggregated_{liftover_str}_{file_format}_{assembly_code}_{window_mode}_{window_size}_{step}.tsv",
+                tissue_type = tissue_type,
+                sample_type = sample_type,
+                liftover_str = liftover_str,
+                file_format = file_format,
+                assembly_code = assembly_code,
+                window_mode = "o",
+                window_size = window_sizes,
+                step = steps
+        )

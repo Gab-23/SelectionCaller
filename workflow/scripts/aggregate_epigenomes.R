@@ -1,4 +1,4 @@
-source("workflow/scripts/import_table.R")
+source("workflow/scripts/helpers/import_table.R")
 
 options(scipen=999)                                                               # unable scientific notation           
 
