@@ -1,0 +1,14 @@
+DO ts models
+
+I will download the GENCODE annotation v45, because it matches 
+the genome assembly of the latest released IntOGen database AND the VEP release 111
+Here for more details: https://www.biostars.org/p/9522175/
+
+IntOGen has been downloaded from https://www.intogen.org/download?file=IntOGen-Drivers-20240920.zip (latest as of Jan 2026)
+because of lack of programmatic download options. Downloaded and inserted as is (just shifting one directory up after zipping)
+
+From IntOGen docs https://intogen.readthedocs.io/en/v2023/postprocessing.html#mode-of-action-of-driver-genes (latest as of Jan 2026)
+We then applied the aforementioned algorithm to classify driver genes into the three possible roles: 
+- Act (activating or oncogene), 
+- LoF (loss-of-function or tumor suppressor) or 
+- Amb (ambiguous or non-defined).

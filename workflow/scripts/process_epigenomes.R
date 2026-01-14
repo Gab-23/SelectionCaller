@@ -7,7 +7,7 @@ args <- R.utils::commandArgs(trailingOnly = TRUE, asValues = TRUE)              
 epigenomes_paths       <- args$epigenomes_paths
 backbone_path          <- args$backbone_path
 output_path            <- args$output_path
-is_test_call          <- as.logical(args$is_test_call)
+is_test_call           <- as.logical(args$is_test_call)
 
 `%>%` <- magrittr::`%>%`
 

@@ -1,8 +1,8 @@
-checkpoint get_mapping_eID_tt:
+checkpoint get_mapping_EID_tt:
     output:
-	    "resources/epigenomes/mapping_eID_tt.tsv"
+	    "config/mapping_EID_tt.tsv"
     log:
-        "logs/get_mapping_eID_tt/get_mapping_eID_tt.tsv"
+        "logs/get_mapping_EID_tt/get_mapping_EID_tt.tsv"
     shell:
         """
         wget -qO- "https://docs.google.com/spreadsheets/d/1yikGx4MsO9Ei36b64yOy9Vb6oPC5IBGlFbYEt-N6gOM/export?format=tsv&gid=15" | \

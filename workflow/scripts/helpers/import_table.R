@@ -1,8 +1,8 @@
-import_table <- function(table_path){
+import_table <- function(table_path, header = TRUE, sep = "\t"){
 
     table <- read.table(file = table_path,
-                            header = TRUE, 
-                            sep = "\t", 
+                            header = header, 
+                            sep = sep, 
                             quote = "",
                             check.names = FALSE)
 

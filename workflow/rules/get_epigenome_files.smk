@@ -1,10 +1,10 @@
 rule get_epigenome_files:
     output:
-        "resources/epigenomes/checks/downloads/{tissue_type}_{sample_type}_{liftover_str}_{file_format}"
+        "resources/epigenomes/checks/downloads/{tissue_type_Roadmap}_{sample_type}_{liftover_str}_{file_format}"
     input:
-	    "resources/epigenomes/checks/paths/{tissue_type}_{sample_type}_{liftover_str}_{file_format}"
+	    "resources/epigenomes/checks/paths/{tissue_type_Roadmap}_{sample_type}_{liftover_str}_{file_format}"
     log:
-        "logs/get_epigenome_files/{tissue_type}_{sample_type}_{liftover_str}_{file_format}.log"
+        "logs/get_epigenome_files/{tissue_type_Roadmap}_{sample_type}_{liftover_str}_{file_format}.log"
     shell:
         r"""
         xargs -I{{}} sh -c '

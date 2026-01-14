@@ -1,18 +1,35 @@
 assembly_codes:
- - hg19
+ - hg38
+
+gencode_versions:
+ - 45
+
+tss_subsets:
+  - pc
+
+window_modes:
+  - binned
 
 window_sizes:
  - 10000
 
 steps:
- - 100000
- - 50000
+ - 0
 
-tissue_types:
- - BREAST
+tumor_types:
+  - BRCA
 
 sample_types:
  - PrimaryCulture
 
 file_formats:
  - mnemonics
+
+mapping_file_tt_locations:
+  - config/mapping_tissue_tumor_type
+
+IntOGen_locations:
+  - resources/IntOGen/IntOGen-Drivers-20240920/Compendium_Cancer_Genes.tsv
+
+cohorts:
+  - TCGA_WXS_BRCA

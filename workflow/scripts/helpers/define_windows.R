@@ -1,12 +1,12 @@
 define_windows <- function(mode, window_size, step, chrom_sizes_canon){
   
-if(mode %in% c("no", "non-overlapping")){  
+if(mode %in% c("b", "binned")){  
 
 windows <- GenomicRanges::tileGenome(seqlengths = chrom_sizes_canon,              # named numerical vector
                         	           tilewidth = window_size,                     # integer
                                      cut.last.tile.in.chrom = T)                  # remove last smaller window
  
-} else if(mode %in% c("o", "overlapping")){
+} else if(mode %in% c("s", "sliding")){
 
 chrom_spanning_windows <- data.frame(
   seqnames = names(chrom_sizes_canon),                                            # chromosome

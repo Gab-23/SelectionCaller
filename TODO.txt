@@ -10,3 +10,6 @@ DATASET:
         - talk to ale
     Hi-C:
         - talk to zhan
+
+
+create dir in Snakefile or rules

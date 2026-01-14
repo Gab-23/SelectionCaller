@@ -1,4 +1,4 @@
-import pandas as pd
+import pandas
 import os
 
 #epigenome_dir = "resources/epigenomes/roadmap/"
@@ -13,24 +13,34 @@ include: "rules/get_blacklisted_regions.smk"
 
 include: "rules/get_backbone_file.smk"
 include: "rules/filter_backbone.smk"
-include: "rules/get_mapping_eID_tt.smk"
+include: "rules/sort_backbone.smk"
 
+include: "rules/get_mapping_EID_tt.smk"
 include: "rules/get_epigenome_paths.smk"
 include: "rules/get_epigenome_files.smk"
 
 include: "rules/process_epigenomes.smk"
 include: "rules/aggregate_epigenomes.smk"
 
-#include: "rules/test_process_epigenomes.smk"
-#include: "rules/test_aggregate_epigenomes.smk"
-#include: "rules/assert_roadmap_processing.smk"
+include: "rules/get_gencode_annotation.smk"
+include: "rules/get_TSSs.smk"
+include: "rules/sort_TSSs.smk"
 
-def get_epigenome_ids(wildcards):
+include: "rules/process_IntOGen.smk"
+include: "rules/sort_cancer_genes.smk"
+include: "rules/split_cancer_genes.smk"
 
-    mapping_file = checkpoints.get_mapping_eID_tt.get(**wildcards).output[0]
-    mapping = pd.read_csv(mapping_file, sep = "\t", header = 0)
+include: "rules/get_dist_closest_OG.smk"
+include: "rules/get_dist_closest_TSG.smk"
+
+include: "rules/process_dist_to_cancer_genes.smk"
+
+def get_epigenome_ids(wildcards, tissue_type_Roadmap):
+
+    mapping_file = checkpoints.get_mapping_EID_tt.get(**wildcards).output[0]
+    mapping = pandas.read_csv(mapping_file, sep = "\t", header = 0)
     
-    tissue_type = config["tissue_types"] if config["tissue_types"][0] != "anyTissue" else mapping.tissue_type.tolist()
+    tissue_type = [tissue_type_Roadmap] if tissue_type_Roadmap != "anyTissue" else mapping.tissue_type.tolist()
     sample_type = config["sample_types"] if config["sample_types"][0] != "anySample" else mapping.sample_type.tolist()
     
     epigenome_ids = mapping[((mapping.tissue_type.isin(tissue_type)) & (mapping.sample_type.isin(sample_type)))]["epigenome_id"].tolist()
@@ -40,12 +50,39 @@ def get_epigenome_ids(wildcards):
     else:
         return epigenome_ids
 
+def map_tt_acronym(mapping_file_location, tumor_type):
+    try:
+        mapping = pandas.read_csv(mapping_file_location, header = 0, sep = "\t")
+        tissue_type_Roadmap = mapping[mapping.common_name == tumor_type].tissue_type_Roadmap.values[0]
+        tumor_type_IntOGen = mapping[mapping.common_name == tumor_type].tumor_type_IntOGen.values[0]
+        return [tissue_type_Roadmap, tumor_type_IntOGen]
+    except FileNotFoundError as err:
+        print(f"{mapping_file_location} does not exist")
+
+mapping_file_tt_locations = config["mapping_file_tt_locations"]
+
 assembly_codes = config["assembly_codes"]
-tissue_types = config["tissue_types"]
+gencode_versions = config["gencode_versions"]
+tss_subsets = config["tss_subsets"]
+
 sample_types = config["sample_types"]
 file_formats = config["file_formats"]
+
 window_sizes = config["window_sizes"]
+window_modes = config["window_modes"]
 steps = config["steps"]
+
+tumor_types = config["tumor_types"]
+
+IntOGen_locations = config["IntOGen_locations"]
+cohorts = config["cohorts"]
+
+##### 
+
+if len(mapping_file_tt_locations) > 1:
+    raise ValueError("ERROR, multiple mapping_file_location selected")
+else:
+    mapping_file_tt_location = mapping_file_tt_locations[0]
 
 if len(assembly_codes) > 1:
     raise ValueError("ERROR, multiple assemblies selected")
@@ -54,10 +91,15 @@ else:
     is_liftover = True if assembly_code == "hg38" else False
     liftover_str = "hg38lift" if is_liftover else "noliftover"
 
-if len(tissue_types) > 1:
-    raise ValueError("ERROR, multiple tissue_types selected")
+if len(gencode_versions) > 1:
+    raise ValueError("ERROR, multiple gencode_versions selected")
 else:
-    tissue_type = tissue_types[0]
+    gencode_version = gencode_versions[0]
+
+if len(tss_subsets) > 1:
+    raise ValueError("ERROR, multiple tss_subsets selected")
+else:
+    tss_subset = tss_subsets[0]
 
 if len(sample_types) > 1:
     raise ValueError("ERROR, multiple sample types selected")
@@ -69,20 +111,73 @@ if len(file_formats) > 1:
 else:
     file_format = file_formats[0]
 
+if len(window_modes) > 1:
+    raise ValueError("ERROR, multiple window_modes selected")
+else:
+    window_mode = window_modes[0]
+    if window_mode not in ["sliding", "s", "binned", "b"]:
+        raise ValueError(f"ERROR, window_mode must be either 'binned' or 'sliding' [{window_mode}]")
+
+if window_mode == "binned" and any([step > 0 for step in steps]):
+    raise ValueError(f"ERROR, steps ({steps}) cannot be > 0 when window_mode is {window_mode}")
+else:
+    window_mode = window_modes[0]
+
+if len(tumor_types) > 1:
+    raise ValueError("ERROR, multiple tumor_types selected")
+else:
+    tumor_type = tumor_types[0]
+
+if len(IntOGen_locations) > 1:
+    raise ValueError("ERROR, multiple IntOGen_locations selected")
+
+if len(cohorts) > 1:
+    raise ValueError("ERROR, multiple cohorts selected")
+
+#####
+
+tissue_type_Roadmap, tumor_type_IntOGen = map_tt_acronym(mapping_file_tt_location, tumor_type)
+
 rule all:
     input:
         expand(
-            "data/epigenomes/aggregation/{tissue_type}_{sample_type}_{liftover_str}_{file_format}_{assembly_code}_{window_mode}_{window_size}_{step}",
-                tissue_type=tissue_type,
+            "data/distances/TSG/{assembly_code}_{window_mode}_{window_size}_{step}_v{gencode_version}_{tss_subset}_{tumor_type_IntOGen}",
+                assembly_code=assembly_code,
+                window_mode=window_mode,
+                window_size=window_sizes,
+                step=steps,
+                gencode_version=gencode_version,
+                tss_subset=tss_subset,
+                tumor_type_IntOGen=tumor_type_IntOGen
+        ),
+        expand(
+            "data/distances/OG/{assembly_code}_{window_mode}_{window_size}_{step}_v{gencode_version}_{tss_subset}_{tumor_type_IntOGen}",
+                assembly_code=assembly_code,
+                window_mode=window_mode,
+                window_size=window_sizes,
+                step=steps,
+                gencode_version=gencode_version,
+                tss_subset=tss_subset,
+                tumor_type_IntOGen=tumor_type_IntOGen
+        ),
+        expand(
+            "data/epigenomes/{tissue_type_Roadmap}_{sample_type}_{liftover_str}_{file_format}_{assembly_code}_{window_mode}_{window_size}_{step}",
+                tissue_type_Roadmap=tissue_type_Roadmap,
                 sample_type=sample_type,
                 liftover_str=liftover_str,
                 file_format=file_format,
                 assembly_code=assembly_code,
-                window_mode="no",
+                window_mode=window_modes,
                 window_size=window_sizes,
-                step=0
+                step=steps
         )
 
 wildcard_constraints:
+    assembly_code = "hg\\d{2}",
+    gencode_version="[0-9]+",
+    tss_subset="[a-z]+",
+    window_size = "[0-9]+",
     step = "[0-9]+",
-    assembly_code = "hg\\d{2}"
+    window_mode = "[a-z]+",
+    tumor_type_IntOGen = "[A-Z]+"
+    

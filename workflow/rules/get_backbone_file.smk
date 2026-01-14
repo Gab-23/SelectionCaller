@@ -1,6 +1,6 @@
 rule get_backbone_file:
     output:
-	    "resources/backbone/{assembly_code}_{window_mode}_{window_size}_{step}.tsv"
+	    "resources/backbone/{assembly_code}_{window_mode}_{window_size}_{step}.bed"
     input:
         "resources/reference_data/chrom_sizes/{assembly_code}.clean.chrom.sizes"
     log:
