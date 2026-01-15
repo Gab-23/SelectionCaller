@@ -32,8 +32,13 @@ include: "rules/split_cancer_genes.smk"
 
 include: "rules/get_dist_closest_OG.smk"
 include: "rules/get_dist_closest_TSG.smk"
-
 include: "rules/process_dist_to_cancer_genes.smk"
+
+include: "rules/split_gtf.smk"
+include: "rules/sort_gene_classes.smk"
+include: "rules/get_dist_num_overlaps_genes.smk"
+include: "rules/process_dist_to_genes.smk"
+include: "rules/process_num_overlaps.smk"
 
 def get_epigenome_ids(wildcards, tissue_type_Roadmap):
 
@@ -63,7 +68,6 @@ mapping_file_tt_locations = config["mapping_file_tt_locations"]
 
 assembly_codes = config["assembly_codes"]
 gencode_versions = config["gencode_versions"]
-tss_subsets = config["tss_subsets"]
 
 sample_types = config["sample_types"]
 file_formats = config["file_formats"]
@@ -95,11 +99,6 @@ if len(gencode_versions) > 1:
     raise ValueError("ERROR, multiple gencode_versions selected")
 else:
     gencode_version = gencode_versions[0]
-
-if len(tss_subsets) > 1:
-    raise ValueError("ERROR, multiple tss_subsets selected")
-else:
-    tss_subset = tss_subsets[0]
 
 if len(sample_types) > 1:
     raise ValueError("ERROR, multiple sample types selected")
@@ -141,23 +140,37 @@ tissue_type_Roadmap, tumor_type_IntOGen = map_tt_acronym(mapping_file_tt_locatio
 rule all:
     input:
         expand(
-            "data/distances/TSG/{assembly_code}_{window_mode}_{window_size}_{step}_v{gencode_version}_{tss_subset}_{tumor_type_IntOGen}",
+            "data/num_overlaps/PC/{assembly_code}_{window_mode}_{window_size}_{step}_v{gencode_version}",
+                assembly_code=assembly_code,
+                window_mode=window_mode,
+                window_size=window_sizes,
+                step=steps,
+                gencode_version=gencode_version
+        ),
+        expand(
+            "data/distances/PC/{assembly_code}_{window_mode}_{window_size}_{step}_v{gencode_version}",
+                assembly_code=assembly_code,
+                window_mode=window_mode,
+                window_size=window_sizes,
+                step=steps,
+                gencode_version=gencode_version
+        ),
+        expand(
+            "data/distances/TSG/{assembly_code}_{window_mode}_{window_size}_{step}_v{gencode_version}_{tumor_type_IntOGen}",
                 assembly_code=assembly_code,
                 window_mode=window_mode,
                 window_size=window_sizes,
                 step=steps,
                 gencode_version=gencode_version,
-                tss_subset=tss_subset,
                 tumor_type_IntOGen=tumor_type_IntOGen
         ),
         expand(
-            "data/distances/OG/{assembly_code}_{window_mode}_{window_size}_{step}_v{gencode_version}_{tss_subset}_{tumor_type_IntOGen}",
+            "data/distances/OG/{assembly_code}_{window_mode}_{window_size}_{step}_v{gencode_version}_{tumor_type_IntOGen}",
                 assembly_code=assembly_code,
                 window_mode=window_mode,
                 window_size=window_sizes,
                 step=steps,
                 gencode_version=gencode_version,
-                tss_subset=tss_subset,
                 tumor_type_IntOGen=tumor_type_IntOGen
         ),
         expand(

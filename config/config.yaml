@@ -4,14 +4,11 @@ assembly_codes:
 gencode_versions:
  - 45
 
-tss_subsets:
-  - pc
-
 window_modes:
   - binned
 
 window_sizes:
- - 10000
+ - 1000
 
 steps:
  - 0

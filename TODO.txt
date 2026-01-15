@@ -1,6 +1,5 @@
 DATASET:
     ROADMAP:
-        - add unit tests
         - add multiple genomes
 	- add multiple samplees
 	- add multiple tisssues
@@ -13,3 +12,4 @@ DATASET:
 
 
 create dir in Snakefile or rules
+DO ts models in Obsidian

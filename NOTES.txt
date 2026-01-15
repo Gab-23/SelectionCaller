@@ -1,5 +1,3 @@
-DO ts models
-
 I will download the GENCODE annotation v45, because it matches 
 the genome assembly of the latest released IntOGen database AND the VEP release 111
 Here for more details: https://www.biostars.org/p/9522175/
@@ -12,3 +10,23 @@ We then applied the aforementioned algorithm to classify driver genes into the t
 - Act (activating or oncogene), 
 - LoF (loss-of-function or tumor suppressor) or 
 - Amb (ambiguous or non-defined).
+
+For [genes, exons, and UTRs] types in [miRNA, rRNA, lncRNA and protein_coding] classes I chose to compute 
+both # of overlaps in the bin and the distance to the closest
+
+From computing GC content of the genes, I will compute GC content of the region, which makes far more sense
+
+[UTRs and exons] must be removed because they can reveal patterns due to the binning strategy, 
+rather than the biology underlying the biological bin I am considering. I will just include gene for
+different classes of genes [miRNA, rRNA, lncRNA and protein_coding].
+
+One strategy to include UTRs, would be to look at distribution of distance from UTRs and pick a size that
+includes both, or changing binning strategy where each bin might be a transcript, or a gene
+
+Another feature might be TEs in bin, but risky due to repetitive nature
+
+I used -t first in bedtools closest, because there is no different from the numerical pov. This is because
+the model won't be able to change conclusions based on gene identity, which is a limitation I might discuss
+
+Due binning sfasati per rimuovere segnale della tecnica di binning
+
