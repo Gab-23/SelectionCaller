@@ -1,0 +1,15 @@
+name: gc_content
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - r-base=4.3
+  - r-essentials
+  - r-r.utils
+  - bioconductor-genomicranges
+  - bioconductor-rtracklayer
+  - bioconductor-repitools
+  - bioconductor-bsgenome
+  - bioconductor-bsgenome.hsapiens.ucsc.hg19
+  - bioconductor-bsgenome.hsapiens.ucsc.hg38 
