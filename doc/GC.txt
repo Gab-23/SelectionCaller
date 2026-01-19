@@ -1,0 +1,1 @@
+From computing GC content of the genes, I will compute GC content of the region, which makes far more sense

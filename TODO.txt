@@ -10,10 +10,9 @@ DATASET:
     Hi-C:
         - talk to zhan
 
-
-create dir in Snakefile or rules
 DO ts models in Obsidian
 
-
-
 Check gokce for formulation of RoadMap features, for normalization to boost signal
+Make them a parameter
+
+Another feature might be TEs in bin, but risky due to repetitive nature

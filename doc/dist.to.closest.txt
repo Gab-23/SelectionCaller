@@ -1,0 +1,12 @@
+For [genes, exons, and UTRs] types in [miRNA, rRNA, lncRNA and protein_coding] classes I chose to compute 
+both # of overlaps in the bin and the distance to the closest
+
+[UTRs and exons] must be removed because they can reveal patterns due to the binning strategy, 
+rather than the biology underlying the biological bin I am considering. I will just include gene for
+different classes of genes [miRNA, rRNA, lncRNA and protein_coding].
+
+One strategy to include UTRs, would be to look at distribution of distance from UTRs and pick a size that
+includes both, or changing binning strategy where each bin might be a transcript, or a gene
+
+I used -t first in bedtools closest, because there is no different from the numerical pov. This is because
+the model won't be able to change conclusions based on gene identity, which is a limitation I might discuss

@@ -1,0 +1,8 @@
+For centromere distance I took the cytoBand table since it gives continuous centromere structure instead of more detailed, but
+more difficult to manipulate of centromere table. 
+
+I applied the same cleaning for non canonical chromosomes as of clean_chrom_sizes and checked
+
+wc -l resources/reference_data/cytobands/cytoBand_full.txt 1549
+wc -l resources/reference_data/cytobands/cytoBand.txt 811
+wc -l resources/reference_data/cytobands/cytoBand_comp.txt 738 (without -v)

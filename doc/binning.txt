@@ -1,0 +1,2 @@
+Per stimare il segnale dovuto alla strategia di binning, si potrebbero fare due binning sfasati
+confrontando i risultati per rimuovere segnale dovuti alla tecnica di binning
