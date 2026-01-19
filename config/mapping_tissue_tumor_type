@@ -1,2 +1,2 @@
-common_name	tissue_type_Roadmap	tumor_type_IntOGen
-BRCA	BREAST	BRCA
+common_name	tissue_type_Roadmap	tumor_type_IntOGen	oncotree_code_DepMap
+BRCA	BREAST	BRCA	BRCA

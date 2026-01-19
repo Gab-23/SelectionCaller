@@ -52,6 +52,12 @@ include: "rules/get_telomeres_proxy.smk"
 include: "rules/get_dist_to_telomeres.smk"
 include: "rules/process_dist_to_telomeres.smk"
 
+include: "rules/filter_CRISPR_models.smk"
+include: "rules/filter_CRISPR_probabilities.smk"
+include: "rules/get_essential_genes.smk"
+include: "rules/find_coords_essential_genes.smk"
+include: "rules/sort_essential_genes.smk"
+include: "rules/get_dist_to_essential_genes.smk"
 
 def get_epigenome_ids(wildcards, tissue_type_Roadmap):
 
@@ -73,7 +79,8 @@ def map_tt_acronym(mapping_file_location, tumor_type):
         mapping = pandas.read_csv(mapping_file_location, header = 0, sep = "\t")
         tissue_type_Roadmap = mapping[mapping.common_name == tumor_type].tissue_type_Roadmap.values[0]
         tumor_type_IntOGen = mapping[mapping.common_name == tumor_type].tumor_type_IntOGen.values[0]
-        return [tissue_type_Roadmap, tumor_type_IntOGen]
+        oncotree_name_DepMap = mapping[mapping.common_name == tumor_type].oncotree_code_DepMap.values[0]
+        return [tissue_type_Roadmap, tumor_type_IntOGen, oncotree_name_DepMap]
     except FileNotFoundError as err:
         print(f"{mapping_file_location} does not exist")
 
@@ -92,7 +99,13 @@ steps = config["steps"]
 tumor_types = config["tumor_types"]
 
 IntOGen_locations = config["IntOGen_locations"]
-cohorts = config["cohorts"]
+IntOGen_cohorts = config["IntOGen_cohorts"]
+
+DepMap_models_locations = config["DepMap_models_locations"]
+DepMap_probabilities_locations = config["DepMap_probabilities_locations"]
+
+essentiality_cutoffs = config["essentiality_cutoffs"]
+num_assays_cutoffs = config["num_assays_cutoffs"]
 
 ##### 
 
@@ -140,18 +153,45 @@ if len(tumor_types) > 1:
 else:
     tumor_type = tumor_types[0]
 
+if len(essentiality_cutoffs) > 1:
+    raise ValueError("ERROR, multiple essentiality_cutoffs selected")
+else:
+    essentiality_cutoff = essentiality_cutoffs[0]
+
+if len(num_assays_cutoffs) > 1:
+    raise ValueError("ERROR, multiple num_assays_cutoffs selected")
+else:
+    num_assays_cutoff = num_assays_cutoffs[0]
+
 if len(IntOGen_locations) > 1:
     raise ValueError("ERROR, multiple IntOGen_locations selected")
 
-if len(cohorts) > 1:
-    raise ValueError("ERROR, multiple cohorts selected")
+if len(IntOGen_cohorts) > 1:
+    raise ValueError("ERROR, multiple IntOGen_cohorts selected")
+
+if len(DepMap_models_locations) > 1:
+    raise ValueError("ERROR, multiple IntOGen_locations selected")
+
+if len(DepMap_probabilities_locations) > 1:
+    raise ValueError("ERROR, multiple IntOGen_cohorts selected")
 
 #####
 
-tissue_type_Roadmap, tumor_type_IntOGen = map_tt_acronym(mapping_file_tt_location, tumor_type)
+tissue_type_Roadmap, tumor_type_IntOGen, oncotree_code_DepMap = map_tt_acronym(mapping_file_tt_location, tumor_type)
 
 rule all:
     input:
+        expand(
+            "resources/distances/essential/{assembly_code}_{window_mode}_{window_size}_{step}_{oncotree_code_DepMap}_{essentiality_cutoff}_{num_assays_cutoff}_v{gencode_version}.bed",
+                assembly_code=assembly_code,
+                window_mode=window_mode,
+                window_size=window_sizes,
+                step=steps,
+                oncotree_code_DepMap = oncotree_code_DepMap,
+                essentiality_cutoff = essentiality_cutoff,
+                num_assays_cutoff = num_assays_cutoff,
+                gencode_version = gencode_version
+         ),
         expand(
             "data/distances/telomeres/{assembly_code}_{window_mode}_{window_size}_{step}",
                 assembly_code=assembly_code,
@@ -226,5 +266,8 @@ wildcard_constraints:
     window_size = "[0-9]+",
     step = "[0-9]+",
     window_mode = "[a-z]+",
-    tumor_type_IntOGen = "[A-Z]+"
+    tumor_type_IntOGen = "[A-Z]+",
+    oncotree_code_DepMap = "[A-Z]+",
+    essentiality_cutoff = "\\d+(\\.\\d+)?",
+    num_assays_cutoff = "[0-9]+"
     

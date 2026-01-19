@@ -13,3 +13,7 @@ DATASET:
 
 create dir in Snakefile or rules
 DO ts models in Obsidian
+
+
+
+Check gokce for formulation of RoadMap features, for normalization to boost signal

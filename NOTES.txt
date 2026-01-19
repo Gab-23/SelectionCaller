@@ -36,3 +36,20 @@ more difficult to manipulate of centromere table. I applied the same cleaning fo
 wc -l resources/reference_data/cytobands/cytoBand_full.txt 1549
 wc -l resources/reference_data/cytobands/cytoBand.txt 811
 wc -l resources/reference_data/cytobands/cytoBand_comp.txt 738 (without -v)
+
+I downloaded data from DepMap: Model.csv and CRISPRGeneDependency.csv
+
+The “gene effect” file contains the corrected CERES scores, which measure the effect size of knocking out a gene, 
+normalized against the distributions of non-essential and pan-essential genes. 
+The probabilities assess, given a gene score, how likely to be a member of the non-essential 
+distribution or the common essential distribution in that cell line. The key difference between using a 
+fixed threshold on CERES score and a threshold on the probabilities is that the probabilities take into account 
+the screening quality, which varies from line to line.
+
+So which one should I use?
+Depending on the question you want to ask, you may want to choose to use one measure or the other. 
+For cases where you are interested in potentially subtle variation in the strength of killing, 
+such as computing co-dependency correlations, using the CERES scores makes sense. However, 
+if you are only interested in binary relationships of which lines are killed or not, for example, 
+when looking for biomarkers which classify lines into sensitive or insensitive, 
+then the dependency probabilities may make more sense to use.

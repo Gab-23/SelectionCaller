@@ -9,5 +9,5 @@ rule sort_TSSs:
         "logs/sort_TSSs/v{gencode_version}.log"
     shell:
         """
-	     bedtools sort -i {input} > {output} 2> {log}
+	    bedtools sort -i {input} > {output} 2> {log}
         """
