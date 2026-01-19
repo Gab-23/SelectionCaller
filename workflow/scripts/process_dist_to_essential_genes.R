@@ -9,12 +9,12 @@ input_path              <- args$input_path
 output_path             <- args$output_path
 
 essential <- import_table(input_path, header = F)
-colnames(essential) <- c()
+colnames(essential) <- c("chr", "start", "end", "binID", "dist")
 
-processed_essential <- process_dist_to_cancer_genes(essential)
-colnames(processed_essential) <- c()
+processed_essential <- process_dist_to_essential_genes(essential)
+colnames(processed_essential) <- c("chr", "start", "end", "binID", "dist.to.closest.essential")
 
-write.table(x = processed_essential[,c()],                                        # write output
+write.table(x = processed_essential[,c("binID", "dist.to.closest.essential")],    # write output
             file = output_path, 
             quote = F, 
             sep = "\t", 

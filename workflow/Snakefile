@@ -1,11 +1,6 @@
 import pandas
 import os
 
-#epigenome_dir = "resources/epigenomes/roadmap/"
-
-#if not os.path.isdir(epigenome_dir):
-#    os.mkdir(epigenome_dir)
-
 include: "rules/get_chrom_sizes.smk"
 include: "rules/clean_chrom_sizes.smk"
 
@@ -58,6 +53,13 @@ include: "rules/get_essential_genes.smk"
 include: "rules/find_coords_essential_genes.smk"
 include: "rules/sort_essential_genes.smk"
 include: "rules/get_dist_to_essential_genes.smk"
+include: "rules/process_dist_to_essential_genes.smk"
+
+dirs_list = ["resources/", "resources/epigenomes/", "resources/epigenomes/roadmap/"]
+
+for dir in dirs_list:
+    if not os.path.isdir(dir):
+        os.mkdir(dir)
 
 def get_epigenome_ids(wildcards, tissue_type_Roadmap):
 
@@ -182,7 +184,7 @@ tissue_type_Roadmap, tumor_type_IntOGen, oncotree_code_DepMap = map_tt_acronym(m
 rule all:
     input:
         expand(
-            "resources/distances/essential/{assembly_code}_{window_mode}_{window_size}_{step}_{oncotree_code_DepMap}_{essentiality_cutoff}_{num_assays_cutoff}_v{gencode_version}.bed",
+            "data/distances/essential/{assembly_code}_{window_mode}_{window_size}_{step}_{oncotree_code_DepMap}_{essentiality_cutoff}_{num_assays_cutoff}_v{gencode_version}.bed",
                 assembly_code=assembly_code,
                 window_mode=window_mode,
                 window_size=window_sizes,
