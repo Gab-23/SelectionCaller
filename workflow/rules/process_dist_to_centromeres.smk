@@ -3,6 +3,8 @@ rule process_dist_to_centromeres:
         "data/distances/centromeres/{assembly_code}_{window_mode}_{window_size}_{step}"
     input:
         "resources/distances/centromeres/{assembly_code}_{window_mode}_{window_size}_{step}.bed"
+    conda:
+        "../envs/r_roadmap.yml"
     log:
         "logs/process_dist_to_centromeres/{assembly_code}_{window_mode}_{window_size}_{step}.log"
     shell:

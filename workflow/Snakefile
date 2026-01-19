@@ -48,6 +48,11 @@ include: "rules/get_centromeres_coords.smk"
 include: "rules/get_dist_to_centromeres.smk"
 include: "rules/process_dist_to_centromeres.smk"
 
+include: "rules/get_telomeres_proxy.smk"
+include: "rules/get_dist_to_telomeres.smk"
+include: "rules/process_dist_to_telomeres.smk"
+
+
 def get_epigenome_ids(wildcards, tissue_type_Roadmap):
 
     mapping_file = checkpoints.get_mapping_EID_tt.get(**wildcards).output[0]
@@ -148,8 +153,15 @@ tissue_type_Roadmap, tumor_type_IntOGen = map_tt_acronym(mapping_file_tt_locatio
 rule all:
     input:
         expand(
+            "data/distances/telomeres/{assembly_code}_{window_mode}_{window_size}_{step}",
+                assembly_code=assembly_code,
+                window_mode=window_mode,
+                window_size=window_sizes,
+                step=steps
+        ),
+        expand(
             "data/distances/centromeres/{assembly_code}_{window_mode}_{window_size}_{step}",
-            assembly_code=assembly_code,
+                assembly_code=assembly_code,
                 window_mode=window_mode,
                 window_size=window_sizes,
                 step=steps
