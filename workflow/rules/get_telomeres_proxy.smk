@@ -11,5 +11,5 @@ rule get_telomeres_proxy:
         """
         Rscript workflow/scripts/get_telomeres_proxy.R \
             --input_path={input} \
-            --output_path={output}
+            --output_path={output} 2>{log}
         """

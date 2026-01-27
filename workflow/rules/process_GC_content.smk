@@ -11,5 +11,5 @@ rule process_GC_content:
         """
         Rscript workflow/scripts/process_GC_content.R \
         --input_path={input} \
-        --output_path={output}
+        --output_path={output} 2>{log}
         """

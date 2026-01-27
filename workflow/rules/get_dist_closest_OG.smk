@@ -10,5 +10,5 @@ rule get_dist_closest_OG:
         "../envs/bedtools.yml"
     shell:
         """
-        bedtools closest -a {input.path_backbone} -b {input.path_OG} -d | cut -f 1,2,3,4,9,10,11 > {output}
+        bedtools closest -a {input.path_backbone} -b {input.path_OG} -d | cut -f 1,2,3,4,9,10,11 > {output} 2>{log}
         """

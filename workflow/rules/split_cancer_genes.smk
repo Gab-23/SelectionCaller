@@ -8,6 +8,6 @@ rule split_cancer_genes:
         "logs/split_cancer_genes/{assembly_code}_v{gencode_version}_{tumor_type_IntOGen}.log"
     shell:
         """
-	     grep -Fw TSG {input} > {output.path_TSG}
-         grep -Fw OG {input} > {output.path_OG}
+	     grep -Fw TSG {input} > {output.path_TSG} 2>>{log}
+         grep -Fw OG {input} > {output.path_OG} 2>>{log}
         """

@@ -23,5 +23,5 @@ rule process_num_overlaps:
             --output_num_overlaps_protein_coding={output.num_overlaps_protein_coding} \
             --output_num_overlaps_lncRNA={output.num_overlaps_lncRNA} \
             --output_num_overlaps_miRNA={output.num_overlaps_miRNA} \
-            --output_num_overlaps_rRNA={output.num_overlaps_rRNA}
+            --output_num_overlaps_rRNA={output.num_overlaps_rRNA} 2>{log}
         """

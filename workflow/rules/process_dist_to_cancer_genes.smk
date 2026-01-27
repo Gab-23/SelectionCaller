@@ -15,5 +15,5 @@ rule process_dist_to_cancer_genes:
             --input_path_TSG={input.path_TSG} \
             --input_path_OG={input.path_OG} \
             --output_path_TSG={output.path_TSG} \
-            --output_path_OG={output.path_OG}
+            --output_path_OG={output.path_OG} 2>{log}
         """

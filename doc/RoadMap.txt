@@ -1,0 +1,2 @@
+Currently (22/01/26) in the config I am using Primary Culture for RoadMap samples
+This follows the logic that I might want to have data closer to cell lines in the dataset (more data available)

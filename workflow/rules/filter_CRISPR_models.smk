@@ -12,5 +12,5 @@ rule filter_CRISPR_models:
         Rscript workflow/scripts/filter_CRISPR_models.R \
         --input_path={input} \
         --output_path={output} \
-        --oncotree_code_DepMap={wildcards.oncotree_code_DepMap}
+        --oncotree_code_DepMap={wildcards.oncotree_code_DepMap} 2>{log}
         """

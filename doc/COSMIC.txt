@@ -1,0 +1,17 @@
+Downloading 3 files from COSMIC database (26 jan 2026):
+https://cancer.sanger.ac.uk/cosmic/download/cosmic/v103/
+
+- Cosmic_Classification_Tsv_v103_GRCh38.tar
+- Cosmic_Sample_Tsv_v103_GRCh38.tar
+- Cosmic_GenomeScreensMutant_VcfNormal_v103_GRCh38.tar
+
+First, merge Sample file with Classification and filter by cohort
+Then filter samples from VCF and count mutations per bin
+Normalization means left-alignment and parsimony
+
+I keep using TCGA assays for large cohort, as I did for IntOGen, for homogeneity
+
+Manually gunzipped them in the original folder
+
+I also added the Cosmic_GenomeScreensMutant_Tsv_v103_GRCh38.tar file, 
+which contains mapping from sampleID to mutationID

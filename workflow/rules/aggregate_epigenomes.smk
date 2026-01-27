@@ -11,5 +11,5 @@ rule aggregate_epigenomes:
         """
         Rscript workflow/scripts/aggregate_epigenomes.R \
         --input_path={input} \
-        --output_path={output}
+        --output_path={output} 2>{log}
         """

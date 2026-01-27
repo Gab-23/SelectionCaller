@@ -31,5 +31,5 @@ rule split_gtf:
             --output_path_miRNA_gene={output.path_miRNA_gene} \
             --output_path_miRNA_exon={output.path_miRNA_exon} \
             --output_path_rRNA_gene={output.path_rRNA_gene} \
-            --output_path_rRNA_exon={output.path_rRNA_exon}
+            --output_path_rRNA_exon={output.path_rRNA_exon} 2>{log}
         """

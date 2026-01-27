@@ -1,0 +1,17 @@
+rule get_final_samples_COSMIC:
+    output:
+        path_samples="resources/COSMIC/samples/final_samples.tsv"
+    input:
+        path_phenotype_ids="resources/COSMIC/classification/filtered_phenotype_ids.tsv",
+        path_samples="resources/COSMIC/samples/filtered_samples.tsv"
+    conda:
+        "../envs/r_backbone.yml"
+    log:
+        "logs/get_final_samples_COSMIC/get_final_samples_COSMIC.log"
+    shell:
+        """
+        Rscript workflow/scripts/get_final_samples_COSMIC.R \
+            --input_path_samples={input.path_samples} \
+            --input_path_phenotype_ids={input.path_phenotype_ids} \
+            --output_path_samples={output.path_samples} 2>{log}
+        """

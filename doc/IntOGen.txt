@@ -6,3 +6,5 @@ We then applied the aforementioned algorithm to classify driver genes into the t
 - Act (activating or oncogene), 
 - LoF (loss-of-function or tumor suppressor) or 
 - Amb (ambiguous or non-defined).
+
+Taking unique cohorts from IntOGen table and putting them in config/

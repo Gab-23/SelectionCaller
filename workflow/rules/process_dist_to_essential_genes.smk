@@ -11,5 +11,5 @@ rule process_dist_to_essential_genes:
         """
         Rscript workflow/scripts/process_dist_to_essential_genes.R \
             --input_path={input} \
-            --output_path={output} \
+            --output_path={output} 2>{log}
         """

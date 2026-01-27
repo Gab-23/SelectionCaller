@@ -14,5 +14,5 @@ rule process_epigenome:
         --epigenomes_paths={input.epigenomes_paths} \
         --backbone_path={input.backbone_path} \
         --output_path={output} \
-        --is_test_call=F
+        --is_test_call=F 2>{log}
         """

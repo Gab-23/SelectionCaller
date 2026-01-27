@@ -1,60 +1,6 @@
 import pandas
 import os
 
-include: "rules/get_chrom_sizes.smk"
-include: "rules/clean_chrom_sizes.smk"
-
-include: "rules/get_blacklisted_regions.smk"
-
-include: "rules/get_backbone_file.smk"
-include: "rules/filter_backbone.smk"
-include: "rules/sort_backbone.smk"
-
-include: "rules/get_mapping_EID_tt.smk"
-include: "rules/get_epigenome_paths.smk"
-include: "rules/get_epigenome_files.smk"
-
-include: "rules/process_epigenomes.smk"
-include: "rules/aggregate_epigenomes.smk"
-
-include: "rules/get_gencode_annotation.smk"
-include: "rules/get_TSSs.smk"
-include: "rules/sort_TSSs.smk"
-
-include: "rules/process_IntOGen.smk"
-include: "rules/sort_cancer_genes.smk"
-include: "rules/split_cancer_genes.smk"
-
-include: "rules/get_dist_closest_OG.smk"
-include: "rules/get_dist_closest_TSG.smk"
-include: "rules/process_dist_to_cancer_genes.smk"
-
-include: "rules/split_gtf.smk"
-include: "rules/sort_gene_classes.smk"
-include: "rules/get_dist_num_overlaps_genes.smk"
-include: "rules/process_dist_to_genes.smk"
-include: "rules/process_num_overlaps.smk"
-
-include: "rules/get_GC_content.smk"
-include: "rules/process_GC_content.smk"
-
-include: "rules/get_cytobands.smk"
-include: "rules/get_centromeres_coords.smk"
-include: "rules/get_dist_to_centromeres.smk"
-include: "rules/process_dist_to_centromeres.smk"
-
-include: "rules/get_telomeres_proxy.smk"
-include: "rules/get_dist_to_telomeres.smk"
-include: "rules/process_dist_to_telomeres.smk"
-
-include: "rules/filter_CRISPR_models.smk"
-include: "rules/filter_CRISPR_probabilities.smk"
-include: "rules/get_essential_genes.smk"
-include: "rules/find_coords_essential_genes.smk"
-include: "rules/sort_essential_genes.smk"
-include: "rules/get_dist_to_essential_genes.smk"
-include: "rules/process_dist_to_essential_genes.smk"
-
 dirs_list = ["resources/", "resources/epigenomes/", "resources/epigenomes/roadmap/"]
 
 for dir in dirs_list:
@@ -76,13 +22,18 @@ def get_epigenome_ids(wildcards, tissue_type_Roadmap):
     else:
         return epigenome_ids
 
-def map_tt_acronym(mapping_file_location, tumor_type):
+def map_tt_acronym(mapping_file_location, tumor_type, cohort_project):
     try:
         mapping = pandas.read_csv(mapping_file_location, header = 0, sep = "\t")
         tissue_type_Roadmap = mapping[mapping.common_name == tumor_type].tissue_type_Roadmap.values[0]
         tumor_type_IntOGen = mapping[mapping.common_name == tumor_type].tumor_type_IntOGen.values[0]
         oncotree_name_DepMap = mapping[mapping.common_name == tumor_type].oncotree_code_DepMap.values[0]
-        return [tissue_type_Roadmap, tumor_type_IntOGen, oncotree_name_DepMap]
+        COSMIC_parameters = mapping[mapping.common_name == tumor_type].COSMIC_parameters.values[0]
+        if cohort_project == "TCGA":
+            cohort_IntOGen = mapping[mapping.common_name == tumor_type].TCGA_cohort_IntOGen.values[0]
+        else:
+            pass    
+        return [tissue_type_Roadmap, tumor_type_IntOGen, cohort_IntOGen, oncotree_name_DepMap, COSMIC_parameters]
     except FileNotFoundError as err:
         print(f"{mapping_file_location} does not exist")
 
@@ -101,13 +52,16 @@ steps = config["steps"]
 tumor_types = config["tumor_types"]
 
 IntOGen_locations = config["IntOGen_locations"]
-IntOGen_cohorts = config["IntOGen_cohorts"]
 
 DepMap_models_locations = config["DepMap_models_locations"]
 DepMap_probabilities_locations = config["DepMap_probabilities_locations"]
 
 essentiality_cutoffs = config["essentiality_cutoffs"]
 num_assays_cutoffs = config["num_assays_cutoffs"]
+
+COSMIC_classification_locations = config["COSMIC_classification_locations"]
+COSMIC_samples_locations = config["COSMIC_samples_locations"]
+COSMIC_sample_name_patterns = config["COSMIC_sample_name_patterns"]
 
 ##### 
 
@@ -168,21 +122,95 @@ else:
 if len(IntOGen_locations) > 1:
     raise ValueError("ERROR, multiple IntOGen_locations selected")
 
-if len(IntOGen_cohorts) > 1:
-    raise ValueError("ERROR, multiple IntOGen_cohorts selected")
-
 if len(DepMap_models_locations) > 1:
     raise ValueError("ERROR, multiple IntOGen_locations selected")
 
 if len(DepMap_probabilities_locations) > 1:
     raise ValueError("ERROR, multiple IntOGen_cohorts selected")
 
+if len(COSMIC_classification_locations) > 1:
+    raise ValueError("ERROR, multiple COSMIC_classification_locations selected")
+
+if len(COSMIC_samples_locations) > 1:
+    raise ValueError("ERROR, multiple COSMIC_samples_locations selected")
+
+if len(COSMIC_sample_name_patterns) > 1:
+    raise ValueError("ERROR, multiple COSMIC_sample_name_patterns selected")
+
 #####
 
-tissue_type_Roadmap, tumor_type_IntOGen, oncotree_code_DepMap = map_tt_acronym(mapping_file_tt_location, tumor_type)
+tissue_type_Roadmap, tumor_type_IntOGen, cohort_IntOGen, oncotree_code_DepMap, COSMIC_parameters = map_tt_acronym(mapping_file_tt_location, tumor_type, "TCGA")
+
+include: "rules/get_chrom_sizes.smk"
+include: "rules/clean_chrom_sizes.smk"
+
+include: "rules/get_blacklisted_regions.smk"
+
+include: "rules/get_backbone_file.smk"
+include: "rules/filter_backbone.smk"
+include: "rules/sort_backbone.smk"
+
+include: "rules/get_mapping_EID_tt.smk"
+include: "rules/get_epigenome_paths.smk"
+include: "rules/get_epigenome_files.smk"
+include: "rules/process_epigenomes.smk"
+include: "rules/aggregate_epigenomes.smk"
+
+include: "rules/get_gencode_annotation.smk"
+include: "rules/get_TSSs.smk"
+include: "rules/sort_TSSs.smk"
+
+include: "rules/process_IntOGen.smk"
+include: "rules/sort_cancer_genes.smk"
+include: "rules/split_cancer_genes.smk"
+
+include: "rules/get_dist_closest_OG.smk"
+include: "rules/get_dist_closest_TSG.smk"
+include: "rules/process_dist_to_cancer_genes.smk"
+
+include: "rules/split_gtf.smk"
+include: "rules/sort_gene_classes.smk"
+include: "rules/get_dist_num_overlaps_genes.smk"
+include: "rules/process_dist_to_genes.smk"
+include: "rules/process_num_overlaps.smk"
+
+include: "rules/get_GC_content.smk"
+include: "rules/process_GC_content.smk"
+
+include: "rules/get_cytobands.smk"
+include: "rules/get_centromeres_coords.smk"
+include: "rules/get_dist_to_centromeres.smk"
+include: "rules/process_dist_to_centromeres.smk"
+
+include: "rules/get_telomeres_proxy.smk"
+include: "rules/get_dist_to_telomeres.smk"
+include: "rules/process_dist_to_telomeres.smk"
+
+include: "rules/filter_CRISPR_models.smk"
+include: "rules/filter_CRISPR_probabilities.smk"
+include: "rules/get_essential_genes.smk"
+include: "rules/find_coords_essential_genes.smk"
+include: "rules/sort_essential_genes.smk"
+include: "rules/get_dist_to_essential_genes.smk"
+include: "rules/process_dist_to_essential_genes.smk"
+
+include: "rules/filter_classification_COSMIC.smk"
+include: "rules/filter_samples_COSMIC.smk"
+include: "rules/get_final_samples_COSMIC.smk"
+
+include: "rules/filter_coding_mutations.smk"
+include: "rules/sort_collapse_coding_mutations.smk"
+include: "rules/compute_coding_mutations_overlap.smk"
 
 rule all:
     input:
+        expand(
+        "data/num_overlaps/mutations/coding/{assembly_code}_{window_mode}_{window_size}_{step}",
+            assembly_code=assembly_code,
+            window_mode=window_mode,
+            window_size=window_sizes,
+            step=steps
+        ),
         expand(
             "data/distances/essential/{assembly_code}_{window_mode}_{window_size}_{step}_{oncotree_code_DepMap}_{essentiality_cutoff}_{num_assays_cutoff}_v{gencode_version}.bed",
                 assembly_code=assembly_code,

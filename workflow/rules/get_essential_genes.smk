@@ -13,5 +13,5 @@ rule get_essential_genes:
         --input_path={input} \
         --output_path={output} \
         --essentiality_cutoff={wildcards.essentiality_cutoff} \
-        --num_assays_cutoff={wildcards.num_assays_cutoff}
+        --num_assays_cutoff={wildcards.num_assays_cutoff} 2>{log}
         """

@@ -23,5 +23,5 @@ rule process_dist_to_genes:
             --output_dist_protein_coding={output.dist_protein_coding} \
             --output_dist_lncRNA={output.dist_lncRNA} \
             --output_dist_miRNA={output.dist_miRNA} \
-            --output_dist_rRNA={output.dist_rRNA} \
+            --output_dist_rRNA={output.dist_rRNA} 2>{log}
         """

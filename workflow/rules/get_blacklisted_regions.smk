@@ -11,5 +11,5 @@ rule get_blacklisted_regions:
         """
 	    wget -qO- https://github.com/Boyle-Lab/Blacklist/raw/refs/heads/master/lists/{wildcards.assembly_code}-blacklist.v2.bed.gz | \
         gunzip | \
-        bedtools sort -g {input} > {output}
+        bedtools sort -g {input} > {output} 2>{log}
         """

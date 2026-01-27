@@ -1,6 +1,6 @@
 checkpoint get_mapping_EID_tt:
     output:
-	    "config/mapping_EID_tt.tsv"
+	    "resources/epigenomes/mapping_EID_tt.tsv"
     log:
         "logs/get_mapping_EID_tt/get_mapping_EID_tt.tsv"
     shell:

@@ -5,7 +5,7 @@ rule process_IntOGen:
         path_IntOGen=config["IntOGen_locations"][0],
         path_protein_coding_transcript="resources/reference_data/gencode/PC/v{gencode_version}_transcript.bed",
     params:
-        cohort=config["IntOGen_cohorts"][0]
+        cohort=cohort_IntOGen
     conda:
         "../envs/r_roadmap.yml"
     log:
@@ -17,5 +17,5 @@ rule process_IntOGen:
         --input_path_protein_coding_transcript={input.path_protein_coding_transcript} \
         --tumor_type_IntOGen={wildcards.tumor_type_IntOGen} \
         --cohort={params.cohort} \
-        --output_path={output} 
+        --output_path={output} 2>{log}
         """
