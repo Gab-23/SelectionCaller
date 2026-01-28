@@ -3,15 +3,21 @@ https://cancer.sanger.ac.uk/cosmic/download/cosmic/v103/
 
 - Cosmic_Classification_Tsv_v103_GRCh38.tar
 - Cosmic_Sample_Tsv_v103_GRCh38.tar
-- Cosmic_GenomeScreensMutant_VcfNormal_v103_GRCh38.tar
+- TSV
 
-First, merge Sample file with Classification and filter by cohort
-Then filter samples from VCF and count mutations per bin
-Normalization means left-alignment and parsimony
+First I filter the tsv according to the samples in the chosen cohort and with the wanted phenotype
 
-I keep using TCGA assays for large cohort, as I did for IntOGen, for homogeneity
+I then create mapping coords with mut ID
+- NOTE: same coords and same mut --> same mutID
 
-Manually gunzipped them in the original folder
+I merge the tables
 
-I also added the Cosmic_GenomeScreensMutant_Tsv_v103_GRCh38.tar file, 
-which contains mapping from sampleID to mutationID
+I count mutations in bins both agnostic and category specific
+
+Coding mutations are associated to an explanation, while noncoding are not
+
+So in the end, a variant can:
+
+- come from different samples
+- can have different mutID, with same coords (because different mutation)
+- can have same mutID, but different description (ignoring sample provenance and mutation nature)

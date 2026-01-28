@@ -198,12 +198,33 @@ include: "rules/filter_classification_COSMIC.smk"
 include: "rules/filter_samples_COSMIC.smk"
 include: "rules/get_final_samples_COSMIC.smk"
 
-include: "rules/filter_coding_mutations.smk"
-include: "rules/sort_collapse_coding_mutations.smk"
+include: "rules/filter_mutations.smk"
+include: "rules/get_COSMIC_mutations_coordinates.smk"
+include: "rules/sort_collapse_mutations.smk"
+
+include: "rules/get_coding_mutations_description.smk"
+
+include: "rules/sort_coding_mutations.smk"
+
 include: "rules/compute_coding_mutations_overlap.smk"
+include: "rules/compute_noncoding_mutations_overlap.smk"
 
 rule all:
     input:
+        expand(
+            "data/num_overlaps/mutations/noncoding/{assembly_code}_{window_mode}_{window_size}_{step}",
+            assembly_code=assembly_code,
+            window_mode=window_mode,
+            window_size=window_sizes,
+            step=steps 
+        ),
+        expand(
+            "data/num_overlaps/mutations/coding/{assembly_code}_{window_mode}_{window_size}_{step}",
+            assembly_code=assembly_code,
+            window_mode=window_mode,
+            window_size=window_sizes,
+            step=steps            
+        ),
         expand(
         "data/num_overlaps/mutations/coding/{assembly_code}_{window_mode}_{window_size}_{step}",
             assembly_code=assembly_code,

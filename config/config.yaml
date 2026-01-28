@@ -8,7 +8,7 @@ window_modes:
   - binned
 
 window_sizes:
- - 10000
+ - 20000
 
 steps:
  - 0
@@ -17,7 +17,7 @@ tumor_types:
   - BRCA
 
 sample_types:
- - PrimaryCulture
+ - anySample
 
 file_formats:
  - mnemonics

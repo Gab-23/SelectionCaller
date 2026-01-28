@@ -11,10 +11,9 @@ output_path_mutation      <-  args$output_path_mutation
 mutation <- read.table(file = input_path_mutation, sep = "\t", header = F)
 mutation.gr <- GenomicRanges::GRanges(seqnames = mutation$V1, 
                                    ranges=IRanges::IRanges(start=mutation$V2, 
-                                                           end=mutation$V3), 
-                                   mut_types=mutation$V4)
-
-GenomicRanges::mcols(mutation.gr)$proxy_ID <- paste0("mut_", 1:length(mutation.gr))
+                                                           end=mutation$V3),
+                                   mut_ID=mutation$V4,
+                                   mut_types=mutation$V5)
 
 backbone  <- rtracklayer::import.bed(input_path_backbone)
 
@@ -32,7 +31,7 @@ overlap_metadata <- cbind(GenomicRanges::mcols(query),                          
 GenomicRanges::mcols(overlap_data) <- overlap_metadata                            # assign metadata
 
 overlap_data <- data.frame(overlap_data)
-colnames(overlap_data) <- c("chr", "start", "end", "width", "strand", "binID", "mut_types", "proxy_ID")
+colnames(overlap_data) <- c("chr", "start", "end", "width", "strand", "binID", "mut_ID", "mut_types")
 
 mut_types <- unique(
                 unlist(
@@ -60,7 +59,7 @@ overlap_data <- overlap_data[, c("binID", "width")]
 
 length_df_agnostic <- overlap_data %>%                                              
                 dplyr::group_by(binID) %>%                                        # for each bin, for each state
-                dplyr::mutate(length_agnostic = sum(width)) %>%                   # compute bp as the overlap between a certain state and a bin
+                dplyr::mutate(length_coding_agnostic = sum(width)) %>%                   # compute bp as the overlap between a certain state and a bin
                 dplyr::ungroup() %>%
                 dplyr::select(-width) %>%                
                 dplyr::distinct()
@@ -71,7 +70,7 @@ length_df_per_category <- mut_per_category %>%
                 dplyr::ungroup() %>%             
                 dplyr::distinct()
 
-colnames(length_df_per_category)[-1] <- paste0("length_", colnames(length_df_per_category)[-1])
+colnames(length_df_per_category)[-1] <- paste0("length_coding_", colnames(length_df_per_category)[-1])
 
 output_df <- merge(length_df_agnostic, length_df_per_category, by = "binID")
 
