@@ -28,14 +28,14 @@ def map_tt_acronym(mapping_file_location, tumor_type, cohort_project):
         tissue_type_Roadmap = mapping[mapping.common_name == tumor_type].tissue_type_Roadmap.values[0]
         tumor_type_IntOGen = mapping[mapping.common_name == tumor_type].tumor_type_IntOGen.values[0]
         tumor_type_GDC = mapping[mapping.common_name == tumor_type].tumor_type_GDC.values[0]
-        oncotree_name_DepMap = mapping[mapping.common_name == tumor_type].oncotree_code_DepMap.values[0]
+        oncotree_code_DepMap = mapping[mapping.common_name == tumor_type].oncotree_code_DepMap.values[0]
         COSMIC_parameters = mapping[mapping.common_name == tumor_type].COSMIC_parameters.values[0]
         if cohort_project == "TCGA":
             cohort_IntOGen = mapping[mapping.common_name == tumor_type].TCGA_cohort_IntOGen.values[0]
             cohort_GDC = mapping[mapping.common_name == tumor_type].cohort_GDC.values[0]
         else:
             pass    
-        return [tissue_type_Roadmap, tumor_type_IntOGen, cohort_IntOGen, oncotree_name_DepMap, COSMIC_parameters, tumor_type_GDC, cohort_GDC]
+        return [tissue_type_Roadmap, tumor_type_IntOGen, cohort_IntOGen, oncotree_code_DepMap, COSMIC_parameters, tumor_type_GDC, cohort_GDC]
     except FileNotFoundError as err:
         print(f"{mapping_file_location} does not exist")
 
@@ -192,7 +192,7 @@ if len(GDC_manifest_locations) > 1:
 
 #####
 
-tissue_type_Roadmap, tumor_type_IntOGen, cohort_IntOGen, oncotree_name_DepMap, COSMIC_parameters, tumor_type_GDC, cohort_GDC = map_tt_acronym(mapping_file_tt_location, tumor_type, "TCGA")
+tissue_type_Roadmap, tumor_type_IntOGen, cohort_IntOGen, oncotree_code_DepMap, COSMIC_parameters, tumor_type_GDC, cohort_GDC = map_tt_acronym(mapping_file_tt_location, tumor_type, "TCGA")
 gender_COSMIC, gender_DepMap, gender_GDC = map_gender(mapping_file_gender_location, gender)
 
 include: "rules/get_chrom_sizes.smk"
@@ -273,103 +273,103 @@ rule all:
             "resources/GDC/CNAs/files/checks/{tumor_type_GDC}_{gender_GDC}",
             tumor_type_GDC=tumor_type_GDC,
             gender_GDC=gender_GDC
+        ),
+        expand(
+            "data/num_overlaps/mutations/noncoding/{assembly_code}_{window_mode}_{window_size}_{step}_{gender_COSMIC}_{COSMIC_parameters}",
+            assembly_code=assembly_code,
+            window_mode=window_mode,
+            window_size=window_sizes,
+            step=steps,
+            gender_COSMIC=gender_COSMIC,
+            COSMIC_parameters=COSMIC_parameters
+        ),
+        expand(
+            "data/num_overlaps/mutations/coding/{assembly_code}_{window_mode}_{window_size}_{step}_{gender_COSMIC}_{COSMIC_parameters}",
+            assembly_code=assembly_code,
+            window_mode=window_mode,
+            window_size=window_sizes,
+            step=steps,
+            gender_COSMIC=gender_COSMIC,
+            COSMIC_parameters=COSMIC_parameters            
+        ),
+        expand(
+            "data/distances/essential/{assembly_code}_{window_mode}_{window_size}_{step}_{oncotree_code_DepMap}_{gender_DepMap}_{essentiality_cutoff}_{num_assays_cutoff}_v{gencode_version}.bed",
+            assembly_code=assembly_code,
+            window_mode=window_mode,
+            window_size=window_sizes,
+            step=steps,
+            oncotree_code_DepMap = oncotree_code_DepMap,
+            gender_DepMap = gender_DepMap,
+            essentiality_cutoff = essentiality_cutoff,
+            num_assays_cutoff = num_assays_cutoff,
+            gencode_version = gencode_version
+         ),
+        expand(
+            "data/distances/telomeres/{assembly_code}_{window_mode}_{window_size}_{step}",
+            assembly_code=assembly_code,
+            window_mode=window_mode,
+            window_size=window_sizes,
+            step=steps
+        ),
+        expand(
+            "data/distances/centromeres/{assembly_code}_{window_mode}_{window_size}_{step}",
+            assembly_code=assembly_code,
+            window_mode=window_mode,
+            window_size=window_sizes,
+            step=steps
+        ),
+        expand(
+            "data/GC/{assembly_code}_{window_mode}_{window_size}_{step}",
+            assembly_code=assembly_code,
+            window_mode=window_mode,
+            window_size=window_sizes,
+            step=steps 
+        ),
+        expand(
+            "data/num_overlaps/PC/{assembly_code}_{window_mode}_{window_size}_{step}_v{gencode_version}",
+            assembly_code=assembly_code,
+            window_mode=window_mode,
+            window_size=window_sizes,
+            step=steps,
+            gencode_version=gencode_version
+        ),
+        expand(
+            "data/distances/PC/{assembly_code}_{window_mode}_{window_size}_{step}_v{gencode_version}",
+            assembly_code=assembly_code,
+            window_mode=window_mode,
+            window_size=window_sizes,
+            step=steps,
+            gencode_version=gencode_version
+        ),
+        expand(
+            "data/distances/TSG/{assembly_code}_{window_mode}_{window_size}_{step}_v{gencode_version}_{tumor_type_IntOGen}",
+            assembly_code=assembly_code,
+            window_mode=window_mode,
+            window_size=window_sizes,
+            step=steps,
+            gencode_version=gencode_version,
+            tumor_type_IntOGen=tumor_type_IntOGen
+        ),
+        expand(
+            "data/distances/OG/{assembly_code}_{window_mode}_{window_size}_{step}_v{gencode_version}_{tumor_type_IntOGen}",
+            assembly_code=assembly_code,
+            window_mode=window_mode,
+            window_size=window_sizes,
+            step=steps,
+            gencode_version=gencode_version,
+            tumor_type_IntOGen=tumor_type_IntOGen
+        ),
+        expand(
+            "data/epigenomes/{tissue_type_Roadmap}_{sample_type}_{liftover_str}_{file_format}_{assembly_code}_{window_mode}_{window_size}_{step}",
+            tissue_type_Roadmap=tissue_type_Roadmap,
+            sample_type=sample_type,
+            liftover_str=liftover_str,
+            file_format=file_format,
+            assembly_code=assembly_code,
+            window_mode=window_modes,
+            window_size=window_sizes,
+            step=steps
         )
-#        expand(
-#            "data/num_overlaps/mutations/noncoding/{assembly_code}_{window_mode}_{window_size}_{step}_{gender_COSMIC}_{COSMIC_parameters}",
-#            assembly_code=assembly_code,
-#            window_mode=window_mode,
-#            window_size=window_sizes,
-#            step=steps,
-#            gender_COSMIC=gender_COSMIC,
-#            COSMIC_parameters=COSMIC_parameters
-#        ),
-#        expand(
-#            "data/num_overlaps/mutations/coding/{assembly_code}_{window_mode}_{window_size}_{step}_{gender_COSMIC}_{COSMIC_parameters}",
-#            assembly_code=assembly_code,
-#            window_mode=window_mode,
-#            window_size=window_sizes,
-#            step=steps,
-#            gender_COSMIC=gender_COSMIC,
-#            COSMIC_parameters=COSMIC_parameters            
-#        ),
-#        expand(
-#            "data/distances/essential/{assembly_code}_{window_mode}_{window_size}_{step}_{oncotree_code_DepMap}_{gender_DepMap}_{essentiality_cutoff}_{num_assays_cutoff}_v{gencode_version}.bed",
-#            assembly_code=assembly_code,
-#            window_mode=window_mode,
-#            window_size=window_sizes,
-#            step=steps,
-#            oncotree_code_DepMap = oncotree_code_DepMap,
-#            gender_DepMap = gender_DepMap,
-#            essentiality_cutoff = essentiality_cutoff,
-#            num_assays_cutoff = num_assays_cutoff,
-#            gencode_version = gencode_version
-#         ),
-#        expand(
-#            "data/distances/telomeres/{assembly_code}_{window_mode}_{window_size}_{step}",
-#            assembly_code=assembly_code,
-#            window_mode=window_mode,
-#            window_size=window_sizes,
-#            step=steps
-#        ),
-#        expand(
-#            "data/distances/centromeres/{assembly_code}_{window_mode}_{window_size}_{step}",
-#            assembly_code=assembly_code,
-#            window_mode=window_mode,
-#            window_size=window_sizes,
-#            step=steps
-#        ),
-#        expand(
-#            "data/GC/{assembly_code}_{window_mode}_{window_size}_{step}",
-#            assembly_code=assembly_code,
-#            window_mode=window_mode,
-#            window_size=window_sizes,
-#            step=steps 
-#        ),
-#        expand(
-#            "data/num_overlaps/PC/{assembly_code}_{window_mode}_{window_size}_{step}_v{gencode_version}",
-#            assembly_code=assembly_code,
-#            window_mode=window_mode,
-#            window_size=window_sizes,
-#            step=steps,
-#            gencode_version=gencode_version
-#        ),
-#        expand(
-#            "data/distances/PC/{assembly_code}_{window_mode}_{window_size}_{step}_v{gencode_version}",
-#            assembly_code=assembly_code,
-#            window_mode=window_mode,
-#            window_size=window_sizes,
-#            step=steps,
-#            gencode_version=gencode_version
-#        ),
-#        expand(
-#            "data/distances/TSG/{assembly_code}_{window_mode}_{window_size}_{step}_v{gencode_version}_{tumor_type_IntOGen}",
-#            assembly_code=assembly_code,
-#            window_mode=window_mode,
-#            window_size=window_sizes,
-#            step=steps,
-#            gencode_version=gencode_version,
-#            tumor_type_IntOGen=tumor_type_IntOGen
-#        ),
-#        expand(
-#            "data/distances/OG/{assembly_code}_{window_mode}_{window_size}_{step}_v{gencode_version}_{tumor_type_IntOGen}",
-#            assembly_code=assembly_code,
-#            window_mode=window_mode,
-#            window_size=window_sizes,
-#            step=steps,
-#            gencode_version=gencode_version,
-#            tumor_type_IntOGen=tumor_type_IntOGen
-#        ),
-#        expand(
-#            "data/epigenomes/{tissue_type_Roadmap}_{sample_type}_{liftover_str}_{file_format}_{assembly_code}_{window_mode}_{window_size}_{step}",
-#            tissue_type_Roadmap=tissue_type_Roadmap,
-#            sample_type=sample_type,
-#            liftover_str=liftover_str,
-#            file_format=file_format,
-#            assembly_code=assembly_code,
-#            window_mode=window_modes,
-#            window_size=window_sizes,
-#            step=steps
-#        )
 
 wildcard_constraints:
     assembly_code = "hg\\d{2}",
