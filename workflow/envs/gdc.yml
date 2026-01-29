@@ -1,0 +1,7 @@
+name: gdc
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - gdc-client 

@@ -26,3 +26,9 @@ indicated to be associated with frequent germline copy-number variation
 
 
 I downloaded manifest and sample sheet
+
+NOTA: case_id di TCGA (il barcode), diventa
+submitter_id in GDC
+
+I decided to just remove duplicates. It's 18 samples out of more than 1000
+From 1093 to 1075

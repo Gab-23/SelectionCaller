@@ -52,9 +52,20 @@ COSMIC_classification_locations:
 COSMIC_samples_locations:
   - "resources/COSMIC/samples/Cosmic_Sample_Tsv_v103_GRCh38/Cosmic_Sample_v103_GRCh38.tsv"
 
+COSMIC_coding_locations:
+  - "resources/COSMIC/mutations/coding/Cosmic_GenomeScreensMutant_Tsv_v103_GRCh38/Cosmic_GenomeScreensMutant_v103_GRCh38.tsv"
+
+COSMIC_noncoding_locations:
+  - "resources/COSMIC/mutations/noncoding/Cosmic_NonCodingVariants_Tsv_v103_GRCh38/Cosmic_NonCodingVariants_v103_GRCh38.tsv"
+
 COSMIC_sample_name_patterns:
   - "TCGA"
 
-COSMIC_vcf_locations:
-  - resources/COSMIC/VCF/Cosmic_GenomeScreensMutant_VcfNormal_v103_GRCh38/Cosmic_GenomeScreensMutant_Normal_v103_GRCh38.vcf
+GDC_clinical_locations:
+  - "resources/GDC/CNAs/clinical.cohort.2026-01-28/clinical.tsv"
 
+GDC_sample_sheet_locations:
+  - "resources/GDC/CNAs/gdc_sample_sheet.2026-01-28.tsv"
+
+GDC_manifest_locations:
+  - "resources/GDC/CNAs/gdc_manifest.2026-01-28.170055.txt"

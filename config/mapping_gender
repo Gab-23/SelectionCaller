@@ -1,3 +1,3 @@
-common_name	gender_COSMIC	gender_DepMap
-M	m	Male
-F	f	Female
+common_name	gender_COSMIC	gender_DepMap	gender_GDC
+M	m	Male	male
+F	f	Female	female
