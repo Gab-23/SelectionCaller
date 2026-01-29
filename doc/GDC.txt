@@ -1,0 +1,28 @@
+I generate a GDC cohort:
+    - TISSUE_TYPE = TUMOR
+    - TUMOR_DESCRIPTOR = PRIMARY
+    - PROGRAM = TCGA
+    - SPECIMEN TYPE LEFT BLANK
+    - PRESERVATION METHOD LEFT BLANK
+
+
+I extract the clinical information clinical.tsv
+
+
+I then select SNP6 array data:
+    - DATA_CATEGORY = COPY_NUMBER_VARIATION
+    - DATA_TYPE = MASKED_COPY_NUMBER_SEGMENT
+    - EXPERIMENTAL_STRATEGY = GENOTYPING_ARRAY
+    - WORKFLOW_TYPE = DNACOPY
+    - DATA_FORMAT = TXT
+    - PLATFORM = AFFYMETRIX SNP6
+    - ACCESS = OPEN
+
+From https://docs.gdc.cancer.gov/Data/Bioinformatics_Pipelines/CNV_Pipeline/
+Masked copy number segments are generated using the same method 
+except that a filtering step is performed that 
+removes the Y chromosome and probe sets that were previously 
+indicated to be associated with frequent germline copy-number variation
+
+
+I downloaded manifest and sample sheet

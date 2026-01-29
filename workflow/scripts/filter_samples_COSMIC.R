@@ -5,11 +5,16 @@ args <- R.utils::commandArgs(trailingOnly = TRUE, asValues = TRUE)              
 
 input_path              <- args$input_path
 output_path             <- args$output_path
+gender_COSMIC           <- args$gender_COSMIC
 sample_name_pattern     <- args$sample_name_pattern
 
 samples <- read.delim(input_path, sep = "\t", header = T)
 
 samples_filtered <- samples[which(startsWith(samples$SAMPLE_NAME, sample_name_pattern)),]
+
+if(gender_COSMIC != "ALL"){
+    samples_filtered <- samples_filtered[samples_filtered$GENDER == gender_COSMIC,]
+}
 
 write.table(x = samples_filtered,                                                 # write output
             file = output_path, 

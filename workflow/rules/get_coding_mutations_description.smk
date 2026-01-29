@@ -1,13 +1,13 @@
 rule get_coding_mutations_description:
     output:
-        "resources/COSMIC/mutations/coding/mutations_w_description.bed"
+        "resources/COSMIC/mutations/coding/{gender_COSMIC}_{COSMIC_parameters}_w_description.bed"
     input:
-        path_coords="resources/COSMIC/coordinates/coding/coordinates.bed",
-        path_muts="resources/COSMIC/mutations/coding/mutations.filtered.bed"
+        path_coords="resources/COSMIC/coordinates/coding/{gender_COSMIC}_{COSMIC_parameters}.bed",
+        path_muts="resources/COSMIC/mutations/coding/{gender_COSMIC}_{COSMIC_parameters}.filtered.bed"
     conda:
         "../envs/r_roadmap.yml"
     log:
-        "logs/get_coding_mutations_description/get_coding_mutations_description.log"
+        "logs/get_coding_mutations_description/{gender_COSMIC}_{COSMIC_parameters}.log"
     shell:
         """
         Rscript workflow/scripts/get_coding_mutations_description.R \

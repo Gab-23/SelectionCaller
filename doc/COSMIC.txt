@@ -21,3 +21,13 @@ So in the end, a variant can:
 - come from different samples
 - can have different mutID, with same coords (because different mutation)
 - can have same mutID, but different description (ignoring sample provenance and mutation nature)
+
+
+Added gender filtering
+grep -Fw -f resources/COSMIC/samples/final_samples_pre.tsv resources/COSMIC/samples/Cosmic_Sample_Tsv_v103_GRCh38/Cosmic_Sample_v103_GRCh38.tsv | cut -f 14 | sort | uniq -c
+   1094 f
+     12 m
+      2 u
+      
+grep -Fw -f resources/COSMIC/samples/f_breast_carcinoma resources/COSMIC/samples/Cosmic_Sample_Tsv_v103_GRCh38/Cosmic_Sample_v103_GRCh38.tsv | cut -f 14 | sort | uniq -c
+   1094 f

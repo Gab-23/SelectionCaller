@@ -14,3 +14,6 @@ such as computing co-dependency correlations, using the CERES scores makes sense
 if you are only interested in binary relationships of which lines are killed or not, for example, 
 when looking for biomarkers which classify lines into sensitive or insensitive, 
 then the dependency probabilities may make more sense to use.
+
+
+For DepMap all BRCA models are female (checked on 29 jan 2026)

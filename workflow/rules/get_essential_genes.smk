@@ -1,12 +1,12 @@
 rule get_essential_genes:
     output:
-        "resources/DepMap/essential/{oncotree_code_DepMap}_{essentiality_cutoff}_{num_assays_cutoff}"
+        "resources/DepMap/essential/{oncotree_code_DepMap}_{gender_DepMap}_{essentiality_cutoff}_{num_assays_cutoff}"
     input:
-        "resources/DepMap/probabilities/{oncotree_code_DepMap}"
+        "resources/DepMap/probabilities/{oncotree_code_DepMap}_{gender_DepMap}"
     conda:
         "../envs/r_roadmap.yml"
     log:
-        "logs/filter_CRISPR_probabilities/{oncotree_code_DepMap}_{essentiality_cutoff}_{num_assays_cutoff}.log"
+        "logs/filter_CRISPR_probabilities/{oncotree_code_DepMap}_{gender_DepMap}_{essentiality_cutoff}_{num_assays_cutoff}.log"
     shell:
         """
         Rscript workflow/scripts/get_essential_genes.R \

@@ -6,8 +6,8 @@ input_path_coords              <- args$input_path_coords
 input_path_muts                <- args$input_path_muts
 output_path                    <- args$output_path
 
-coords <- read.delim("resources/COSMIC/coordinates/coding/coordinates.sorted.bed", header = F)
-muts <- read.delim("resources/COSMIC/mutations/coding/mutations.filtered.bed", header = T)
+coords <- read.delim(input_path_coords, header = F)
+muts <- read.delim(input_path_muts, header = T)
 
 colnames(coords) <- c("chr", "start", "end", "mutID")
 

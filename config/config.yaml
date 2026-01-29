@@ -16,11 +16,17 @@ steps:
 tumor_types:
   - BRCA
 
+genders:
+  - F
+
 sample_types:
- - anySample
+ - PrimaryCulture
 
 file_formats:
  - mnemonics
+
+mapping_file_gender_locations:
+  - config/mapping_gender
 
 mapping_file_tt_locations:
   - config/mapping_tissue_tumor_type
