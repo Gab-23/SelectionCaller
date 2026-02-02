@@ -1,6 +1,6 @@
 rule get_GDC_CNA_data:
     output:
-        "resources/GDC/CNAs/files/checks/{tumor_type_GDC}_{gender_GDC}"
+        "resources/GDC/CNAs/checks/{tumor_type_GDC}_{gender_GDC}"
     input:
         "resources/GDC/CNAs/{tumor_type_GDC}_{gender_GDC}_manifest"
     log:

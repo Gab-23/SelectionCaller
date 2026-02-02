@@ -69,3 +69,12 @@ GDC_sample_sheet_locations:
 
 GDC_manifest_locations:
   - "resources/GDC/CNAs/gdc_manifest.2026-01-28.170055.txt"
+
+GDC_CNA_files_locations:
+  - resources/GDC/CNAs/files/*/*.seg.v2.txt
+
+min_Num_Probes:
+  - 50
+
+min_abs_Segment_Means:
+  - 0.2

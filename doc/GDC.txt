@@ -41,3 +41,13 @@ for that probe -- usually represented in log2 scale, so 0.0 indicates neutral or
 Segmentation groups together adjacent probes likely to have the same copy number in the sample's genome. 
 In this output format (see SEG), Num_Probes is the number of probes assigned to a segment, 
 and Segment_Mean is the arithmetic mean of those probes' log2 copy ratio values.
+
+
+I split using grep "-" (del) and -v "-" (ampl) I checked and it appears only in Segment_Mean
+
+cut -f5 resources/GDC/CNAs/del/BRCA_female_50_0.2.bed | wc -l 50432
+cut -f5 resources/GDC/CNAs/del/BRCA_female_50_0.2.bed | grep "-" | wc -l 50432
+cut -f5 resources/GDC/CNAs/ampl/BRCA_female_50_0.2.bed | wc -l 99868
+cut -f5 resources/GDC/CNAs/ampl/BRCA_female_50_0.2.bed | grep -v "-" | wc -l 99868
+
+

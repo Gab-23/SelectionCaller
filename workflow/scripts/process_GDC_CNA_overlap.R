@@ -1,0 +1,88 @@
+options(scipen=999)                                                               # unable scientific notation           
+
+args <- R.utils::commandArgs(trailingOnly = TRUE, asValues = TRUE)                # read args
+
+input_path_ampl                     <- args$input_path_ampl
+input_path_del                      <- args$input_path_del
+output_path_ampl                    <- args$output_path_ampl
+output_path_del                     <- args$output_path_del
+output_path_plot_ampl               <- args$output_path_plot_ampl
+output_path_plot_del                <- args$output_path_plot_del
+num_patients                        <- as.numeric(args$num_patients)
+
+`%>%` <- magrittr::`%>%`
+
+ampl <- read.delim(input_path_ampl, header = F)
+colnames(ampl) <- c("chr", "start", "end", "binID", "ampl.frequency")
+ampl$ampl.frequency <- (ampl$ampl.frequency / num_patients)
+
+del <- read.delim(input_path_del, header = F)
+colnames(del) <- c("chr", "start", "end", "binID", "del.frequency")
+del$del.frequency <- (del$del.frequency / num_patients)
+
+chr_levels <- 1:22
+
+ampl.out <- ampl %>%
+  dplyr::select(binID, ampl.frequency) %>%
+  dplyr::mutate(
+    chromosome = sub("_.*", "", binID),
+    bin = as.numeric(sub(".*_", "", binID)),
+    chromosome = factor(chromosome, levels = chr_levels)
+  )
+
+del.out <- del %>%
+  dplyr::select(binID, del.frequency) %>%
+  dplyr::mutate(
+    chromosome = sub("_.*", "", binID),
+    bin = as.numeric(sub(".*_", "", binID)),
+    chromosome = factor(chromosome, levels = chr_levels)
+  )
+
+p_ampl <- ggplot2::ggplot(ampl.out,
+                 ggplot2::aes(x = bin, y = ampl.frequency, group = chromosome)) +
+  ggplot2::geom_line(alpha = 0.8) +
+  ggplot2::facet_wrap(~ chromosome, scales = "free_x", nrow = 1) +
+  ggplot2::labs(
+    x = "Genomic bin",
+    y = "Amplification frequency",
+    title = "Amplification frequency across genome"
+  ) +
+  ggplot2::theme_bw() +
+  ggplot2::theme(
+    strip.background = ggplot2::element_blank(),
+    strip.text = ggplot2::element_text(face = "bold"),
+    axis.text.x = ggplot2::element_text(angle = 45, hjust = 1)
+  )
+
+p_del <- ggplot2::ggplot(del.out,
+                ggplot2::aes(x = bin, y = del.frequency, group = chromosome)) +
+  ggplot2::geom_line(alpha = 0.8) +
+  ggplot2::facet_wrap(~ chromosome, scales = "free_x", nrow = 1) +
+  ggplot2::labs(
+    x = "Genomic bin",
+    y = "Deletion frequency",
+    title = "Deletion frequency across genome"
+  ) +
+  ggplot2::theme_bw() +
+  ggplot2::theme(
+    strip.background = ggplot2::element_blank(),
+    strip.text = ggplot2::element_text(face = "bold"),
+    axis.text.x = ggplot2::element_text(angle = 45, hjust = 1)
+  )
+
+write.table(x = ampl.out[,c("binID", "ampl.frequency")],                                                         # write output
+            file = output_path_ampl, 
+            quote = F, 
+            sep = "\t", 
+            row.names = F, 
+            col.names = T)
+
+write.table(x = del.out[,c("binID", "del.frequency")],                                                          # write output
+            file = output_path_del, 
+            quote = F, 
+            sep = "\t", 
+            row.names = F, 
+            col.names = T)
+
+ggplot2::ggsave(output_path_plot_del, p_del, width = 14, height = 4)
+ggplot2::ggsave(output_path_plot_ampl, p_ampl, width = 14, height = 4)
