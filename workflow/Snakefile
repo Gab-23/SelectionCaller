@@ -2,12 +2,25 @@ import pandas
 import os
 
 dirs_lists = [["resources/", "resources/epigenomes/", "resources/epigenomes/roadmap/"],
-              ["resources/", "resources/GDC/", "resources/GDC/CNAs/", "resources/GDC/CNAs/files/"]]
+              ["resources/", "resources/GDC/", "resources/GDC/CNAs/", "resources/GDC/CNAs/files/"],
+              ["resources/", "resources/repliseq/", "resources/repliseq/files/", "resources/repliseq/files/sra/"],
+              ["resources/", "resources/repliseq/", "resources/repliseq/files/", "resources/repliseq/files/fastq/"]]
 
 for dirs_list in dirs_lists:
     for dir in dirs_list:
         if not os.path.isdir(dir):
             os.mkdir(dir)
+
+def get_SRA_ids(repliseq_selected_samples_location):
+
+    samples = pandas.read_csv(repliseq_selected_samples_location, sep = "\t", header = 0)
+    SRA_ids = samples["SRA_id"].tolist()
+    return SRA_ids
+
+def get_is_patterned(sequencers_info_location, sequencer_name):
+    sequencers = pandas.read_csv(sequencers_info_location, sep = "\t", header = 0)
+    is_patterned = sequencers[sequencers.sequencer_name == sequencer_name]["is_patterned"]
+    return is_patterned.tolist()[0]
 
 def get_epigenome_ids(wildcards, tissue_type_Roadmap):
 
@@ -58,6 +71,36 @@ def map_gender(mapping_file_location, gender):
     except FileNotFoundError as err:
         print(f"{mapping_file_location} does not exist")
 
+def get_prefetch_outputs():
+    return expand(rules.prefetch_repliseq.output, SRA_id=SRA_ids)
+
+def get_fastqdump_outputs():
+    return expand(rules.fastq_dump_repliseq.output, SRA_id=SRA_ids)
+
+def get_trim_galore_outputs():
+    return expand(rules.trim_reads.output, SRA_id=SRA_ids)
+
+def get_alignment_outputs(wildcards):
+    return expand(rules.align_reads.output, SRA_id=SRA_ids, **wildcards)
+
+def get_alignment_sorting_outputs(wildcards):
+    return expand(rules.sort_bam_repliseq.output, SRA_id=SRA_ids, **wildcards)
+
+def get_alignment_indexing_outputs(wildcards):
+    return expand(rules.index_bam_repliseq.output, SRA_id=SRA_ids, **wildcards)
+
+def get_filtering_outputs(wildcards):
+    return expand(rules.filter_bam_repliseq.output, SRA_id=SRA_ids, **wildcards)
+
+def get_sorting_filtered_alignment_outputs(wildcards):
+    return expand(rules.sort_filtered_bam_repliseq.output, SRA_id=SRA_ids, **wildcards)
+
+def get_indexing_filtered_alignment_outputs(wildcards):
+    return expand(rules.index_filtered_bam_repliseq.output, SRA_id=SRA_ids, **wildcards)
+
+def get_bamqc_outputs(wildcards):
+    return expand(rules.do_bamqc_repliseq.output, SRA_id=SRA_ids, **wildcards)
+
 mapping_file_tt_locations = config["mapping_file_tt_locations"]
 mapping_file_gender_locations = config["mapping_file_gender_locations"]
 
@@ -96,6 +139,13 @@ GDC_CNA_files_locations= config["GDC_CNA_files_locations"]
 
 min_Num_Probes= config["min_Num_Probes"]
 min_abs_Segment_Means= config["min_abs_Segment_Means"]
+
+repliseq_selected_samples_locations=config["repliseq_selected_samples_locations"]
+sequencers_info_locations=config["sequencers_info_locations"]
+
+
+num_cores_repliseqs = config["num_cores_repliseqs"]
+java_mem_size_repliseqs = config["java_mem_size_repliseqs"]
 
 ##### 
 
@@ -199,10 +249,33 @@ if len(GDC_manifest_locations) > 1:
 if len(GDC_CNA_files_locations) > 1:
     raise ValueError("ERROR, multiple GDC_CNA_files_locations selected")
 
+if len(repliseq_selected_samples_locations) > 1:
+    raise ValueError("ERROR, multiple repliseq_selected_samples_locations selected")
+
+if len(sequencers_info_locations) > 1:
+    raise ValueError("ERROR, multiple sequencers_info_locations selected")
+
+if len(num_cores_repliseqs) > 1:
+    raise ValueError("ERROR, multiple num_cores_repliseqs selected")
+else:
+    num_cores_repliseq = num_cores_repliseqs[0]
+
+if len(java_mem_size_repliseqs) > 1:
+    raise ValueError("ERROR, multiple java_mem_size_repliseqs selected")
+else:
+    java_mem_size_repliseq = java_mem_size_repliseqs[0]
+
 #####
 
 tissue_type_Roadmap, tumor_type_IntOGen, cohort_IntOGen, oncotree_code_DepMap, COSMIC_parameters, tumor_type_GDC, cohort_GDC = map_tt_acronym(mapping_file_tt_location, tumor_type, "TCGA")
 gender_COSMIC, gender_DepMap, gender_GDC = map_gender(mapping_file_gender_location, gender)
+SRA_ids = get_SRA_ids(repliseq_selected_samples_locations[0])
+is_patterned_repliseq = get_is_patterned(sequencers_info_locations[0], "HiSeq_4000")
+
+if is_patterned_repliseq:
+    pixel_distance_repliseq = 2500
+else:
+    pass
 
 include: "rules/get_chrom_sizes.smk"
 include: "rules/clean_chrom_sizes.smk"
@@ -283,8 +356,39 @@ include: "rules/compute_ampl_overlap.smk"
 include: "rules/compute_del_overlap.smk"
 include: "rules/process_GDC_CNA_overlap.smk"
 
+include: "rules/get_reference_genome.smk"
+include: "rules/index_reference_genome.smk"
+
+include: "rules/prefetch_repliseq.smk"
+include: "rules/fastq_dump_repliseq.smk"
+
+include: "rules/trim_reads.smk"
+include: "rules/align_reads.smk"
+include: "rules/sort_bam_repliseq.smk"
+include: "rules/index_bam_repliseq.smk"
+include: "rules/filter_bam_repliseq.smk"
+include: "rules/sort_filtered_bam_repliseq.smk"
+include: "rules/index_filtered_bam_repliseq.smk"
+include: "rules/do_bamqc_repliseq.smk"
+
 rule all:
     input:
+        expand(
+            "resources/reference_data/genome/{assembly_code}.fa.bwt",
+            assembly_code=assembly_code
+        ),
+        expand(
+            "resources/repliseq/files/checks/{assembly_code}_filtered_alignment_sorting",
+            assembly_code=assembly_code
+        ),
+        expand(
+            "resources/repliseq/files/checks/{assembly_code}_filtered_alignment_indexing",
+            assembly_code=assembly_code
+        ),
+        expand(
+            "resources/repliseq/files/checks/{assembly_code}_bamqc",
+            assembly_code=assembly_code
+        ),
         expand(
             "data/num_overlaps/CNAs/ampl/{assembly_code}_{window_mode}_{window_size}_{step}_{tumor_type_GDC}_{gender_GDC}_{min_Num_Probes}_{min_abs_Segment_Mean}",
             assembly_code=assembly_code,
@@ -393,6 +497,106 @@ rule all:
             step=steps
         )
 
+rule all_prefetch_repliseq:
+    input:
+        get_prefetch_outputs
+    output:
+        all_done="resources/repliseq/files/checks/prefetch"
+    shell:
+        """
+        echo {input} >> {output}
+        """
+
+rule all_fastqdump_repliseq:
+    input:
+        get_fastqdump_outputs
+    output:
+        all_done="resources/repliseq/files/checks/fastq_dump"
+    shell:
+        """
+        echo {input} >> {output}
+        """
+
+rule all_trimgalore_repliseq:
+    input:
+        get_trim_galore_outputs
+    output:
+        all_done="resources/repliseq/files/checks/trim_galore"
+    shell:
+        """
+        echo {input} >> {output}
+        """
+
+rule all_alignment_repliseq:
+    input:
+        get_alignment_outputs
+    output:
+        all_done="resources/repliseq/files/checks/{assembly_code}_alignment"
+    shell:
+        """
+        echo {input} >> {output}
+        """
+
+rule all_alignment_sorting_repliseq:
+    input:
+        get_alignment_sorting_outputs
+    output:
+        all_done="resources/repliseq/files/checks/{assembly_code}_alignment_sorting"
+    shell:
+        """
+        echo {input} >> {output}
+        """
+
+rule all_alignment_indexing_repliseq:
+    input:
+        get_alignment_indexing_outputs
+    output:
+        all_done="resources/repliseq/files/checks/{assembly_code}_alignment_indexing"
+    shell:
+        """
+        echo {input} >> {output}
+        """
+
+rule all_filtering_repliseq:
+    input:
+        get_filtering_outputs
+    output:
+        all_done="resources/repliseq/files/checks/{assembly_code}_filtering"
+    shell:
+        """
+        echo {input} >> {output}
+        """
+
+rule all_sorting_filtered_alignment_repliseq:
+    input:
+        get_sorting_filtered_alignment_outputs
+    output:
+        all_done="resources/repliseq/files/checks/{assembly_code}_filtered_alignment_sorting"
+    shell:
+        """
+        echo {input} >> {output}
+        """
+
+rule all_indexing_filtered_alignment_repliseq:
+    input:
+        get_indexing_filtered_alignment_outputs
+    output:
+        all_done="resources/repliseq/files/checks/{assembly_code}_filtered_alignment_indexing"
+    shell:
+        """
+        echo {input} >> {output}
+        """
+
+rule all_bamqc_repliseq:
+    input:
+        get_bamqc_outputs
+    output:
+        all_done="resources/repliseq/files/checks/{assembly_code}_bamqc"
+    shell:
+        """
+        echo {input} >> {output}
+        """
+
 wildcard_constraints:
     assembly_code = "hg\\d{2}",
     gencode_version="[0-9]+",
@@ -409,4 +613,5 @@ wildcard_constraints:
     gender_GDC="[a-z]+",
     tumor_type_GDC="[A-Z]+",
     min_Num_Probes="[0-9]+",
-    min_abs_Segment_Mean="\\d+(\\.\\d+)?"
+    min_abs_Segment_Mean="\\d+(\\.\\d+)?",
+    SRA_id="[A-Z]+[0-9]+"

@@ -1,0 +1,5 @@
+NUM_THREADS=$4
+DEDUP_BAM=${14}
+FILTERED_BAM=${16}
+
+samtools view -@ $NUM_THREADS -q 20 -b $DEDUP_BAM > $FILTERED_BAM

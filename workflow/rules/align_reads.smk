@@ -1,0 +1,20 @@
+rule align_reads:
+    output:
+        "resources/repliseq/files/bam/{assembly_code}_{SRA_id}.bam"
+    input:
+        FWD="resources/repliseq/files/fastq/{SRA_id}/{SRA_id}_1.fastq.gz",
+        REV="resources/repliseq/files/fastq/{SRA_id}/{SRA_id}_2.fastq.gz",
+        FASTA="resources/reference_data/genome/{assembly_code}.fa",
+        index="resources/reference_data/genome/{assembly_code}.fa.bwt"
+    log:
+        "logs/align_reads/{assembly_code}_{SRA_id}.log"
+    params:
+        num_cores_repliseq=num_cores_repliseq
+    conda:
+        "../envs/bwa_samtools.yml"
+    shell:
+        """
+        bwa mem -t {params.num_cores_repliseq} {input.FASTA} {input.FWD} {input.REV} |  samtools view -S -h -b > {output} 2>{log}
+        """
+
+

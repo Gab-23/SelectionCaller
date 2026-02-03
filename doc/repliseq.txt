@@ -1,0 +1,37 @@
+Trim Galore! behaviour:
+
+Single-end
+The *_trimmed.fq.gz are the final output of single-end trimming.
+
+Paired-end
+The *_trimmed.fq.gz are produced as intermediate output 
+(as R1 and R2 are trimmed individually in the first instance). 
+Once the trimming has completed, Trim Galore will launch a round of 'validation' 
+(which is is where the files get the val in their names from), 
+which primarily performs length-cutoff filtering (and a few more optional things I believe). 
+Once the validation is complete, the trimmed files will be deleted, 
+and you are left with only the files N1_1_val_1.fq.gz and N1_2_val_2.fq.gz.
+
+
+Regarding the adpater content (circa 40%) I found this reddit thread
+https://www.reddit.com/r/bioinformatics/comments/iguxlz/regarding_adapter_content/
+
+They say basically not to worry too much about it
+
+The longer your reads, the higher your adapter content. 
+As the read length increases toward the greatest length of any insert in your library, 
+the proportion of reads with adapter content approaches 100%, 
+because 100% of readable library molecules have adapters by definition. 
+All this tells you is that your sequence reads were longer than your inserts 
+40% of the time. It's up to you to determine whether your inserts were unusually 
+short for this protocol or you're wasting money on unnecessarily long reads. 
+
+Not something you need to worry about too much (some madlads don't even trim before alignment anymore...).
+Without a tonne more info - Could be machine based (fastq generation can include some adapter trimming) 
+or some other processing happening between the basecalls and the FASTQ files that you have. 
+Could also be reading all the way through your fragment and into part of the adapter. 
+Could even be a part of your sequenced material that looks a bit like an adapter, though this should be rare.
+If after trimming it aligns okay for your purposes, I wouldn't worry too much.
+
+https://data.4dnucleome.org/resources/data-analysis/repli-seq-processing-pipeline
+Part of the commands have been taken from here

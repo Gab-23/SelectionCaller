@@ -1,0 +1,8 @@
+name: bamqc
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - qualimap
+  - openjdk 

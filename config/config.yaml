@@ -78,3 +78,15 @@ min_Num_Probes:
 
 min_abs_Segment_Means:
   - 0.2
+
+repliseq_selected_samples_locations:
+  - config/selected_samples_repliseq
+
+sequencers_info_locations:
+  - config/sequencers_info
+
+num_cores_repliseqs:
+  - 30
+
+java_mem_size_repliseqs:
+  - 50G
