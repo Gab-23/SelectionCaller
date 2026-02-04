@@ -1,4 +1,14 @@
-BINFILE=${20} 
-OUTFILE_COVERAGE=${21}
-
-bedtools coverage -counts -a $BINFILE -b $NO_BLACKLISTED_SORTED_BAM > $OUTFILE_COVERAGE
+rule compute_coverage_repliseq:
+    output:
+        "resources/repliseq/files/coverage/{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}_{SRA_id}.bed"
+    input:
+        backbone="resources/backbone/{assembly_code}_{window_mode}_{window_size}_{step}.filtered.sorted.bed",
+        bam="resources/repliseq/files/bam/{assembly_code}_{mapq_thr}_{SRA_id}.noblack.sorted.bam"
+    log:
+        "logs/compute_coverage_repliseq/{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}_{SRA_id}.log"
+    conda:
+        "../envs/bedtools.yml"
+    shell:
+        """
+        bedtools coverage -counts -a {input.backbone} -b {input.bam} > {output}
+        """

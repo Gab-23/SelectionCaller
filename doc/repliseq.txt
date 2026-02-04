@@ -35,3 +35,20 @@ If after trimming it aligns okay for your purposes, I wouldn't worry too much.
 
 https://data.4dnucleome.org/resources/data-analysis/repli-seq-processing-pipeline
 Part of the commands have been taken from here
+
+
+Picard complained about the RG field being missing from the BAM.
+Nedd to add it using bwa mem -R.
+
+I checked if inside one single sample, the run is identical or if multiplexing is involved
+
+zcat resources/repliseq/files/fastq/SRR28552525/SRR28552525_1.fastq.gz | grep @ | cut -d : -f 1,2,3,4 | sort | uniq @K00102:449:HFVK7BBXY:8
+zcat resources/repliseq/files/fastq/SRR28552525/SRR28552525_2.fastq.gz | grep @ | cut -d : -f 1,2,3,4 | sort | uniq @K00102:449:HFVK7BBXY:8
+
+zcat resources/repliseq/files/fastq/SRR28552526/SRR28552526_1.fastq.gz | grep @ | cut -d : -f 1,2,3,4 | sort | uniq @K00102:449:HFVK7BBXY:8
+zcat resources/repliseq/files/fastq/SRR28552526/SRR28552526_2.fastq.gz | grep @ | cut -d : -f 1,2,3,4 | sort | uniq @K00102:449:HFVK7BBXY:8
+
+zcat resources/repliseq/files/fastq/SRR28552528/SRR28552528_1.fastq.gz | grep @ | cut -d : -f 1,2,3,4 | sort | uniq @K00102:449:HFVK7BBXY:8
+zcat resources/repliseq/files/fastq/SRR28552528/SRR28552528_2.fastq.gz | grep @ | cut -d : -f 1,2,3,4 | sort | uniq @K00102:449:HFVK7BBXY:8
+
+For this reason I will use -R '@RG\tID:{wildcards.SRA_id}\tSM:{wildcards.SRA_ids}\tLB:lib1\tPL:ILLUMINA\tPU:unit1' inside bwa mem

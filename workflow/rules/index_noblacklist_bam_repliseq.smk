@@ -1,4 +1,15 @@
-NUM_THREADS=$4
-NO_BLACKLISTED_SORTED_BAM=${19}
-
-samtools index -@ $NUM_THREADS $NO_BLACKLISTED_SORTED_BAM
+rule index_noblacklist_bam_repliseq:
+    output:
+        "resources/repliseq/files/bam/{assembly_code}_{mapq_thr}_{SRA_id}.noblack.sorted.bam.bai"
+    input:
+        "resources/repliseq/files/bam/{assembly_code}_{mapq_thr}_{SRA_id}.noblack.sorted.bam"
+    log:
+        "logs/index_bam_repliseq/{assembly_code}_{mapq_thr}_{SRA_id}.log"
+    params:
+        num_cores_repliseq=num_cores_repliseq
+    conda:
+        "../envs/bwa_samtools.yml"
+    shell:
+        """
+        samtools index -@ {params.num_cores_repliseq} {input} 2>{log}
+        """

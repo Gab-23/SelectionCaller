@@ -71,13 +71,13 @@ def map_gender(mapping_file_location, gender):
     except FileNotFoundError as err:
         print(f"{mapping_file_location} does not exist")
 
-def get_prefetch_outputs():
+def get_prefetch_outputs(wildcards):
     return expand(rules.prefetch_repliseq.output, SRA_id=SRA_ids)
 
-def get_fastqdump_outputs():
+def get_fastqdump_outputs(wildcards):
     return expand(rules.fastq_dump_repliseq.output, SRA_id=SRA_ids)
 
-def get_trim_galore_outputs():
+def get_trim_galore_outputs(wildcards):
     return expand(rules.trim_reads.output, SRA_id=SRA_ids)
 
 def get_alignment_outputs(wildcards):
@@ -100,6 +100,24 @@ def get_indexing_filtered_alignment_outputs(wildcards):
 
 def get_bamqc_outputs(wildcards):
     return expand(rules.do_bamqc_repliseq.output, SRA_id=SRA_ids, **wildcards)
+
+def get_deduplicated_alignment_outputs(wildcards):
+    return expand(rules.deduplicate_bam_repliseq.output, SRA_id=SRA_ids, **wildcards)
+
+def get_filtered_deduplicated_alignment_outputs(wildcards):
+    return expand(rules.filter_deduplicated_bam_repliseq.output, SRA_id=SRA_ids, **wildcards)
+
+def get_remove_blacklisted_alignment_outputs(wildcards):
+    return expand(rules.remove_blacklisted_from_bam_repliseq.output, SRA_id=SRA_ids, **wildcards)
+
+def get_sort_noblacklisted_alignment_outputs(wildcards):
+    return expand(rules.sort_noblacklist_bam_repliseq.output, SRA_id=SRA_ids, **wildcards)
+
+def get_index_noblacklisted_alignment_outputs(wildcards):
+    return expand(rules.index_noblacklist_bam_repliseq.output, SRA_id=SRA_ids, **wildcards)
+
+def get_coverage_outputs(wildcards):
+    return expand(rules.compute_coverage_repliseq.output, SRA_id=SRA_ids, **wildcards)
 
 mapping_file_tt_locations = config["mapping_file_tt_locations"]
 mapping_file_gender_locations = config["mapping_file_gender_locations"]
@@ -146,6 +164,7 @@ sequencers_info_locations=config["sequencers_info_locations"]
 
 num_cores_repliseqs = config["num_cores_repliseqs"]
 java_mem_size_repliseqs = config["java_mem_size_repliseqs"]
+mapq_thrs = config["mapq_thrs"]
 
 ##### 
 
@@ -265,6 +284,11 @@ if len(java_mem_size_repliseqs) > 1:
 else:
     java_mem_size_repliseq = java_mem_size_repliseqs[0]
 
+if len(mapq_thrs) > 1:
+    raise ValueError("ERROR, multiple mapq_thrs selected")
+else:
+    mapq_thr = mapq_thrs[0]
+
 #####
 
 tissue_type_Roadmap, tumor_type_IntOGen, cohort_IntOGen, oncotree_code_DepMap, COSMIC_parameters, tumor_type_GDC, cohort_GDC = map_tt_acronym(mapping_file_tt_location, tumor_type, "TCGA")
@@ -370,6 +394,12 @@ include: "rules/filter_bam_repliseq.smk"
 include: "rules/sort_filtered_bam_repliseq.smk"
 include: "rules/index_filtered_bam_repliseq.smk"
 include: "rules/do_bamqc_repliseq.smk"
+include: "rules/deduplicate_bam_repliseq.smk"
+include: "rules/filter_deduplicated_bam_repliseq.smk"
+include: "rules/remove_blacklisted_from_bam_repliseq.smk"
+include: "rules/sort_noblacklist_bam_repliseq.smk"
+include: "rules/index_noblacklist_bam_repliseq.smk"
+include: "rules/compute_coverage_repliseq.smk"
 
 rule all:
     input:
@@ -378,16 +408,16 @@ rule all:
             assembly_code=assembly_code
         ),
         expand(
-            "resources/repliseq/files/checks/{assembly_code}_filtered_alignment_sorting",
-            assembly_code=assembly_code
-        ),
-        expand(
-            "resources/repliseq/files/checks/{assembly_code}_filtered_alignment_indexing",
-            assembly_code=assembly_code
-        ),
-        expand(
             "resources/repliseq/files/checks/{assembly_code}_bamqc",
             assembly_code=assembly_code
+        ),
+        expand(
+            "resources/repliseq/files/checks/{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}_coverage",
+            assembly_code=assembly_code,
+            window_mode=window_mode,
+            window_size=window_sizes,
+            step=steps,
+            mapq_thr=mapq_thr
         ),
         expand(
             "data/num_overlaps/CNAs/ampl/{assembly_code}_{window_mode}_{window_size}_{step}_{tumor_type_GDC}_{gender_GDC}_{min_Num_Probes}_{min_abs_Segment_Mean}",
@@ -561,7 +591,7 @@ rule all_filtering_repliseq:
     input:
         get_filtering_outputs
     output:
-        all_done="resources/repliseq/files/checks/{assembly_code}_filtering"
+        all_done="resources/repliseq/files/checks/{assembly_code}_alignment_filtering"
     shell:
         """
         echo {input} >> {output}
@@ -592,6 +622,66 @@ rule all_bamqc_repliseq:
         get_bamqc_outputs
     output:
         all_done="resources/repliseq/files/checks/{assembly_code}_bamqc"
+    shell:
+        """
+        echo {input} >> {output}
+        """
+
+rule all_deduplicated_alignment_repliseq:
+    input:
+        get_deduplicated_alignment_outputs
+    output:
+        all_done="resources/repliseq/files/checks/{assembly_code}_alignment_deduplication"
+    shell:
+        """
+        echo {input} >> {output}
+        """
+
+rule all_filtered_deduplicated_alignment_repliseq:
+    input:
+        get_filtered_deduplicated_alignment_outputs
+    output:
+        all_done="resources/repliseq/files/checks/{assembly_code}_{mapq_thr}_deduplicated_alignment_filtering"
+    shell:
+        """
+        echo {input} >> {output}
+        """
+
+rule all_remove_blacklisted_alignment_repliseq:
+    input:
+        get_remove_blacklisted_alignment_outputs
+    output:
+        all_done="resources/repliseq/files/checks/{assembly_code}_{mapq_thr}_noblacklist_alignment"
+    shell:
+        """
+        echo {input} >> {output}
+        """
+
+rule all_sort_blacklisted_alignment_repliseq:
+    input:
+        get_sort_noblacklisted_alignment_outputs
+    output:
+        all_done="resources/repliseq/files/checks/{assembly_code}_{mapq_thr}_noblacklist_alignment_sorting"
+    shell:
+        """
+        echo {input} >> {output}
+        """
+
+rule all_index_blacklisted_alignment_repliseq:
+    input:
+        get_index_noblacklisted_alignment_outputs
+    output:
+        all_done="resources/repliseq/files/checks/{assembly_code}_{mapq_thr}_noblacklist_alignment_indexing"
+    shell:
+        """
+        echo {input} >> {output}
+        """
+
+rule all_get_coverage_repliseq:
+    input:
+        get_coverage_outputs
+    output:
+        all_done="resources/repliseq/files/checks/{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}_coverage"
     shell:
         """
         echo {input} >> {output}

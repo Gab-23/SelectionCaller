@@ -14,7 +14,12 @@ rule align_reads:
         "../envs/bwa_samtools.yml"
     shell:
         """
-        bwa mem -t {params.num_cores_repliseq} {input.FASTA} {input.FWD} {input.REV} |  samtools view -S -h -b > {output} 2>{log}
+        bwa mem \
+        -R '@RG\\tID:{wildcards.SRA_id}\\tSM:{wildcards.SRA_id}\\tLB:lib1\\tPL:ILLUMINA\\tPU:unit1' \
+        -t {params.num_cores_repliseq} \
+        {input.FASTA} \
+        {input.FWD} \
+        {input.REV} | samtools view -S -h -b > {output} 2>{log}
         """
 
 

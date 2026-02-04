@@ -1,0 +1,10 @@
+https://www.frontiersin.org/journals/remote-sensing/articles/10.3389/frsen.2025.1531097/full
+
+Iterating over a plausible range of block sizes can yield additional insights, 
+for example, exploring how error estimates change with increasing separation distance 
+(Pohjankukka et al., 2017; Stock and Subramaniam, 2022). 
+While a single set of manually crafted blocks is computationally more 
+efficient and can reflect characteristics of the study region 
+(such as biogeographical boundaries), an iterative approach avoids the need to 
+select a block size a priori. Thus, it helps resolve situations where geostatistical 
+analyses and domain knowledge do not clearly suggest which block size to use.

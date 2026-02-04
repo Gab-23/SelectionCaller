@@ -1,0 +1,2 @@
+Probably best to exclude them becasue might inject too much
+autocorrelation

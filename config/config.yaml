@@ -86,7 +86,10 @@ sequencers_info_locations:
   - config/sequencers_info
 
 num_cores_repliseqs:
-  - 30
+  - 60
 
 java_mem_size_repliseqs:
   - 50G
+
+mapq_thrs:
+  - 20

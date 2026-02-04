@@ -1,7 +1,7 @@
 rule deduplicate_bam_repliseq:
     output:
         bam="resources/repliseq/files/bam/{assembly_code}_{SRA_id}.dedup.bam",
-        metrics=""
+        metrics="resources/repliseq/files/bam/{assembly_code}_{SRA_id}.metrics.txt"
     input:
         "resources/repliseq/files/bam/{assembly_code}_{SRA_id}.canon.sorted.bam"
     log:
