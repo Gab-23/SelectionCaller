@@ -1,8 +1,8 @@
 rule index_filtered_bam_repliseq:
     output:
-        "resources/repliseq/files/bam/{assembly_code}_{SRA_id}.canon.sorted.bam.bai"
+        "resources/repliseq/files/bam/{SRA_id}/{assembly_code}.canon.sorted.bam.bai"
     input:
-        "resources/repliseq/files/bam/{assembly_code}_{SRA_id}.canon.sorted.bam"
+        "resources/repliseq/files/bam/{SRA_id}/{assembly_code}.canon.sorted.bam"
     log:
         "logs/index_filtered_bam_repliseq/{assembly_code}_{SRA_id}.log"
     params:

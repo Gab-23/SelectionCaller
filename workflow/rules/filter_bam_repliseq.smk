@@ -1,9 +1,9 @@
 rule filter_bam_repliseq:
     output:
-        "resources/repliseq/files/bam/{assembly_code}_{SRA_id}.canon.bam"
+        "resources/repliseq/files/bam/{SRA_id}/{assembly_code}.canon.bam"
     input:
-        bam="resources/repliseq/files/bam/{assembly_code}_{SRA_id}.sorted.bam",
-        index="resources/repliseq/files/bam/{assembly_code}_{SRA_id}.sorted.bam.bai"
+        bam="resources/repliseq/files/bam/{SRA_id}/{assembly_code}.sorted.bam",
+        index="resources/repliseq/files/bam/{SRA_id}/{assembly_code}.sorted.bam.bai"
     log:
         "logs/filter_bam_repliseq/{assembly_code}_{SRA_id}.log"
     params:

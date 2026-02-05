@@ -1,9 +1,9 @@
 rule deduplicate_bam_repliseq:
     output:
-        bam="resources/repliseq/files/bam/{assembly_code}_{SRA_id}.dedup.bam",
-        metrics="resources/repliseq/files/bam/{assembly_code}_{SRA_id}.metrics.txt"
+        bam="resources/repliseq/files/bam/{SRA_id}/{assembly_code}.dedup.bam",
+        metrics="resources/repliseq/files/bam/{SRA_id}/{assembly_code}.metrics.txt"
     input:
-        "resources/repliseq/files/bam/{assembly_code}_{SRA_id}.canon.sorted.bam"
+        "resources/repliseq/files/bam/{SRA_id}/{assembly_code}.canon.sorted.bam"
     log:
         "logs/deduplicate_bam_repliseq/{assembly_code}_{SRA_id}.log"
     params:

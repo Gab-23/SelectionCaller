@@ -8,7 +8,7 @@ window_modes:
   - binned
 
 window_sizes:
- - 20000
+ - 1000000
 
 steps:
  - 0
@@ -93,3 +93,6 @@ java_mem_size_repliseqs:
 
 mapq_thrs:
   - 20
+
+cov_thrs:
+  - 50

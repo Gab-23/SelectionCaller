@@ -1,8 +1,8 @@
 rule remove_blacklisted_from_bam_repliseq:
     output:
-        "resources/repliseq/files/bam/{assembly_code}_{mapq_thr}_{SRA_id}.noblack.bam"
+        "resources/repliseq/files/bam/{SRA_id}/{assembly_code}_{mapq_thr}.noblack.bam"
     input:
-        bam="resources/repliseq/files/bam/{assembly_code}_{mapq_thr}_{SRA_id}.dedup.filtered.bam",
+        bam="resources/repliseq/files/bam/{SRA_id}/{assembly_code}_{mapq_thr}.dedup.filtered.bam",
         blacklist="resources/blacklist/{assembly_code}.bed"
     log:
         "logs/remove_blacklisted_from_bam_repliseq/{assembly_code}_{mapq_thr}_{SRA_id}.log"

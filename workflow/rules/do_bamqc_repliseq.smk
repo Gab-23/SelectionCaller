@@ -1,8 +1,8 @@
 rule do_bamqc_repliseq:
     output:
-        directory("resources/repliseq/files/bam/bamqc/{assembly_code}_{SRA_id}/")
+        directory("resources/repliseq/files/bamqc/{assembly_code}_{SRA_id}/")
     input:
-        "resources/repliseq/files/bam/{assembly_code}_{SRA_id}.canon.sorted.bam"
+        "resources/repliseq/files/bam/{SRA_id}/{assembly_code}.canon.sorted.bam"
     log:
         "logs/do_bamqc_repliseq/{assembly_code}_{SRA_id}.log"
     params:

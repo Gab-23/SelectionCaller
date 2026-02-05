@@ -1,8 +1,8 @@
 rule sort_noblacklist_bam_repliseq:
     output:
-        "resources/repliseq/files/bam/{assembly_code}_{mapq_thr}_{SRA_id}.noblack.sorted.bam"
+        "resources/repliseq/files/bam/{SRA_id}/{assembly_code}_{mapq_thr}.noblack.sorted.bam"
     input:
-        "resources/repliseq/files/bam/{assembly_code}_{mapq_thr}_{SRA_id}.noblack.bam"
+        "resources/repliseq/files/bam/{SRA_id}/{assembly_code}_{mapq_thr}.noblack.bam"
     log:
         "logs/sort_bam_repliseq/{assembly_code}_{mapq_thr}_{SRA_id}.log"
     params:

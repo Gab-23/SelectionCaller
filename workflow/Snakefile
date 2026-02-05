@@ -4,7 +4,8 @@ import os
 dirs_lists = [["resources/", "resources/epigenomes/", "resources/epigenomes/roadmap/"],
               ["resources/", "resources/GDC/", "resources/GDC/CNAs/", "resources/GDC/CNAs/files/"],
               ["resources/", "resources/repliseq/", "resources/repliseq/files/", "resources/repliseq/files/sra/"],
-              ["resources/", "resources/repliseq/", "resources/repliseq/files/", "resources/repliseq/files/fastq/"]]
+              ["resources/", "resources/repliseq/", "resources/repliseq/files/", "resources/repliseq/files/fastq/"],
+              ["resources/", "resources/repliseq/", "resources/repliseq/files/", "resources/repliseq/files/coverage/"]]
 
 for dirs_list in dirs_lists:
     for dir in dirs_list:
@@ -119,6 +120,10 @@ def get_index_noblacklisted_alignment_outputs(wildcards):
 def get_coverage_outputs(wildcards):
     return expand(rules.compute_coverage_repliseq.output, SRA_id=SRA_ids, **wildcards)
 
+def filter_coverage_outputs(wildcards):
+    return expand(rules.filter_coverage_repliseq.output, SRA_id=SRA_ids, **wildcards)
+
+
 mapping_file_tt_locations = config["mapping_file_tt_locations"]
 mapping_file_gender_locations = config["mapping_file_gender_locations"]
 
@@ -165,6 +170,7 @@ sequencers_info_locations=config["sequencers_info_locations"]
 num_cores_repliseqs = config["num_cores_repliseqs"]
 java_mem_size_repliseqs = config["java_mem_size_repliseqs"]
 mapq_thrs = config["mapq_thrs"]
+cov_thrs = config["cov_thrs"]
 
 ##### 
 
@@ -289,6 +295,11 @@ if len(mapq_thrs) > 1:
 else:
     mapq_thr = mapq_thrs[0]
 
+if len(cov_thrs) > 1:
+    raise ValueError("ERROR, multiple cov_thrs selected")
+else:
+    cov_thr = cov_thrs[0]
+
 #####
 
 tissue_type_Roadmap, tumor_type_IntOGen, cohort_IntOGen, oncotree_code_DepMap, COSMIC_parameters, tumor_type_GDC, cohort_GDC = map_tt_acronym(mapping_file_tt_location, tumor_type, "TCGA")
@@ -400,24 +411,23 @@ include: "rules/remove_blacklisted_from_bam_repliseq.smk"
 include: "rules/sort_noblacklist_bam_repliseq.smk"
 include: "rules/index_noblacklist_bam_repliseq.smk"
 include: "rules/compute_coverage_repliseq.smk"
+include: "rules/filter_coverage_repliseq.smk"
+include: "rules/process_repliseq.smk"
 
 rule all:
     input:
-        expand(
-            "resources/reference_data/genome/{assembly_code}.fa.bwt",
-            assembly_code=assembly_code
-        ),
-        expand(
-            "resources/repliseq/files/checks/{assembly_code}_bamqc",
-            assembly_code=assembly_code
-        ),
-        expand(
-            "resources/repliseq/files/checks/{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}_coverage",
+       expand(
+            "data/repliseq/{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}_{cov_thr}",
             assembly_code=assembly_code,
             window_mode=window_mode,
             window_size=window_sizes,
             step=steps,
-            mapq_thr=mapq_thr
+            mapq_thr=mapq_thr,
+            cov_thr=cov_thr
+        ),
+        expand(
+            "resources/repliseq/checks/{assembly_code}_bamqc",
+            assembly_code=assembly_code
         ),
         expand(
             "data/num_overlaps/CNAs/ampl/{assembly_code}_{window_mode}_{window_size}_{step}_{tumor_type_GDC}_{gender_GDC}_{min_Num_Probes}_{min_abs_Segment_Mean}",
@@ -531,7 +541,7 @@ rule all_prefetch_repliseq:
     input:
         get_prefetch_outputs
     output:
-        all_done="resources/repliseq/files/checks/prefetch"
+        all_done="resources/repliseq/checks/prefetch"
     shell:
         """
         echo {input} >> {output}
@@ -541,7 +551,7 @@ rule all_fastqdump_repliseq:
     input:
         get_fastqdump_outputs
     output:
-        all_done="resources/repliseq/files/checks/fastq_dump"
+        all_done="resources/repliseq/checks/fastq_dump"
     shell:
         """
         echo {input} >> {output}
@@ -551,7 +561,7 @@ rule all_trimgalore_repliseq:
     input:
         get_trim_galore_outputs
     output:
-        all_done="resources/repliseq/files/checks/trim_galore"
+        all_done="resources/repliseq/checks/trim_galore"
     shell:
         """
         echo {input} >> {output}
@@ -561,7 +571,7 @@ rule all_alignment_repliseq:
     input:
         get_alignment_outputs
     output:
-        all_done="resources/repliseq/files/checks/{assembly_code}_alignment"
+        all_done="resources/repliseq/checks/{assembly_code}_alignment"
     shell:
         """
         echo {input} >> {output}
@@ -571,7 +581,7 @@ rule all_alignment_sorting_repliseq:
     input:
         get_alignment_sorting_outputs
     output:
-        all_done="resources/repliseq/files/checks/{assembly_code}_alignment_sorting"
+        all_done="resources/repliseq/checks/{assembly_code}_alignment_sorting"
     shell:
         """
         echo {input} >> {output}
@@ -581,7 +591,7 @@ rule all_alignment_indexing_repliseq:
     input:
         get_alignment_indexing_outputs
     output:
-        all_done="resources/repliseq/files/checks/{assembly_code}_alignment_indexing"
+        all_done="resources/repliseq/checks/{assembly_code}_alignment_indexing"
     shell:
         """
         echo {input} >> {output}
@@ -591,7 +601,7 @@ rule all_filtering_repliseq:
     input:
         get_filtering_outputs
     output:
-        all_done="resources/repliseq/files/checks/{assembly_code}_alignment_filtering"
+        all_done="resources/repliseq/checks/{assembly_code}_alignment_filtering"
     shell:
         """
         echo {input} >> {output}
@@ -601,7 +611,7 @@ rule all_sorting_filtered_alignment_repliseq:
     input:
         get_sorting_filtered_alignment_outputs
     output:
-        all_done="resources/repliseq/files/checks/{assembly_code}_filtered_alignment_sorting"
+        all_done="resources/repliseq/checks/{assembly_code}_filtered_alignment_sorting"
     shell:
         """
         echo {input} >> {output}
@@ -611,7 +621,7 @@ rule all_indexing_filtered_alignment_repliseq:
     input:
         get_indexing_filtered_alignment_outputs
     output:
-        all_done="resources/repliseq/files/checks/{assembly_code}_filtered_alignment_indexing"
+        all_done="resources/repliseq/checks/{assembly_code}_filtered_alignment_indexing"
     shell:
         """
         echo {input} >> {output}
@@ -621,7 +631,7 @@ rule all_bamqc_repliseq:
     input:
         get_bamqc_outputs
     output:
-        all_done="resources/repliseq/files/checks/{assembly_code}_bamqc"
+        all_done="resources/repliseq/checks/{assembly_code}_bamqc"
     shell:
         """
         echo {input} >> {output}
@@ -631,7 +641,7 @@ rule all_deduplicated_alignment_repliseq:
     input:
         get_deduplicated_alignment_outputs
     output:
-        all_done="resources/repliseq/files/checks/{assembly_code}_alignment_deduplication"
+        all_done="resources/repliseq/checks/{assembly_code}_alignment_deduplication"
     shell:
         """
         echo {input} >> {output}
@@ -641,7 +651,7 @@ rule all_filtered_deduplicated_alignment_repliseq:
     input:
         get_filtered_deduplicated_alignment_outputs
     output:
-        all_done="resources/repliseq/files/checks/{assembly_code}_{mapq_thr}_deduplicated_alignment_filtering"
+        all_done="resources/repliseq/checks/{assembly_code}_{mapq_thr}_deduplicated_alignment_filtering"
     shell:
         """
         echo {input} >> {output}
@@ -651,7 +661,7 @@ rule all_remove_blacklisted_alignment_repliseq:
     input:
         get_remove_blacklisted_alignment_outputs
     output:
-        all_done="resources/repliseq/files/checks/{assembly_code}_{mapq_thr}_noblacklist_alignment"
+        all_done="resources/repliseq/checks/{assembly_code}_{mapq_thr}_noblacklist_alignment"
     shell:
         """
         echo {input} >> {output}
@@ -661,7 +671,7 @@ rule all_sort_blacklisted_alignment_repliseq:
     input:
         get_sort_noblacklisted_alignment_outputs
     output:
-        all_done="resources/repliseq/files/checks/{assembly_code}_{mapq_thr}_noblacklist_alignment_sorting"
+        all_done="resources/repliseq/checks/{assembly_code}_{mapq_thr}_noblacklist_alignment_sorting"
     shell:
         """
         echo {input} >> {output}
@@ -671,7 +681,7 @@ rule all_index_blacklisted_alignment_repliseq:
     input:
         get_index_noblacklisted_alignment_outputs
     output:
-        all_done="resources/repliseq/files/checks/{assembly_code}_{mapq_thr}_noblacklist_alignment_indexing"
+        all_done="resources/repliseq/checks/{assembly_code}_{mapq_thr}_noblacklist_alignment_indexing"
     shell:
         """
         echo {input} >> {output}
@@ -681,7 +691,17 @@ rule all_get_coverage_repliseq:
     input:
         get_coverage_outputs
     output:
-        all_done="resources/repliseq/files/checks/{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}_coverage"
+        all_done="resources/repliseq/checks/{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}_coverage"
+    shell:
+        """
+        echo {input} >> {output}
+        """
+
+rule all_filter_coverage_repliseq:
+    input:
+        filter_coverage_outputs
+    output:
+        all_done="resources/repliseq/checks/{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}_{cov_thr}_coverage_filtering"
     shell:
         """
         echo {input} >> {output}
@@ -704,4 +724,6 @@ wildcard_constraints:
     tumor_type_GDC="[A-Z]+",
     min_Num_Probes="[0-9]+",
     min_abs_Segment_Mean="\\d+(\\.\\d+)?",
-    SRA_id="[A-Z]+[0-9]+"
+    SRA_id="[A-Z]+[0-9]+",
+    mapq_thr="[0-9]+",
+    cov_thr="[0-9]+"

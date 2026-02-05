@@ -1,8 +1,8 @@
 rule sort_bam_repliseq:
     output:
-        "resources/repliseq/files/bam/{assembly_code}_{SRA_id}.sorted.bam"
+        "resources/repliseq/files/bam/{SRA_id}/{assembly_code}.sorted.bam"
     input:
-        "resources/repliseq/files/bam/{assembly_code}_{SRA_id}.bam"
+        "resources/repliseq/files/bam/{SRA_id}/{assembly_code}.bam"
     log:
         "logs/sort_bam_repliseq/{assembly_code}_{SRA_id}.log"
     params:

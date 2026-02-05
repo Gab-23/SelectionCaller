@@ -1,8 +1,8 @@
 rule filter_deduplicated_bam_repliseq:
     output:
-        "resources/repliseq/files/bam/{assembly_code}_{mapq_thr}_{SRA_id}.dedup.filtered.bam"
+        "resources/repliseq/files/bam/{SRA_id}/{assembly_code}_{mapq_thr}.dedup.filtered.bam"
     input:
-        "resources/repliseq/files/bam/{assembly_code}_{SRA_id}.dedup.bam",
+        "resources/repliseq/files/bam/{SRA_id}/{assembly_code}.dedup.bam",
     log:
         "logs/filter_bam_repliseq/{assembly_code}_{mapq_thr}_{SRA_id}.log"
     params:

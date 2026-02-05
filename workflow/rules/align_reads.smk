@@ -1,9 +1,9 @@
 rule align_reads:
     output:
-        "resources/repliseq/files/bam/{assembly_code}_{SRA_id}.bam"
+        "resources/repliseq/files/bam/{SRA_id}/{assembly_code}.bam"
     input:
-        FWD="resources/repliseq/files/fastq/{SRA_id}/{SRA_id}_1.fastq.gz",
-        REV="resources/repliseq/files/fastq/{SRA_id}/{SRA_id}_2.fastq.gz",
+        FWD="resources/repliseq/files/fastq/{SRA_id}/{SRA_id}_1_val_1.fq.gz",
+        REV="resources/repliseq/files/fastq/{SRA_id}/{SRA_id}_2_val_2.fq.gz",
         FASTA="resources/reference_data/genome/{assembly_code}.fa",
         index="resources/reference_data/genome/{assembly_code}.fa.bwt"
     log:

@@ -52,3 +52,52 @@ zcat resources/repliseq/files/fastq/SRR28552528/SRR28552528_1.fastq.gz | grep @ 
 zcat resources/repliseq/files/fastq/SRR28552528/SRR28552528_2.fastq.gz | grep @ | cut -d : -f 1,2,3,4 | sort | uniq @K00102:449:HFVK7BBXY:8
 
 For this reason I will use -R '@RG\tID:{wildcards.SRA_id}\tSM:{wildcards.SRA_ids}\tLB:lib1\tPL:ILLUMINA\tPU:unit1' inside bwa mem
+
+In https://pmc.ncbi.nlm.nih.gov/articles/PMC12098861/ they say:
+
+We developed an in silico strategy to identify segments of 
+reference genomes with inherent low mappability. 
+These segments are enriched in repeats and low-complexity 
+regions that preclude the unambiguous alignment of short reads 
+to unique locations in the genome. Hard to map regions in the reference 
+genome is a concern in the S/G1 methods because late replicating regions 
+are defined by their lower read coverage relative to G1. It is therefore 
+important to exclude low mappability regions from the analysis to avoid 
+misclassifying some of them as late replicating. We located these regions 
+and created a low mappability drop list for masking the genome during downstream 
+analysis 
+
+This study was done on Z.mais, for which blacklisted regions do not exist.
+I already removed blacklisted regions, which explicitly take into account low
+mappability.
+
+They also did this, might need to do:
+
+o remove spikes in read coverage, which are likely due to collapsed repeats, 
+0.25% of 10-kb bins windows with the highest coverage in each G1 sample 
+(for EdU-S/G1 and S/G1 independently) were combined into a pooled 
+high coverage drop list and removed from all S and G1 samples. 
+While spikes in read coverage are rare, they accumulate a disproportionate 
+number of reads which distort the 1X normalization step, 
+so these regions are removed prior to normalization.
+
+This is done in Repliscan (https://github.com/lconcia/repliscan) too
+
+For my thesis I normalized using RPKM, correcting for both depth and gene length:
+made super sense since bins had different size, but now I do not need it anymore.
+As done by Repliscan, I can simply use RPGC (reads per genomic content). From the deepTools documentation 
+(https://deeptools.readthedocs.io/en/develop/content/tools/bamCoverage.html) for the bamCoverage documentation:
+
+In the source paper (Dietzen et al.) they used 10k cells for each S-phase subphase, 
+while 20k for G1. In Rivera-Mulia et al., they state:
+
+The standard Repli-seq method is performed with 20,000 to 80,000 cells 
+per S-phase fraction. Although we have obtained useful RT data with as low as 
+1,000 cells per fraction, the quality of the RT profiles decreased 
+significantly (ACF values ≥0.4) and stronger smoothing was required to reduce noise
+
+The library size in the config/ folder have been computed like this:
+
+samtools view -c resources/repliseq/files/bam/SRR28552525/hg38_20.noblack.sorted.bam 40595112
+samtools view -c resources/repliseq/files/bam/SRR28552526/hg38_20.noblack.sorted.bam 34019000
+samtools view -c resources/repliseq/files/bam/SRR28552528/hg38_20.noblack.sorted.bam 31486148
