@@ -101,3 +101,13 @@ The library size in the config/ folder have been computed like this:
 samtools view -c resources/repliseq/files/bam/SRR28552525/hg38_20.noblack.sorted.bam 40595112
 samtools view -c resources/repliseq/files/bam/SRR28552526/hg38_20.noblack.sorted.bam 34019000
 samtools view -c resources/repliseq/files/bam/SRR28552528/hg38_20.noblack.sorted.bam 31486148
+
+In the end I apply loess smoothing to CPM normalized coverage.
+I compute a 300'000 kbp window in a chromosome specific manner by doing:
+
+    - bins_per_smoothing = smoothing_size / bin_size
+    - span = bins_per_smoothing / bins_per_chromosome
+
+This becomes the span in the loess function
+
+I rerun everything with MCF10A data. Looking at results for chr17 they seem comparable

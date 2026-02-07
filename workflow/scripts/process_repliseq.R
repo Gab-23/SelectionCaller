@@ -9,10 +9,14 @@ input_path_samples                       <- args$input_path_samples
 output_path_data                         <- args$output_path_data
 output_path_plot_distribution            <- args$output_path_plot_distribution
 output_path_plot_landscape               <- args$output_path_plot_landscape
+output_path_plot_raw_smooth              <- args$output_path_plot_raw_smooth
+window_size                              <- as.numeric(args$window_size)
+smoothing_size                           <- as.numeric(args$smoothing_size)
 
 `%>%` <- magrittr::`%>%`
 
 files <- list.files(input_path_dir, recursive = T, full.names = T, pattern = "filtered")
+
 samples <- read.table(file = input_path_samples, header = T, sep = "\t")
 
 sample_types <- c("ES", "LS", "G1")
@@ -49,9 +53,8 @@ ES.f <- ES[ES$binID %in% common_binIDs, ]
 LS.f <- LS[LS$binID %in% common_binIDs, ]
 G1.f <- G1[G1$binID %in% common_binIDs, ]
 
-#print(all(ES.f$binID == common_binIDs))
-#print(all(LS.f$binID == common_binIDs))
-#print(all(G1.f$binID == common_binIDs))
+stopifnot(all(ES.f$binID == G1.f$binID))
+stopifnot(all(LS.f$binID == G1.f$binID))
 
 ES_G1_norm_coverage <- ES.f$CPM / G1.f$CPM
 LS_G1_norm_coverage <- LS.f$CPM / G1.f$CPM
@@ -62,6 +65,37 @@ log2_EL_coverage <- log2(EL_coverage)
 
 replication_timing <- data.frame(binID = common_binIDs, 
                                  replication.timing = log2_EL_coverage)
+
+replication_timing <- tidyr::separate_wider_delim(data = replication_timing, 
+                                                  cols = binID, 
+                                                  delim = "_", 
+                                                  names = c("chr", "pos"))
+
+replication_timing$replication.timing.smoothed <- NA
+
+for (chr in unique(replication_timing$chr)){
+  
+  chr_mask <- replication_timing$chr == chr
+  chr_subset <- replication_timing[chr_mask, , drop = FALSE]
+
+  bins_in_smoothing_size <- (smoothing_size / window_size)
+  bins_per_chr <- nrow(chr_subset)
+
+  span = bins_in_smoothing_size / bins_per_chr
+
+  smoothener <- loess(replication.timing ~ pos,
+                      data = chr_subset,
+                      span = span,
+                      degree = 1)
+
+  replication_timing$replication.timing.smoothed[chr_mask] <- predict(smoothener)
+
+}
+
+replication_timing$binID <- paste0(replication_timing$chr, "_", replication_timing$pos)
+
+replication_timing$chr <- NULL
+replication_timing$pos <- NULL
 
 hist <- ggplot2::ggplot(replication_timing, ggplot2::aes(x = replication.timing)) +
   ggplot2::geom_histogram(
@@ -90,8 +124,8 @@ landscape <- ggplot2::ggplot(
     ) %>%
     dplyr::arrange(chr_num, pos) %>%
     dplyr::mutate(chr = factor(chr, levels = unique(chr))),
-  ggplot2::aes(x = pos, y = replication.timing)
-) +
+  ggplot2::aes(x = pos, y = replication.timing.smoothed)
+  ) +
   ggplot2::geom_line() +
   ggplot2::geom_hline(
     yintercept = 0,
@@ -102,10 +136,35 @@ landscape <- ggplot2::ggplot(
   ggplot2::facet_wrap(~ chr, scales = "free_x") +
   ggplot2::labs(
     x = "Genomic position",
-    y = "Replication timing (log2)",
+    y = "Smoothed Replication Timing (log2)",
     title = "Replication timing across chromosomes"
   ) +
   ggplot2::theme_bw()
+
+chr_to_plot <- 17
+
+raw_smooth <- ggplot2::ggplot(
+  replication_timing %>%
+    dplyr::mutate(
+      chr = sub("_.*", "", binID),
+      chr_num = as.numeric(sub("chr", "", chr)),
+      pos = as.numeric(sub(".*_", "", binID))
+    ) %>%
+    dplyr::filter(chr_num == chr_to_plot) %>%
+    dplyr::arrange(chr_num, pos) %>%
+    dplyr::mutate(chr = factor(chr, levels = unique(chr))),
+  ) +
+  ggplot2::geom_line(ggplot2::aes(x = pos, y = replication.timing), color = "lightblue", linewidth = 1) +
+  ggplot2::geom_line(ggplot2::aes(x = pos, y = replication.timing.smoothed), color = "red", linewidth = 1) +
+  ggplot2::geom_hline(
+    yintercept = 0,
+    linetype = "dashed",
+    color = "black",
+    linewidth = 0.2
+  ) +
+  ggplot2::theme_classic() +
+  ggplot2::labs(y = "log2(Early/Late)", 
+                title = paste0("Raw vs Smoothed signal [chr",chr_to_plot, "]"))
 
 ggplot2::ggsave(
   filename = output_path_plot_distribution,
@@ -118,12 +177,20 @@ ggplot2::ggsave(
 ggplot2::ggsave(
   filename = output_path_plot_landscape,
   plot = landscape,
-  width = 12,
+  width = 16,
   height = 8,
   units = "in"
 )
 
-write.table(x = replication_timing,                                                  # write output
+ggplot2::ggsave(
+  filename = output_path_plot_raw_smooth,
+  plot = raw_smooth,
+  width = 16,
+  height = 8,
+  units = "in"
+)
+
+write.table(x = replication_timing[, c("binID", "replication.timing.smoothed")],                                                  # write output
             file = output_path_data, 
             quote = F, 
             sep = "\t", 

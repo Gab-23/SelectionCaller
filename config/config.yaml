@@ -8,7 +8,7 @@ window_modes:
   - binned
 
 window_sizes:
- - 1000000
+ - 20000
 
 steps:
  - 0
@@ -80,7 +80,7 @@ min_abs_Segment_Means:
   - 0.2
 
 repliseq_selected_samples_locations:
-  - config/selected_samples_repliseq
+  - config/HMEC_selected_samples_repliseq
 
 sequencers_info_locations:
   - config/sequencers_info
@@ -96,3 +96,6 @@ mapq_thrs:
 
 cov_thrs:
   - 50
+
+smoothing_sizes:
+  - 300000
