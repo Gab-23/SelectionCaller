@@ -111,3 +111,11 @@ I compute a 300'000 kbp window in a chromosome specific manner by doing:
 This becomes the span in the loess function
 
 I rerun everything with MCF10A data. Looking at results for chr17 they seem comparable
+
+The filtering works like this:
+    - Based on the G1 data, I first filter the raw counts for > 50
+    - Then I filter for the first percentile, should also filter for the last percentile
+
+For the smoothing, I should smooth aware of the fact that I have gaps:
+    - This is what I am doing, I do gap aware smoothin, 
+        - if my contiguous dataframe has less than smoothing_size of bins, I take all of them to smooth

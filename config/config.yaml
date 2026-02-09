@@ -98,4 +98,4 @@ cov_thrs:
   - 50
 
 smoothing_sizes:
-  - 300000
+  - 500000

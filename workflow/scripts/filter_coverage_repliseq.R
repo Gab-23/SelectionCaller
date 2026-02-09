@@ -10,11 +10,11 @@ cov_thr                          <- as.numeric(args$cov_thr)
 coverage <- read.table(file = input_path, header = F, sep = "\t")
 colnames(coverage) <- c("chr", "start", "end", "binID", "coverage")
 
-coverage.f <- coverage[coverage$coverage > cov_thr,] #50
+coverage.f <- coverage[coverage$coverage > cov_thr,] # based on G1 50
 
 qs <- quantile(
   coverage.f$coverage,
-  probs = c(0.01, 0.25, 0.5, 0.75, 0.99),
+  probs = c(0.01, 0.025, 0.25, 0.5, 0.75, 0.975, 0.99),
   na.rm = TRUE
 )
 
@@ -50,7 +50,8 @@ ggplot2::ggsave(
   dpi = 300
 )
 
-coverage.ff <- coverage.f[coverage.f$coverage > qs[1],]
+coverage.ff <- coverage.f[(coverage.f$coverage > qs[2]) &                     # filter on bilateral 2.5 %-ile Repli-scan style
+                          (coverage.f$coverage < qs[6]),]
 
 write.table(x = coverage.ff,                                                  # write output
             file = output_path_filtered, 

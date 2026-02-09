@@ -301,10 +301,10 @@ if len(cov_thrs) > 1:
 else:
     cov_thr = cov_thrs[0]
 
-if len(smoothing_sizes) > 1:
-    raise ValueError("ERROR, multiple smoothing_sizes selected")
-else:
-    smoothing_size = smoothing_sizes[0]
+#if len(smoothing_sizes) > 1:
+#    raise ValueError("ERROR, multiple smoothing_sizes selected")
+#else:
+#    smoothing_size = smoothing_sizes[0]
 
 
 #####
@@ -431,7 +431,7 @@ rule all:
             step=steps,
             mapq_thr=mapq_thr,
             cov_thr=cov_thr,
-            smoothing_size=smoothing_size
+            smoothing_size=smoothing_sizes
         ),
         expand(
             "resources/repliseq/checks/{assembly_code}_{mapq_thr}_noblacklist_alignment_indexing",

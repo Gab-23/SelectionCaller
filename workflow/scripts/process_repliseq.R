@@ -1,4 +1,5 @@
 source("workflow/scripts/helpers/CPM.R")
+source("workflow/scripts/helpers/find_contiguous_subsets.R")
 
 options(scipen=999)                                                               # unable scientific notation           
 
@@ -78,18 +79,29 @@ for (chr in unique(replication_timing$chr)){
   chr_mask <- replication_timing$chr == chr
   chr_subset <- replication_timing[chr_mask, , drop = FALSE]
 
-  bins_in_smoothing_size <- (smoothing_size / window_size)
-  bins_per_chr <- nrow(chr_subset)
+  bins_in_smoothing_size <- (smoothing_size / window_size)                        # how many bins of size window_size to obtain smoothing_size
 
-  span = bins_in_smoothing_size / bins_per_chr
+  contiguous_subsets <- find_contiguous_subsets(chr_subset)
 
-  smoothener <- loess(replication.timing ~ pos,
-                      data = chr_subset,
+  for (contiguous_subset in contiguous_subsets){
+    contiguous_subset_mask <- ((replication_timing$chr == chr) & (replication_timing$pos %in% contiguous_subset$pos))
+
+    bins_per_contiguous_subset <- nrow(contiguous_subset)
+
+    span = min(1,(bins_in_smoothing_size / bins_per_contiguous_subset))           # if bins_per_contiguous subset < bins_in_smoothing_size, i.e. there is not enough bins to cover smoothing size, smooth for all the dataset 
+
+    if (bins_per_contiguous_subset > 5){                                          # if there is "enough" bins for smoothing, smooth, else avoid
+
+    smoothener <- loess(replication.timing ~ pos,
+                      data = contiguous_subset,
                       span = span,
                       degree = 1)
 
-  replication_timing$replication.timing.smoothed[chr_mask] <- predict(smoothener)
-
+    replication_timing$replication.timing.smoothed[contiguous_subset_mask] <- predict(smoothener)
+    } else {
+    replication_timing$replication.timing.smoothed[contiguous_subset_mask] <- replication_timing$replication.timing[contiguous_subset_mask]
+    }
+  }
 }
 
 replication_timing$binID <- paste0(replication_timing$chr, "_", replication_timing$pos)
@@ -154,7 +166,7 @@ raw_smooth <- ggplot2::ggplot(
     dplyr::arrange(chr_num, pos) %>%
     dplyr::mutate(chr = factor(chr, levels = unique(chr))),
   ) +
-  ggplot2::geom_line(ggplot2::aes(x = pos, y = replication.timing), color = "lightblue", linewidth = 1) +
+  ggplot2::geom_point(ggplot2::aes(x = pos, y = replication.timing), color = "lightblue", size = 1) +
   ggplot2::geom_line(ggplot2::aes(x = pos, y = replication.timing.smoothed), color = "red", linewidth = 1) +
   ggplot2::geom_hline(
     yintercept = 0,
@@ -177,16 +189,16 @@ ggplot2::ggsave(
 ggplot2::ggsave(
   filename = output_path_plot_landscape,
   plot = landscape,
-  width = 16,
-  height = 8,
+  width = 24,
+  height = 10,
   units = "in"
 )
 
 ggplot2::ggsave(
   filename = output_path_plot_raw_smooth,
   plot = raw_smooth,
-  width = 16,
-  height = 8,
+  width = 24,
+  height = 10,
   units = "in"
 )
 
