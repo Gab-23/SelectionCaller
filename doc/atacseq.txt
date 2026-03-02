@@ -1,0 +1,8 @@
+NOTA: -q reads for .fastq
+--local performs local alignment
+--no-discordant avoids rescuing discordant pairs
+--no-mixed avoids having unpaired reads
+--dovetail allows for reads to overlap
+
+NOTA: stavo usando -X 250, Ale mi ha suggerito 2000,
+-X è maximum insert size

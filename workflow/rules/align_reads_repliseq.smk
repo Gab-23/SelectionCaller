@@ -1,4 +1,4 @@
-rule align_reads:
+rule align_reads_repliseq:
     output:
         "resources/repliseq/files/bam/{SRA_id}/{assembly_code}.bam"
     input:
@@ -7,7 +7,7 @@ rule align_reads:
         FASTA="resources/reference_data/genome/{assembly_code}.fa",
         index="resources/reference_data/genome/{assembly_code}.fa.bwt"
     log:
-        "logs/align_reads/{assembly_code}_{SRA_id}.log"
+        "logs/align_reads_repliseq/{assembly_code}_{SRA_id}.log"
     params:
         num_cores_repliseq=num_cores_repliseq
     conda:

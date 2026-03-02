@@ -1,4 +1,4 @@
-rule trim_reads:
+rule trim_reads_repliseq:
     output:
         FWD="resources/repliseq/files/fastq/{SRA_id}/{SRA_id}_1_val_1.fq.gz",
         REV="resources/repliseq/files/fastq/{SRA_id}/{SRA_id}_2_val_2.fq.gz"
@@ -6,7 +6,7 @@ rule trim_reads:
         FWD="resources/repliseq/files/fastq/{SRA_id}/{SRA_id}_1.fastq.gz",
         REV="resources/repliseq/files/fastq/{SRA_id}/{SRA_id}_2.fastq.gz"
     log:
-        "logs/trim_reads/{SRA_id}.log"
+        "logs/trim_reads_repliseq/{SRA_id}.log"
     conda:
         "../envs/trim_galore.yml"
     shell:

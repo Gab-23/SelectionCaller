@@ -5,23 +5,24 @@ dirs_lists = [["resources/", "resources/epigenomes/", "resources/epigenomes/road
               ["resources/", "resources/GDC/", "resources/GDC/CNAs/", "resources/GDC/CNAs/files/"],
               ["resources/", "resources/repliseq/", "resources/repliseq/files/", "resources/repliseq/files/sra/"],
               ["resources/", "resources/repliseq/", "resources/repliseq/files/", "resources/repliseq/files/fastq/"],
-              ["resources/", "resources/repliseq/", "resources/repliseq/files/", "resources/repliseq/files/coverage/"]]
+              ["resources/", "resources/repliseq/", "resources/repliseq/files/", "resources/repliseq/files/coverage/"],
+              ["resources/", "resources/atacseq/", "resources/atacseq/files/", "resources/atacseq/files/sra/"],
+              ["resources/", "resources/atacseq/", "resources/atacseq/files/", "resources/atacseq/files/fastq/"]]
 
 for dirs_list in dirs_lists:
     for dir in dirs_list:
         if not os.path.isdir(dir):
             os.mkdir(dir)
 
-def get_SRA_ids(repliseq_selected_samples_location):
-
-    samples = pandas.read_csv(repliseq_selected_samples_location, sep = "\t", header = 0)
+def get_SRA_ids(selected_samples_location):
+    samples = pandas.read_csv(selected_samples_location, sep = "\t", header = 0)
     SRA_ids = samples["SRA_id"].tolist()
     return SRA_ids
 
-def get_is_patterned(sequencers_info_location, sequencer_name):
+def get_is_patterned(sequencers_info_location, sequencer_names):
     sequencers = pandas.read_csv(sequencers_info_location, sep = "\t", header = 0)
-    is_patterned = sequencers[sequencers.sequencer_name == sequencer_name]["is_patterned"]
-    return is_patterned.tolist()[0]
+    is_patterned = all(sequencers[[sequencer_name in sequencer_names for sequencer_name in sequencers.sequencer_name.tolist()]]["is_patterned"])
+    return is_patterned
 
 def get_epigenome_ids(wildcards, tissue_type_Roadmap):
 
@@ -72,57 +73,86 @@ def map_gender(mapping_file_location, gender):
     except FileNotFoundError as err:
         print(f"{mapping_file_location} does not exist")
 
-def get_prefetch_outputs(wildcards):
-    return expand(rules.prefetch_repliseq.output, SRA_id=SRA_ids)
+def get_prefetch_outputs_repliseq(wildcards):
+    return expand(rules.prefetch_repliseq.output, SRA_id=SRA_ids_repliseq)
 
-def get_fastqdump_outputs(wildcards):
-    return expand(rules.fastq_dump_repliseq.output, SRA_id=SRA_ids)
+def get_fastqdump_outputs_repliseq(wildcards):
+    return expand(rules.fastq_dump_repliseq.output, SRA_id=SRA_ids_repliseq)
 
-def get_trim_galore_outputs(wildcards):
-    return expand(rules.trim_reads.output, SRA_id=SRA_ids)
+def get_trim_galore_outputs_repliseq(wildcards):
+    return expand(rules.trim_reads_repliseq.output, SRA_id=SRA_ids_repliseq)
 
-def get_alignment_outputs(wildcards):
-    return expand(rules.align_reads.output, SRA_id=SRA_ids, **wildcards)
+def get_alignment_outputs_repliseq(wildcards):
+    return expand(rules.align_reads_repliseq.output, SRA_id=SRA_ids_repliseq, **wildcards)
 
-def get_alignment_sorting_outputs(wildcards):
-    return expand(rules.sort_bam_repliseq.output, SRA_id=SRA_ids, **wildcards)
+def get_alignment_sorting_outputs_repliseq(wildcards):
+    return expand(rules.sort_bam_repliseq.output, SRA_id=SRA_ids_repliseq, **wildcards)
 
-def get_alignment_indexing_outputs(wildcards):
-    return expand(rules.index_bam_repliseq.output, SRA_id=SRA_ids, **wildcards)
+def get_alignment_indexing_outputs_repliseq(wildcards):
+    return expand(rules.index_bam_repliseq.output, SRA_id=SRA_ids_repliseq, **wildcards)
 
-def get_filtering_outputs(wildcards):
-    return expand(rules.filter_bam_repliseq.output, SRA_id=SRA_ids, **wildcards)
+def get_filtering_outputs_repliseq(wildcards):
+    return expand(rules.filter_bam_repliseq.output, SRA_id=SRA_ids_repliseq, **wildcards)
 
-def get_sorting_filtered_alignment_outputs(wildcards):
-    return expand(rules.sort_filtered_bam_repliseq.output, SRA_id=SRA_ids, **wildcards)
+def get_sorting_filtered_alignment_outputs_repliseq(wildcards):
+    return expand(rules.sort_filtered_bam_repliseq.output, SRA_id=SRA_ids_repliseq, **wildcards)
 
-def get_indexing_filtered_alignment_outputs(wildcards):
-    return expand(rules.index_filtered_bam_repliseq.output, SRA_id=SRA_ids, **wildcards)
+def get_indexing_filtered_alignment_outputs_repliseq(wildcards):
+    return expand(rules.index_filtered_bam_repliseq.output, SRA_id=SRA_ids_repliseq, **wildcards)
 
-def get_bamqc_outputs(wildcards):
-    return expand(rules.do_bamqc_repliseq.output, SRA_id=SRA_ids, **wildcards)
+def get_bamqc_outputs_repliseq(wildcards):
+    return expand(rules.do_bamqc_repliseq.output, SRA_id=SRA_ids_repliseq, **wildcards)
 
-def get_deduplicated_alignment_outputs(wildcards):
-    return expand(rules.deduplicate_bam_repliseq.output, SRA_id=SRA_ids, **wildcards)
+def get_deduplicated_alignment_outputs_repliseq(wildcards):
+    return expand(rules.deduplicate_bam_repliseq.output, SRA_id=SRA_ids_repliseq, **wildcards)
 
-def get_filtered_deduplicated_alignment_outputs(wildcards):
-    return expand(rules.filter_deduplicated_bam_repliseq.output, SRA_id=SRA_ids, **wildcards)
+def get_filtered_deduplicated_alignment_outputs_repliseq(wildcards):
+    return expand(rules.filter_deduplicated_bam_repliseq.output, SRA_id=SRA_ids_repliseq, **wildcards)
 
-def get_remove_blacklisted_alignment_outputs(wildcards):
-    return expand(rules.remove_blacklisted_from_bam_repliseq.output, SRA_id=SRA_ids, **wildcards)
+def get_remove_blacklisted_alignment_outputs_repliseq(wildcards):
+    return expand(rules.remove_blacklisted_from_bam_repliseq.output, SRA_id=SRA_ids_repliseq, **wildcards)
 
-def get_sort_noblacklisted_alignment_outputs(wildcards):
-    return expand(rules.sort_noblacklist_bam_repliseq.output, SRA_id=SRA_ids, **wildcards)
+def get_sort_noblacklisted_alignment_outputs_repliseq(wildcards):
+    return expand(rules.sort_noblacklist_bam_repliseq.output, SRA_id=SRA_ids_repliseq, **wildcards)
 
-def get_index_noblacklisted_alignment_outputs(wildcards):
-    return expand(rules.index_noblacklist_bam_repliseq.output, SRA_id=SRA_ids, **wildcards)
+def get_index_noblacklisted_alignment_outputs_repliseq(wildcards):
+    return expand(rules.index_noblacklist_bam_repliseq.output, SRA_id=SRA_ids_repliseq, **wildcards)
 
-def get_coverage_outputs(wildcards):
-    return expand(rules.compute_coverage_repliseq.output, SRA_id=SRA_ids, **wildcards)
+def get_coverage_outputs_repliseq(wildcards):
+    return expand(rules.compute_coverage_repliseq.output, SRA_id=SRA_ids_repliseq, **wildcards)
 
-def filter_coverage_outputs(wildcards):
-    return expand(rules.filter_coverage_repliseq.output, SRA_id=SRA_ids, **wildcards)
+def filter_coverage_outputs_repliseq(wildcards):
+    return expand(rules.filter_coverage_repliseq.output, SRA_id=SRA_ids_repliseq, **wildcards)
 
+def get_prefetch_outputs_atacseq(wildcards):
+    return expand(rules.prefetch_atacseq.output, SRA_id=SRA_ids_atacseq)
+
+def get_fastqdump_outputs_atacseq(wildcards):
+    return expand(rules.fastq_dump_atacseq.output, SRA_id=SRA_ids_atacseq)
+
+def get_trim_galore_outputs_atacseq(wildcards):
+    return expand(rules.trim_reads_atacseq.output, SRA_id=SRA_ids_atacseq)
+
+def get_alignment_outputs_atacseq(wildcards):
+    return expand(rules.align_reads_atacseq.output, SRA_id=SRA_ids_atacseq, **wildcards)
+
+def get_alignment_sorting_outputs_atacseq(wildcards):
+    return expand(rules.sort_bam_atacseq.output, SRA_id=SRA_ids_atacseq, **wildcards)
+
+def get_alignment_indexing_outputs_atacseq(wildcards):
+    return expand(rules.index_bam_atacseq.output, SRA_id=SRA_ids_atacseq, **wildcards)
+
+def get_filtering_outputs_atacseq(wildcards):
+    return expand(rules.filter_bam_atacseq.output, SRA_id=SRA_ids_atacseq, **wildcards)
+
+def get_sorting_filtered_alignment_outputs_atacseq(wildcards):
+    return expand(rules.sort_filtered_bam_atacseq.output, SRA_id=SRA_ids_atacseq, **wildcards)
+
+def get_indexing_filtered_alignment_outputs_atacseq(wildcards):
+    return expand(rules.index_filtered_bam_atacseq.output, SRA_id=SRA_ids_atacseq, **wildcards)
+
+def get_bamqc_outputs_atacseq(wildcards):
+    return expand(rules.do_bamqc_atacseq.output, SRA_id=SRA_ids_atacseq, **wildcards)
 
 mapping_file_tt_locations = config["mapping_file_tt_locations"]
 mapping_file_gender_locations = config["mapping_file_gender_locations"]
@@ -164,14 +194,21 @@ min_Num_Probes= config["min_Num_Probes"]
 min_abs_Segment_Means= config["min_abs_Segment_Means"]
 
 repliseq_selected_samples_locations=config["repliseq_selected_samples_locations"]
+atacseq_selected_samples_locations=config["atacseq_selected_samples_locations"]
+
 sequencers_info_locations=config["sequencers_info_locations"]
 
-
 num_cores_repliseqs = config["num_cores_repliseqs"]
+num_cores_atacseqs = config["num_cores_atacseqs"]
+
 java_mem_size_repliseqs = config["java_mem_size_repliseqs"]
+java_mem_size_atacseqs = config["java_mem_size_atacseqs"]
+
 mapq_thrs = config["mapq_thrs"]
 cov_thrs = config["cov_thrs"]
 smoothing_sizes = config["smoothing_sizes"]
+
+max_insert_size_atacseqs = config["max_insert_size_atacseqs"]
 
 ##### 
 
@@ -286,10 +323,20 @@ if len(num_cores_repliseqs) > 1:
 else:
     num_cores_repliseq = num_cores_repliseqs[0]
 
+if len(num_cores_atacseqs) > 1:
+    raise ValueError("ERROR, multiple num_cores_atacseqs selected")
+else:
+    num_cores_atacseq = num_cores_atacseqs[0]
+
 if len(java_mem_size_repliseqs) > 1:
     raise ValueError("ERROR, multiple java_mem_size_repliseqs selected")
 else:
     java_mem_size_repliseq = java_mem_size_repliseqs[0]
+
+if len(java_mem_size_atacseqs) > 1:
+    raise ValueError("ERROR, multiple java_mem_size_atacseqs selected")
+else:
+    java_mem_size_atacseq = java_mem_size_atacseqs[0]
 
 if len(mapq_thrs) > 1:
     raise ValueError("ERROR, multiple mapq_thrs selected")
@@ -301,18 +348,27 @@ if len(cov_thrs) > 1:
 else:
     cov_thr = cov_thrs[0]
 
-#if len(smoothing_sizes) > 1:
-#    raise ValueError("ERROR, multiple smoothing_sizes selected")
-#else:
-#    smoothing_size = smoothing_sizes[0]
+if len(smoothing_sizes) > 1:
+    raise ValueError("ERROR, multiple smoothing_sizes selected")
+else:
+    smoothing_size = smoothing_sizes[0]
 
+if len(max_insert_size_atacseqs) > 1:
+    raise ValueError("ERROR, multiple max_insert_size_atacseqs selected")
+else:
+    max_insert_size_atacseq = max_insert_size_atacseqs[0]
 
 #####
 
 tissue_type_Roadmap, tumor_type_IntOGen, cohort_IntOGen, oncotree_code_DepMap, COSMIC_parameters, tumor_type_GDC, cohort_GDC = map_tt_acronym(mapping_file_tt_location, tumor_type, "TCGA")
 gender_COSMIC, gender_DepMap, gender_GDC = map_gender(mapping_file_gender_location, gender)
-SRA_ids = get_SRA_ids(repliseq_selected_samples_locations[0])
+
+SRA_ids_repliseq = get_SRA_ids(repliseq_selected_samples_locations[0])
+SRA_ids_atacseq = get_SRA_ids(atacseq_selected_samples_locations[0])
+
 is_patterned_repliseq = get_is_patterned(sequencers_info_locations[0], "HiSeq_4000")
+is_patterned_atacseq = get_is_patterned(sequencers_info_locations[0], ["HiSeq_6000", "HiSeq_X_Ten"])
+
 
 if is_patterned_repliseq:
     pixel_distance_repliseq = 2500
@@ -399,13 +455,13 @@ include: "rules/compute_del_overlap.smk"
 include: "rules/process_GDC_CNA_overlap.smk"
 
 include: "rules/get_reference_genome.smk"
-include: "rules/index_reference_genome.smk"
+include: "rules/index_reference_genome_bwa.smk"
+include: "rules/index_reference_genome_bowtie2.smk"
 
 include: "rules/prefetch_repliseq.smk"
 include: "rules/fastq_dump_repliseq.smk"
-
-include: "rules/trim_reads.smk"
-include: "rules/align_reads.smk"
+include: "rules/trim_reads_repliseq.smk"
+include: "rules/align_reads_repliseq.smk"
 include: "rules/sort_bam_repliseq.smk"
 include: "rules/index_bam_repliseq.smk"
 include: "rules/filter_bam_repliseq.smk"
@@ -421,8 +477,22 @@ include: "rules/compute_coverage_repliseq.smk"
 include: "rules/filter_coverage_repliseq.smk"
 include: "rules/process_repliseq.smk"
 
+include: "rules/prefetch_atacseq.smk"
+include: "rules/fastq_dump_atacseq.smk"
+include: "rules/trim_reads_atacseq.smk"
+include: "rules/align_reads_atacseq.smk"
+include: "rules/sort_bam_atacseq.smk"
+include: "rules/index_bam_atacseq.smk"
+include: "rules/filter_bam_atacseq.smk"
+include: "rules/sort_filtered_bam_atacseq.smk"
+include: "rules/index_filtered_bam_atacseq.smk"
+
 rule all:
     input:
+       expand(
+            "resources/atacseq/checks/{assembly_code}_alignment_filtering",
+            assembly_code=assembly_code
+       ),
        expand(
             "data/repliseq/{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}_{cov_thr}_{smoothing_size}",
             assembly_code=assembly_code,
@@ -552,7 +622,7 @@ rule all:
 
 rule all_prefetch_repliseq:
     input:
-        get_prefetch_outputs
+        get_prefetch_outputs_repliseq
     output:
         all_done="resources/repliseq/checks/prefetch"
     shell:
@@ -562,7 +632,7 @@ rule all_prefetch_repliseq:
 
 rule all_fastqdump_repliseq:
     input:
-        get_fastqdump_outputs
+        get_fastqdump_outputs_repliseq
     output:
         all_done="resources/repliseq/checks/fastq_dump"
     shell:
@@ -572,7 +642,7 @@ rule all_fastqdump_repliseq:
 
 rule all_trimgalore_repliseq:
     input:
-        get_trim_galore_outputs
+        get_trim_galore_outputs_repliseq
     output:
         all_done="resources/repliseq/checks/trim_galore"
     shell:
@@ -582,7 +652,7 @@ rule all_trimgalore_repliseq:
 
 rule all_alignment_repliseq:
     input:
-        get_alignment_outputs
+        get_alignment_outputs_repliseq
     output:
         all_done="resources/repliseq/checks/{assembly_code}_alignment"
     shell:
@@ -592,7 +662,7 @@ rule all_alignment_repliseq:
 
 rule all_alignment_sorting_repliseq:
     input:
-        get_alignment_sorting_outputs
+        get_alignment_sorting_outputs_repliseq
     output:
         all_done="resources/repliseq/checks/{assembly_code}_alignment_sorting"
     shell:
@@ -602,7 +672,7 @@ rule all_alignment_sorting_repliseq:
 
 rule all_alignment_indexing_repliseq:
     input:
-        get_alignment_indexing_outputs
+        get_alignment_indexing_outputs_repliseq
     output:
         all_done="resources/repliseq/checks/{assembly_code}_alignment_indexing"
     shell:
@@ -612,7 +682,7 @@ rule all_alignment_indexing_repliseq:
 
 rule all_filtering_repliseq:
     input:
-        get_filtering_outputs
+        get_filtering_outputs_repliseq
     output:
         all_done="resources/repliseq/checks/{assembly_code}_alignment_filtering"
     shell:
@@ -622,7 +692,7 @@ rule all_filtering_repliseq:
 
 rule all_sorting_filtered_alignment_repliseq:
     input:
-        get_sorting_filtered_alignment_outputs
+        get_sorting_filtered_alignment_outputs_repliseq
     output:
         all_done="resources/repliseq/checks/{assembly_code}_filtered_alignment_sorting"
     shell:
@@ -632,7 +702,7 @@ rule all_sorting_filtered_alignment_repliseq:
 
 rule all_indexing_filtered_alignment_repliseq:
     input:
-        get_indexing_filtered_alignment_outputs
+        get_indexing_filtered_alignment_outputs_repliseq
     output:
         all_done="resources/repliseq/checks/{assembly_code}_filtered_alignment_indexing"
     shell:
@@ -642,7 +712,7 @@ rule all_indexing_filtered_alignment_repliseq:
 
 rule all_bamqc_repliseq:
     input:
-        get_bamqc_outputs
+        get_bamqc_outputs_repliseq
     output:
         all_done="resources/repliseq/checks/{assembly_code}_bamqc"
     shell:
@@ -652,7 +722,7 @@ rule all_bamqc_repliseq:
 
 rule all_deduplicated_alignment_repliseq:
     input:
-        get_deduplicated_alignment_outputs
+        get_deduplicated_alignment_outputs_repliseq
     output:
         all_done="resources/repliseq/checks/{assembly_code}_alignment_deduplication"
     shell:
@@ -662,7 +732,7 @@ rule all_deduplicated_alignment_repliseq:
 
 rule all_filtered_deduplicated_alignment_repliseq:
     input:
-        get_filtered_deduplicated_alignment_outputs
+        get_filtered_deduplicated_alignment_outputs_repliseq
     output:
         all_done="resources/repliseq/checks/{assembly_code}_{mapq_thr}_deduplicated_alignment_filtering"
     shell:
@@ -672,7 +742,7 @@ rule all_filtered_deduplicated_alignment_repliseq:
 
 rule all_remove_blacklisted_alignment_repliseq:
     input:
-        get_remove_blacklisted_alignment_outputs
+        get_remove_blacklisted_alignment_outputs_repliseq
     output:
         all_done="resources/repliseq/checks/{assembly_code}_{mapq_thr}_noblacklist_alignment"
     shell:
@@ -682,7 +752,7 @@ rule all_remove_blacklisted_alignment_repliseq:
 
 rule all_sort_blacklisted_alignment_repliseq:
     input:
-        get_sort_noblacklisted_alignment_outputs
+        get_sort_noblacklisted_alignment_outputs_repliseq
     output:
         all_done="resources/repliseq/checks/{assembly_code}_{mapq_thr}_noblacklist_alignment_sorting"
     shell:
@@ -692,7 +762,7 @@ rule all_sort_blacklisted_alignment_repliseq:
 
 rule all_index_blacklisted_alignment_repliseq:
     input:
-        get_index_noblacklisted_alignment_outputs
+        get_index_noblacklisted_alignment_outputs_repliseq
     output:
         all_done="resources/repliseq/checks/{assembly_code}_{mapq_thr}_noblacklist_alignment_indexing"
     shell:
@@ -702,7 +772,7 @@ rule all_index_blacklisted_alignment_repliseq:
 
 rule all_get_coverage_repliseq:
     input:
-        get_coverage_outputs
+        get_coverage_outputs_repliseq
     output:
         all_done="resources/repliseq/checks/{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}_coverage"
     shell:
@@ -712,9 +782,109 @@ rule all_get_coverage_repliseq:
 
 rule all_filter_coverage_repliseq:
     input:
-        filter_coverage_outputs
+        filter_coverage_outputs_repliseq
     output:
         all_done="resources/repliseq/checks/{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}_{cov_thr}_coverage_filtering"
+    shell:
+        """
+        echo {input} >> {output}
+        """
+
+rule all_prefetch_atacseq:
+    input:
+        get_prefetch_outputs_atacseq
+    output:
+        all_done="resources/atacseq/checks/prefetch"
+    shell:
+        """
+        echo {input} >> {output}
+        """
+
+rule all_fastqdump_atacseq:
+    input:
+        get_fastqdump_outputs_atacseq
+    output:
+        all_done="resources/atacseq/checks/fastq_dump"
+    shell:
+        """
+        echo {input} >> {output}
+        """
+
+rule all_trimgalore_atacseq:
+    input:
+        get_trim_galore_outputs_atacseq
+    output:
+        all_done="resources/atacseq/checks/trim_galore"
+    shell:
+        """
+        echo {input} >> {output}
+        """
+
+rule all_alignment_atacseq:
+    input:
+        get_alignment_outputs_atacseq
+    output:
+        all_done="resources/atacseq/checks/{assembly_code}_alignment"
+    shell:
+        """
+        echo {input} >> {output}
+        """
+
+rule all_alignment_sorting_atacseq:
+    input:
+        get_alignment_sorting_outputs_atacseq
+    output:
+        all_done="resources/atacseq/checks/{assembly_code}_alignment_sorting"
+    shell:
+        """
+        echo {input} >> {output}
+        """
+
+rule all_alignment_indexing_atacseq:
+    input:
+        get_alignment_indexing_outputs_atacseq
+    output:
+        all_done="resources/atacseq/checks/{assembly_code}_alignment_indexing"
+    shell:
+        """
+        echo {input} >> {output}
+        """
+
+rule all_filtering_atacseq:
+    input:
+        get_filtering_outputs_atacseq
+    output:
+        all_done="resources/atacseq/checks/{assembly_code}_alignment_filtering"
+    shell:
+        """
+        echo {input} >> {output}
+        """
+
+rule all_sorting_filtered_alignment_atacseq:
+    input:
+        get_sorting_filtered_alignment_outputs_atacseq
+    output:
+        all_done="resources/atacseq/checks/{assembly_code}_filtered_alignment_sorting"
+    shell:
+        """
+        echo {input} >> {output}
+        """
+
+rule all_indexing_filtered_alignment_atacseq:
+    input:
+        get_indexing_filtered_alignment_outputs_atacseq
+    output:
+        all_done="resources/atacseq/checks/{assembly_code}_filtered_alignment_indexing"
+    shell:
+        """
+        echo {input} >> {output}
+        """
+
+rule all_bamqc_atacseq:
+    input:
+        get_bamqc_outputs_atacseq
+    output:
+        all_done="resources/atacseq/checks/{assembly_code}_bamqc"
     shell:
         """
         echo {input} >> {output}

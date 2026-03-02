@@ -82,13 +82,22 @@ min_abs_Segment_Means:
 repliseq_selected_samples_locations:
   - config/HMEC_selected_samples_repliseq
 
+atacseq_selected_samples_locations:
+  - config/BREAST_selected_samples_atacseq
+
 sequencers_info_locations:
   - config/sequencers_info
 
 num_cores_repliseqs:
   - 60
 
+num_cores_atacseqs:
+  - 60
+
 java_mem_size_repliseqs:
+  - 50G
+
+java_mem_size_atacseqs:
   - 50G
 
 mapq_thrs:
@@ -99,3 +108,6 @@ cov_thrs:
 
 smoothing_sizes:
   - 500000
+
+max_insert_size_atacseqs:
+  - 2000
