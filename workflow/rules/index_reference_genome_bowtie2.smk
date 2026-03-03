@@ -9,5 +9,5 @@ rule index_reference_genome_bowtie2:
         "../envs/bowtie2_samtools.yml"
     shell:
         """
-        bowtie2-build {input} {wildcards.assembly_code} 2>{log}
+        bowtie2-build {input} resources/reference_data/genome/{wildcards.assembly_code} 2>{log}
         """

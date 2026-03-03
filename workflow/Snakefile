@@ -154,6 +154,27 @@ def get_indexing_filtered_alignment_outputs_atacseq(wildcards):
 def get_bamqc_outputs_atacseq(wildcards):
     return expand(rules.do_bamqc_atacseq.output, SRA_id=SRA_ids_atacseq, **wildcards)
 
+def get_deduplicated_alignment_outputs_atacseq(wildcards):
+    return expand(rules.deduplicate_bam_atacseq.output, SRA_id=SRA_ids_atacseq, **wildcards)
+
+def get_filtered_deduplicated_alignment_outputs_atacseq(wildcards):
+    return expand(rules.filter_deduplicated_bam_atacseq.output, SRA_id=SRA_ids_atacseq, **wildcards)
+
+def get_remove_blacklisted_alignment_outputs_atacseq(wildcards):
+    return expand(rules.remove_blacklisted_from_bam_atacseq.output, SRA_id=SRA_ids_atacseq, **wildcards)
+
+def get_sort_noblacklisted_alignment_outputs_atacseq(wildcards):
+    return expand(rules.sort_noblacklist_bam_atacseq.output, SRA_id=SRA_ids_atacseq, **wildcards)
+
+def get_index_noblacklisted_alignment_outputs_atacseq(wildcards):
+    return expand(rules.index_noblacklist_bam_atacseq.output, SRA_id=SRA_ids_atacseq, **wildcards)
+
+def get_fixed_alignment_outputs_atacseq(wildcards):
+    return expand(rules.fix_mate_information_atacseq.output, SRA_id=SRA_ids_atacseq, **wildcards)
+
+def get_is_metrics_outputs_atacseq(wildcards):
+    return expand(rules.compute_insert_size_metrics_atacseq.output, SRA_id=SRA_ids_atacseq, **wildcards)
+
 mapping_file_tt_locations = config["mapping_file_tt_locations"]
 mapping_file_gender_locations = config["mapping_file_gender_locations"]
 
@@ -375,6 +396,11 @@ if is_patterned_repliseq:
 else:
     pass
 
+if is_patterned_atacseq:
+    pixel_distance_atacseq = 2500
+else:
+    pass
+
 include: "rules/get_chrom_sizes.smk"
 include: "rules/clean_chrom_sizes.smk"
 
@@ -486,6 +512,12 @@ include: "rules/index_bam_atacseq.smk"
 include: "rules/filter_bam_atacseq.smk"
 include: "rules/sort_filtered_bam_atacseq.smk"
 include: "rules/index_filtered_bam_atacseq.smk"
+include: "rules/do_bamqc_atacseq.smk"
+include: "rules/deduplicate_bam_atacseq.smk"
+include: "rules/filter_deduplicated_bam_atacseq.smk"
+include: "rules/remove_blacklisted_from_bam_atacseq.smk"
+include: "rules/sort_noblacklist_bam_atacseq.smk"
+include: "rules/index_noblacklist_bam_atacseq.smk"
 
 rule all:
     input:
@@ -885,6 +917,76 @@ rule all_bamqc_atacseq:
         get_bamqc_outputs_atacseq
     output:
         all_done="resources/atacseq/checks/{assembly_code}_bamqc"
+    shell:
+        """
+        echo {input} >> {output}
+        """
+
+rule all_deduplicated_alignment_atacseq:
+    input:
+        get_deduplicated_alignment_outputs_atacseq
+    output:
+        all_done="resources/atacseq/checks/{assembly_code}_alignment_deduplication"
+    shell:
+        """
+        echo {input} >> {output}
+        """
+
+rule all_filtered_deduplicated_alignment_atacseq:
+    input:
+        get_filtered_deduplicated_alignment_outputs_atacseq
+    output:
+        all_done="resources/atacseq/checks/{assembly_code}_{mapq_thr}_deduplicated_alignment_filtering"
+    shell:
+        """
+        echo {input} >> {output}
+        """
+
+rule all_remove_blacklisted_alignment_atacseq:
+    input:
+        get_remove_blacklisted_alignment_outputs_atacseq
+    output:
+        all_done="resources/atacseq/checks/{assembly_code}_{mapq_thr}_noblacklist_alignment"
+    shell:
+        """
+        echo {input} >> {output}
+        """
+
+rule all_sort_blacklisted_alignment_atacseq:
+    input:
+        get_sort_noblacklisted_alignment_outputs_atacseq
+    output:
+        all_done="resources/atacseq/checks/{assembly_code}_{mapq_thr}_noblacklist_alignment_sorting"
+    shell:
+        """
+        echo {input} >> {output}
+        """
+
+rule all_index_blacklisted_alignment_atacseq:
+    input:
+        get_index_noblacklisted_alignment_outputs_atacseq
+    output:
+        all_done="resources/atacseq/checks/{assembly_code}_{mapq_thr}_noblacklist_alignment_indexing"
+    shell:
+        """
+        echo {input} >> {output}
+        """
+
+rule all_fix_mate_information_atacseq:
+    input:
+        get_fixed_alignment_outputs_atacseq
+    output:
+        all_done="resources/atacseq/checks/{assembly_code}_{mapq_thr}_mate_information_fixing"
+    shell:
+        """
+        echo {input} >> {output}
+        """
+
+rule all_get_is_metrics_atacseq:
+    input:
+        get_is_metrics_outputs_atacseq
+    output:
+        all_done="results/atacseq/checks/{assembly_code}_{mapq_thr}_is_metrics_getting"
     shell:
         """
         echo {input} >> {output}
