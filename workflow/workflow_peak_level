@@ -1,0 +1,1019 @@
+import pandas
+import os
+
+dirs_lists = [["resources/", "resources/epigenomes/", "resources/epigenomes/roadmap/"],
+              ["resources/", "resources/GDC/", "resources/GDC/CNAs/", "resources/GDC/CNAs/files/"],
+              ["resources/", "resources/repliseq/", "resources/repliseq/files/", "resources/repliseq/files/sra/"],
+              ["resources/", "resources/repliseq/", "resources/repliseq/files/", "resources/repliseq/files/fastq/"],
+              ["resources/", "resources/repliseq/", "resources/repliseq/files/", "resources/repliseq/files/coverage/"],
+              ["resources/", "resources/atacseq/", "resources/atacseq/files/", "resources/atacseq/files/sra/"],
+              ["resources/", "resources/atacseq/", "resources/atacseq/files/", "resources/atacseq/files/fastq/"]]
+
+for dirs_list in dirs_lists:
+    for dir in dirs_list:
+        if not os.path.isdir(dir):
+            os.mkdir(dir)
+
+def get_SRA_ids(selected_samples_location):
+    samples = pandas.read_csv(selected_samples_location, sep = "\t", header = 0)
+    SRA_ids = samples["SRA_id"].tolist()
+    return SRA_ids
+
+def get_is_patterned(sequencers_info_location, sequencer_names):
+    sequencers = pandas.read_csv(sequencers_info_location, sep = "\t", header = 0)
+    is_patterned = all(sequencers[[sequencer_name in sequencer_names for sequencer_name in sequencers.sequencer_name.tolist()]]["is_patterned"])
+    return is_patterned
+
+def get_epigenome_ids(wildcards, tissue_type_Roadmap):
+
+    mapping_file = checkpoints.get_mapping_EID_tt.get(**wildcards).output[0]
+    mapping = pandas.read_csv(mapping_file, sep = "\t", header = 0)
+    
+    tissue_type = [tissue_type_Roadmap] if tissue_type_Roadmap != "anyTissue" else mapping.tissue_type.tolist()
+    sample_type = config["sample_types"] if config["sample_types"][0] != "anySample" else mapping.sample_type.tolist()
+    
+    epigenome_ids = mapping[((mapping.tissue_type.isin(tissue_type)) & (mapping.sample_type.isin(sample_type)))]["epigenome_id"].tolist()
+    
+    if len(epigenome_ids) == 0:
+        raise ValueError("Empty DataFrame")
+    else:
+        return epigenome_ids
+
+def map_tt_acronym(mapping_file_location, tumor_type, cohort_project):
+    try:
+        mapping = pandas.read_csv(mapping_file_location, header = 0, sep = "\t")
+        tissue_type_Roadmap = mapping[mapping.common_name == tumor_type].tissue_type_Roadmap.values[0]
+        tumor_type_IntOGen = mapping[mapping.common_name == tumor_type].tumor_type_IntOGen.values[0]
+        tumor_type_GDC = mapping[mapping.common_name == tumor_type].tumor_type_GDC.values[0]
+        oncotree_code_DepMap = mapping[mapping.common_name == tumor_type].oncotree_code_DepMap.values[0]
+        COSMIC_parameters = mapping[mapping.common_name == tumor_type].COSMIC_parameters.values[0]
+        if cohort_project == "TCGA":
+            cohort_IntOGen = mapping[mapping.common_name == tumor_type].TCGA_cohort_IntOGen.values[0]
+            cohort_GDC = mapping[mapping.common_name == tumor_type].cohort_GDC.values[0]
+        else:
+            pass    
+        return [tissue_type_Roadmap, tumor_type_IntOGen, cohort_IntOGen, oncotree_code_DepMap, COSMIC_parameters, tumor_type_GDC, cohort_GDC]
+    except FileNotFoundError as err:
+        print(f"{mapping_file_location} does not exist")
+
+def map_gender(mapping_file_location, gender):
+    try:
+        mapping = pandas.read_csv(mapping_file_location, header = 0, sep = "\t")
+        if gender in ["M", "F"]:
+            gender_COSMIC = mapping[mapping.common_name == gender].gender_COSMIC.values[0]
+            gender_DepMap = mapping[mapping.common_name == gender].gender_DepMap.values[0]
+            gender_GDC = mapping[mapping.common_name == gender].gender_GDC.values[0]
+        elif gender == "ALL":
+            gender_COSMIC = "ALL"
+            gender_DepMap = "ALL"
+            gender_GDC = "ALL"
+        else:
+            raise ValueError(f"Gender [{gender}] must be in ['M','F','ALL']")
+        return [gender_COSMIC, gender_DepMap, gender_GDC]
+    except FileNotFoundError as err:
+        print(f"{mapping_file_location} does not exist")
+
+def get_prefetch_outputs_repliseq(wildcards):
+    return expand(rules.prefetch_repliseq.output, SRA_id=SRA_ids_repliseq)
+
+def get_fastqdump_outputs_repliseq(wildcards):
+    return expand(rules.fastq_dump_repliseq.output, SRA_id=SRA_ids_repliseq)
+
+def get_trim_galore_outputs_repliseq(wildcards):
+    return expand(rules.trim_reads_repliseq.output, SRA_id=SRA_ids_repliseq)
+
+def get_alignment_outputs_repliseq(wildcards):
+    return expand(rules.align_reads_repliseq.output, SRA_id=SRA_ids_repliseq, **wildcards)
+
+def get_alignment_sorting_outputs_repliseq(wildcards):
+    return expand(rules.sort_bam_repliseq.output, SRA_id=SRA_ids_repliseq, **wildcards)
+
+def get_alignment_indexing_outputs_repliseq(wildcards):
+    return expand(rules.index_bam_repliseq.output, SRA_id=SRA_ids_repliseq, **wildcards)
+
+def get_filtering_outputs_repliseq(wildcards):
+    return expand(rules.filter_bam_repliseq.output, SRA_id=SRA_ids_repliseq, **wildcards)
+
+def get_sorting_filtered_alignment_outputs_repliseq(wildcards):
+    return expand(rules.sort_filtered_bam_repliseq.output, SRA_id=SRA_ids_repliseq, **wildcards)
+
+def get_indexing_filtered_alignment_outputs_repliseq(wildcards):
+    return expand(rules.index_filtered_bam_repliseq.output, SRA_id=SRA_ids_repliseq, **wildcards)
+
+def get_bamqc_outputs_repliseq(wildcards):
+    return expand(rules.do_bamqc_repliseq.output, SRA_id=SRA_ids_repliseq, **wildcards)
+
+def get_deduplicated_alignment_outputs_repliseq(wildcards):
+    return expand(rules.deduplicate_bam_repliseq.output, SRA_id=SRA_ids_repliseq, **wildcards)
+
+def get_filtered_deduplicated_alignment_outputs_repliseq(wildcards):
+    return expand(rules.filter_deduplicated_bam_repliseq.output, SRA_id=SRA_ids_repliseq, **wildcards)
+
+def get_remove_blacklisted_alignment_outputs_repliseq(wildcards):
+    return expand(rules.remove_blacklisted_from_bam_repliseq.output, SRA_id=SRA_ids_repliseq, **wildcards)
+
+def get_sort_noblacklisted_alignment_outputs_repliseq(wildcards):
+    return expand(rules.sort_noblacklist_bam_repliseq.output, SRA_id=SRA_ids_repliseq, **wildcards)
+
+def get_index_noblacklisted_alignment_outputs_repliseq(wildcards):
+    return expand(rules.index_noblacklist_bam_repliseq.output, SRA_id=SRA_ids_repliseq, **wildcards)
+
+def get_coverage_outputs_repliseq(wildcards):
+    return expand(rules.compute_coverage_repliseq.output, SRA_id=SRA_ids_repliseq, **wildcards)
+
+def filter_coverage_outputs_repliseq(wildcards):
+    return expand(rules.filter_coverage_repliseq.output, SRA_id=SRA_ids_repliseq, **wildcards)
+
+def get_prefetch_outputs_atacseq(wildcards):
+    return expand(rules.prefetch_atacseq.output, SRA_id=SRA_ids_atacseq)
+
+def get_fastqdump_outputs_atacseq(wildcards):
+    return expand(rules.fastq_dump_atacseq.output, SRA_id=SRA_ids_atacseq)
+
+def get_trim_galore_outputs_atacseq(wildcards):
+    return expand(rules.trim_reads_atacseq.output, SRA_id=SRA_ids_atacseq)
+
+def get_alignment_outputs_atacseq(wildcards):
+    return expand(rules.align_reads_atacseq.output, SRA_id=SRA_ids_atacseq, **wildcards)
+
+def get_alignment_sorting_outputs_atacseq(wildcards):
+    return expand(rules.sort_bam_atacseq.output, SRA_id=SRA_ids_atacseq, **wildcards)
+
+def get_alignment_indexing_outputs_atacseq(wildcards):
+    return expand(rules.index_bam_atacseq.output, SRA_id=SRA_ids_atacseq, **wildcards)
+
+def get_filtering_outputs_atacseq(wildcards):
+    return expand(rules.filter_bam_atacseq.output, SRA_id=SRA_ids_atacseq, **wildcards)
+
+def get_sorting_filtered_alignment_outputs_atacseq(wildcards):
+    return expand(rules.sort_filtered_bam_atacseq.output, SRA_id=SRA_ids_atacseq, **wildcards)
+
+def get_indexing_filtered_alignment_outputs_atacseq(wildcards):
+    return expand(rules.index_filtered_bam_atacseq.output, SRA_id=SRA_ids_atacseq, **wildcards)
+
+def get_bamqc_outputs_atacseq(wildcards):
+    return expand(rules.do_bamqc_atacseq.output, SRA_id=SRA_ids_atacseq, **wildcards)
+
+def get_deduplicated_alignment_outputs_atacseq(wildcards):
+    return expand(rules.deduplicate_bam_atacseq.output, SRA_id=SRA_ids_atacseq, **wildcards)
+
+def get_filtered_deduplicated_alignment_outputs_atacseq(wildcards):
+    return expand(rules.filter_deduplicated_bam_atacseq.output, SRA_id=SRA_ids_atacseq, **wildcards)
+
+def get_remove_blacklisted_alignment_outputs_atacseq(wildcards):
+    return expand(rules.remove_blacklisted_from_bam_atacseq.output, SRA_id=SRA_ids_atacseq, **wildcards)
+
+def get_sort_noblacklisted_alignment_outputs_atacseq(wildcards):
+    return expand(rules.sort_noblacklist_bam_atacseq.output, SRA_id=SRA_ids_atacseq, **wildcards)
+
+def get_index_noblacklisted_alignment_outputs_atacseq(wildcards):
+    return expand(rules.index_noblacklist_bam_atacseq.output, SRA_id=SRA_ids_atacseq, **wildcards)
+
+def get_fixed_alignment_outputs_atacseq(wildcards):
+    return expand(rules.fix_mate_information_atacseq.output, SRA_id=SRA_ids_atacseq, **wildcards)
+
+def get_is_metrics_outputs_atacseq(wildcards):
+    return expand(rules.compute_insert_size_metrics_atacseq.output, SRA_id=SRA_ids_atacseq, **wildcards)
+
+mapping_file_tt_locations = config["mapping_file_tt_locations"]
+mapping_file_gender_locations = config["mapping_file_gender_locations"]
+
+assembly_codes = config["assembly_codes"]
+gencode_versions = config["gencode_versions"]
+
+sample_types = config["sample_types"]
+file_formats = config["file_formats"]
+
+window_sizes = config["window_sizes"]
+window_modes = config["window_modes"]
+steps = config["steps"]
+
+tumor_types = config["tumor_types"]
+genders = config["genders"]
+
+IntOGen_locations = config["IntOGen_locations"]
+
+DepMap_models_locations = config["DepMap_models_locations"]
+DepMap_probabilities_locations = config["DepMap_probabilities_locations"]
+
+essentiality_cutoffs = config["essentiality_cutoffs"]
+num_assays_cutoffs = config["num_assays_cutoffs"]
+
+COSMIC_classification_locations = config["COSMIC_classification_locations"]
+COSMIC_samples_locations = config["COSMIC_samples_locations"]
+COSMIC_coding_locations = config["COSMIC_coding_locations"]
+COSMIC_noncoding_locations = config["COSMIC_noncoding_locations"]
+
+COSMIC_sample_name_patterns = config["COSMIC_sample_name_patterns"]
+
+GDC_clinical_locations = config["GDC_clinical_locations"]
+GDC_sample_sheet_locations= config["GDC_sample_sheet_locations"]
+GDC_manifest_locations= config["GDC_manifest_locations"]
+GDC_CNA_files_locations= config["GDC_CNA_files_locations"]
+
+min_Num_Probes= config["min_Num_Probes"]
+min_abs_Segment_Means= config["min_abs_Segment_Means"]
+
+repliseq_selected_samples_locations=config["repliseq_selected_samples_locations"]
+atacseq_selected_samples_locations=config["atacseq_selected_samples_locations"]
+
+sequencers_info_locations=config["sequencers_info_locations"]
+
+num_cores_repliseqs = config["num_cores_repliseqs"]
+num_cores_atacseqs = config["num_cores_atacseqs"]
+
+java_mem_size_repliseqs = config["java_mem_size_repliseqs"]
+java_mem_size_atacseqs = config["java_mem_size_atacseqs"]
+
+mapq_thrs = config["mapq_thrs"]
+cov_thrs = config["cov_thrs"]
+smoothing_sizes = config["smoothing_sizes"]
+
+max_insert_size_atacseqs = config["max_insert_size_atacseqs"]
+
+##### 
+
+if len(mapping_file_tt_locations) > 1:
+    raise ValueError("ERROR, multiple mapping_file_location selected")
+else:
+    mapping_file_tt_location = mapping_file_tt_locations[0]
+
+if len(mapping_file_gender_locations) > 1:
+    raise ValueError("ERROR, multiple mapping_file_gender_locations selected")
+else:
+    mapping_file_gender_location = mapping_file_gender_locations[0]
+
+if len(assembly_codes) > 1:
+    raise ValueError("ERROR, multiple assemblies selected")
+else:
+    assembly_code = assembly_codes[0]
+    is_liftover = True if assembly_code == "hg38" else False
+    liftover_str = "hg38lift" if is_liftover else "noliftover"
+
+if len(gencode_versions) > 1:
+    raise ValueError("ERROR, multiple gencode_versions selected")
+else:
+    gencode_version = gencode_versions[0]
+
+if len(sample_types) > 1:
+    raise ValueError("ERROR, multiple sample types selected")
+else:
+    sample_type = sample_types[0]
+
+if len(file_formats) > 1:
+    raise ValueError("ERROR, multiple file formats selected")
+else:
+    file_format = file_formats[0]
+
+if len(window_modes) > 1:
+    raise ValueError("ERROR, multiple window_modes selected")
+else:
+    window_mode = window_modes[0]
+    if window_mode not in ["sliding", "s", "binned", "b"]:
+        raise ValueError(f"ERROR, window_mode must be either 'binned' or 'sliding' [{window_mode}]")
+
+if window_mode == "binned" and any([step > 0 for step in steps]):
+    raise ValueError(f"ERROR, steps ({steps}) cannot be > 0 when window_mode is {window_mode}")
+else:
+    window_mode = window_modes[0]
+
+if len(tumor_types) > 1:
+    raise ValueError("ERROR, multiple tumor_types selected")
+else:
+    tumor_type = tumor_types[0]
+
+if len(genders) > 1:
+    raise ValueError("ERROR, multiple genders selected")
+else:
+    gender = genders[0]
+
+if len(essentiality_cutoffs) > 1:
+    raise ValueError("ERROR, multiple essentiality_cutoffs selected")
+else:
+    essentiality_cutoff = essentiality_cutoffs[0]
+
+if len(num_assays_cutoffs) > 1:
+    raise ValueError("ERROR, multiple num_assays_cutoffs selected")
+else:
+    num_assays_cutoff = num_assays_cutoffs[0]
+
+if len(IntOGen_locations) > 1:
+    raise ValueError("ERROR, multiple IntOGen_locations selected")
+
+if len(DepMap_models_locations) > 1:
+    raise ValueError("ERROR, multiple IntOGen_locations selected")
+
+if len(DepMap_probabilities_locations) > 1:
+    raise ValueError("ERROR, multiple IntOGen_cohorts selected")
+
+if len(COSMIC_classification_locations) > 1:
+    raise ValueError("ERROR, multiple COSMIC_classification_locations selected")
+
+if len(COSMIC_samples_locations) > 1:
+    raise ValueError("ERROR, multiple COSMIC_samples_locations selected")
+
+if len(COSMIC_coding_locations) > 1:
+    raise ValueError("ERROR, multiple COSMIC_coding_locations selected")
+
+if len(COSMIC_noncoding_locations) > 1:
+    raise ValueError("ERROR, multiple COSMIC_noncoding_locations selected")
+
+if len(COSMIC_sample_name_patterns) > 1:
+    raise ValueError("ERROR, multiple COSMIC_sample_name_patterns selected")
+
+if len(GDC_clinical_locations) > 1:
+    raise ValueError("ERROR, multiple GDC_clinical_locations selected")
+
+if len(GDC_sample_sheet_locations) > 1:
+    raise ValueError("ERROR, multiple GDC_sample_sheet_locations selected")
+
+if len(GDC_manifest_locations) > 1:
+    raise ValueError("ERROR, multiple GDC_manifest_locations selected")
+
+if len(GDC_CNA_files_locations) > 1:
+    raise ValueError("ERROR, multiple GDC_CNA_files_locations selected")
+
+if len(repliseq_selected_samples_locations) > 1:
+    raise ValueError("ERROR, multiple repliseq_selected_samples_locations selected")
+
+if len(sequencers_info_locations) > 1:
+    raise ValueError("ERROR, multiple sequencers_info_locations selected")
+
+if len(num_cores_repliseqs) > 1:
+    raise ValueError("ERROR, multiple num_cores_repliseqs selected")
+else:
+    num_cores_repliseq = num_cores_repliseqs[0]
+
+if len(num_cores_atacseqs) > 1:
+    raise ValueError("ERROR, multiple num_cores_atacseqs selected")
+else:
+    num_cores_atacseq = num_cores_atacseqs[0]
+
+if len(java_mem_size_repliseqs) > 1:
+    raise ValueError("ERROR, multiple java_mem_size_repliseqs selected")
+else:
+    java_mem_size_repliseq = java_mem_size_repliseqs[0]
+
+if len(java_mem_size_atacseqs) > 1:
+    raise ValueError("ERROR, multiple java_mem_size_atacseqs selected")
+else:
+    java_mem_size_atacseq = java_mem_size_atacseqs[0]
+
+if len(mapq_thrs) > 1:
+    raise ValueError("ERROR, multiple mapq_thrs selected")
+else:
+    mapq_thr = mapq_thrs[0]
+
+if len(cov_thrs) > 1:
+    raise ValueError("ERROR, multiple cov_thrs selected")
+else:
+    cov_thr = cov_thrs[0]
+
+if len(smoothing_sizes) > 1:
+    raise ValueError("ERROR, multiple smoothing_sizes selected")
+else:
+    smoothing_size = smoothing_sizes[0]
+
+if len(max_insert_size_atacseqs) > 1:
+    raise ValueError("ERROR, multiple max_insert_size_atacseqs selected")
+else:
+    max_insert_size_atacseq = max_insert_size_atacseqs[0]
+
+#####
+
+tissue_type_Roadmap, tumor_type_IntOGen, cohort_IntOGen, oncotree_code_DepMap, COSMIC_parameters, tumor_type_GDC, cohort_GDC = map_tt_acronym(mapping_file_tt_location, tumor_type, "TCGA")
+gender_COSMIC, gender_DepMap, gender_GDC = map_gender(mapping_file_gender_location, gender)
+
+SRA_ids_repliseq = get_SRA_ids(repliseq_selected_samples_locations[0])
+SRA_ids_atacseq = get_SRA_ids(atacseq_selected_samples_locations[0])
+
+is_patterned_repliseq = get_is_patterned(sequencers_info_locations[0], "HiSeq_4000")
+is_patterned_atacseq = get_is_patterned(sequencers_info_locations[0], ["HiSeq_6000", "HiSeq_X_Ten"])
+
+
+if is_patterned_repliseq:
+    pixel_distance_repliseq = 2500
+else:
+    pass
+
+if is_patterned_atacseq:
+    pixel_distance_atacseq = 2500
+else:
+    pass
+
+include: "rules/get_chrom_sizes.smk"
+include: "rules/clean_chrom_sizes.smk"
+
+include: "rules/get_blacklisted_regions.smk"
+
+include: "rules/get_backbone_file.smk"
+include: "rules/filter_backbone.smk"
+include: "rules/sort_backbone.smk"
+
+include: "rules/get_mapping_EID_tt.smk"
+include: "rules/get_epigenome_paths.smk"
+include: "rules/get_epigenome_files.smk"
+include: "rules/process_epigenomes.smk"
+include: "rules/aggregate_epigenomes.smk"
+
+include: "rules/get_gencode_annotation.smk"
+include: "rules/get_TSSs.smk"
+include: "rules/sort_TSSs.smk"
+
+include: "rules/process_IntOGen.smk"
+include: "rules/sort_cancer_genes.smk"
+include: "rules/split_cancer_genes.smk"
+
+include: "rules/get_dist_closest_OG.smk"
+include: "rules/get_dist_closest_TSG.smk"
+include: "rules/process_dist_to_cancer_genes.smk"
+
+include: "rules/split_gtf.smk"
+include: "rules/sort_gene_classes.smk"
+include: "rules/get_dist_num_overlaps_genes.smk"
+include: "rules/process_dist_to_genes.smk"
+include: "rules/process_num_overlaps.smk"
+
+include: "rules/get_GC_content.smk"
+include: "rules/process_GC_content.smk"
+
+include: "rules/get_cytobands.smk"
+include: "rules/get_centromeres_coords.smk"
+include: "rules/get_dist_to_centromeres.smk"
+include: "rules/process_dist_to_centromeres.smk"
+
+include: "rules/get_telomeres_proxy.smk"
+include: "rules/get_dist_to_telomeres.smk"
+include: "rules/process_dist_to_telomeres.smk"
+
+include: "rules/filter_CRISPR_models.smk"
+include: "rules/filter_CRISPR_probabilities.smk"
+include: "rules/get_essential_genes.smk"
+include: "rules/find_coords_essential_genes.smk"
+include: "rules/sort_essential_genes.smk"
+include: "rules/get_dist_to_essential_genes.smk"
+include: "rules/process_dist_to_essential_genes.smk"
+
+include: "rules/filter_classification_COSMIC.smk"
+include: "rules/filter_samples_COSMIC.smk"
+include: "rules/get_final_samples_COSMIC.smk"
+
+include: "rules/filter_mutations.smk"
+include: "rules/get_COSMIC_mutations_coordinates.smk"
+include: "rules/sort_collapse_mutations.smk"
+
+include: "rules/get_coding_mutations_description.smk"
+
+include: "rules/sort_coding_mutations.smk"
+
+include: "rules/compute_coding_mutations_overlap.smk"
+include: "rules/compute_noncoding_mutations_overlap.smk"
+
+include: "rules/get_samples_GDC.smk"
+include: "rules/filter_manifest.smk"
+include: "rules/get_GDC_CNA_data.smk"
+include: "rules/aggregate_GDC_CNA_data.smk"
+include: "rules/filter_GDC_CNA_data.smk"
+include: "rules/sort_GDC_CNA_data.smk"
+include: "rules/split_GDC_CNA_data.smk"
+include: "rules/compute_ampl_overlap.smk"
+include: "rules/compute_del_overlap.smk"
+include: "rules/process_GDC_CNA_overlap.smk"
+
+include: "rules/get_reference_genome.smk"
+include: "rules/index_reference_genome_bwa.smk"
+include: "rules/index_reference_genome_bowtie2.smk"
+
+include: "rules/prefetch_repliseq.smk"
+include: "rules/fastq_dump_repliseq.smk"
+include: "rules/trim_reads_repliseq.smk"
+include: "rules/align_reads_repliseq.smk"
+include: "rules/sort_bam_repliseq.smk"
+include: "rules/index_bam_repliseq.smk"
+include: "rules/filter_bam_repliseq.smk"
+include: "rules/sort_filtered_bam_repliseq.smk"
+include: "rules/index_filtered_bam_repliseq.smk"
+include: "rules/do_bamqc_repliseq.smk"
+include: "rules/deduplicate_bam_repliseq.smk"
+include: "rules/filter_deduplicated_bam_repliseq.smk"
+include: "rules/remove_blacklisted_from_bam_repliseq.smk"
+include: "rules/sort_noblacklist_bam_repliseq.smk"
+include: "rules/index_noblacklist_bam_repliseq.smk"
+include: "rules/compute_coverage_repliseq.smk"
+include: "rules/filter_coverage_repliseq.smk"
+include: "rules/process_repliseq.smk"
+
+include: "rules/prefetch_atacseq.smk"
+include: "rules/fastq_dump_atacseq.smk"
+include: "rules/trim_reads_atacseq.smk"
+include: "rules/align_reads_atacseq.smk"
+include: "rules/sort_bam_atacseq.smk"
+include: "rules/index_bam_atacseq.smk"
+include: "rules/filter_bam_atacseq.smk"
+include: "rules/sort_filtered_bam_atacseq.smk"
+include: "rules/index_filtered_bam_atacseq.smk"
+include: "rules/do_bamqc_atacseq.smk"
+include: "rules/deduplicate_bam_atacseq.smk"
+include: "rules/filter_deduplicated_bam_atacseq.smk"
+include: "rules/remove_blacklisted_from_bam_atacseq.smk"
+include: "rules/sort_noblacklist_bam_atacseq.smk"
+include: "rules/index_noblacklist_bam_atacseq.smk"
+include: "rules/fix_mate_information_atacseq.smk"
+include: "rules/call_peaks_atacseq.smk"
+include: "rules/process_peaks_atacseq.smk"
+include: "rules/quantification_atacseq.smk"
+
+rule all:
+    input:
+       expand(
+            "resources/atacseq/checks/{assembly_code}_alignment_filtering",
+            assembly_code=assembly_code
+       )#,
+#       expand(
+#            "data/repliseq/{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}_{cov_thr}_{smoothing_size}",
+#            assembly_code=assembly_code,
+#            window_mode=window_mode,
+#            window_size=window_sizes,
+#            step=steps,
+#            mapq_thr=mapq_thr,
+#            cov_thr=cov_thr,
+#            smoothing_size=smoothing_sizes
+#        ),
+#        expand(
+#            "resources/repliseq/checks/{assembly_code}_{mapq_thr}_noblacklist_alignment_indexing",
+#            assembly_code=assembly_code,
+#            mapq_thr=mapq_thr
+#        ),
+#        expand(
+#            "resources/repliseq/checks/{assembly_code}_bamqc",
+#            assembly_code=assembly_code
+#        ),
+#        expand(
+#            "data/num_overlaps/CNAs/ampl/{assembly_code}_{window_mode}_{window_size}_{step}_{tumor_type_GDC}_{gender_GDC}_{min_Num_Probes}_{min_abs_Segment_Mean}",
+#            assembly_code=assembly_code,
+#            window_mode=window_mode,
+#            window_size=window_sizes,
+#            step=steps,
+#            tumor_type_GDC=tumor_type_GDC,
+#            gender_GDC=gender_GDC,
+#            min_Num_Probes=min_Num_Probes,
+#            min_abs_Segment_Mean=min_abs_Segment_Means
+#        ),
+#        expand(
+#            "data/num_overlaps/mutations/noncoding/{assembly_code}_{window_mode}_{window_size}_{step}_{gender_COSMIC}_{COSMIC_parameters}",
+#            assembly_code=assembly_code,
+#            window_mode=window_mode,
+#            window_size=window_sizes,
+#            step=steps,
+#            gender_COSMIC=gender_COSMIC,
+#            COSMIC_parameters=COSMIC_parameters
+#        ),
+#        expand(
+#            "data/num_overlaps/mutations/coding/{assembly_code}_{window_mode}_{window_size}_{step}_{gender_COSMIC}_{COSMIC_parameters}",
+#            assembly_code=assembly_code,
+#            window_mode=window_mode,
+#            window_size=window_sizes,
+#            step=steps,
+#            gender_COSMIC=gender_COSMIC,
+#            COSMIC_parameters=COSMIC_parameters            
+#        ),
+#        expand(
+#            "data/distances/essential/{assembly_code}_{window_mode}_{window_size}_{step}_{oncotree_code_DepMap}_{gender_DepMap}_{essentiality_cutoff}_{num_assays_cutoff}_v{gencode_version}.bed",
+#            assembly_code=assembly_code,
+#            window_mode=window_mode,
+#            window_size=window_sizes,
+#            step=steps,
+#            oncotree_code_DepMap = oncotree_code_DepMap,
+#            gender_DepMap = gender_DepMap,
+#            essentiality_cutoff = essentiality_cutoff,
+#            num_assays_cutoff = num_assays_cutoff,
+#            gencode_version = gencode_version
+#         ),
+#        expand(
+#            "data/distances/telomeres/{assembly_code}_{window_mode}_{window_size}_{step}",
+#            assembly_code=assembly_code,
+#            window_mode=window_mode,
+#            window_size=window_sizes,
+#            step=steps
+#        ),
+#        expand(
+#            "data/distances/centromeres/{assembly_code}_{window_mode}_{window_size}_{step}",
+#            assembly_code=assembly_code,
+#            window_mode=window_mode,
+#            window_size=window_sizes,
+#            step=steps
+#        ),
+#        expand(
+#            "data/GC/{assembly_code}_{window_mode}_{window_size}_{step}",
+#            assembly_code=assembly_code,
+#            window_mode=window_mode,
+#            window_size=window_sizes,
+#            step=steps 
+#        ),
+#        expand(
+#            "data/num_overlaps/PC/{assembly_code}_{window_mode}_{window_size}_{step}_v{gencode_version}",
+#            assembly_code=assembly_code,
+#            window_mode=window_mode,
+#            window_size=window_sizes,
+#            step=steps,
+#            gencode_version=gencode_version
+#        ),
+#        expand(
+#            "data/distances/PC/{assembly_code}_{window_mode}_{window_size}_{step}_v{gencode_version}",
+#            assembly_code=assembly_code,
+#            window_mode=window_mode,
+#            window_size=window_sizes,
+#            step=steps,
+#            gencode_version=gencode_version
+#        ),
+#        expand(
+#            "data/distances/TSG/{assembly_code}_{window_mode}_{window_size}_{step}_v{gencode_version}_{tumor_type_IntOGen}",
+#            assembly_code=assembly_code,
+#            window_mode=window_mode,
+#            window_size=window_sizes,
+#            step=steps,
+#            gencode_version=gencode_version,
+#            tumor_type_IntOGen=tumor_type_IntOGen
+#        ),
+#        expand(
+#            "data/distances/OG/{assembly_code}_{window_mode}_{window_size}_{step}_v{gencode_version}_{tumor_type_IntOGen}",
+#            assembly_code=assembly_code,
+#            window_mode=window_mode,
+#            window_size=window_sizes,
+#            step=steps,
+#            gencode_version=gencode_version,
+#            tumor_type_IntOGen=tumor_type_IntOGen
+#        ),
+#        expand(
+#            "data/epigenomes/{tissue_type_Roadmap}_{sample_type}_{liftover_str}_{file_format}_{assembly_code}_{window_mode}_{window_size}_{step}",
+#            tissue_type_Roadmap=tissue_type_Roadmap,
+#            sample_type=sample_type,
+#            liftover_str=liftover_str,
+#            file_format=file_format,
+#            assembly_code=assembly_code,
+#            window_mode=window_modes,
+#            window_size=window_sizes,
+#            step=steps
+#        )
+
+rule all_prefetch_repliseq:
+    input:
+        get_prefetch_outputs_repliseq
+    output:
+        all_done="resources/repliseq/checks/prefetch"
+    shell:
+        """
+        echo {input} >> {output}
+        """
+
+rule all_fastqdump_repliseq:
+    input:
+        get_fastqdump_outputs_repliseq
+    output:
+        all_done="resources/repliseq/checks/fastq_dump"
+    shell:
+        """
+        echo {input} >> {output}
+        """
+
+rule all_trimgalore_repliseq:
+    input:
+        get_trim_galore_outputs_repliseq
+    output:
+        all_done="resources/repliseq/checks/trim_galore"
+    shell:
+        """
+        echo {input} >> {output}
+        """
+
+rule all_alignment_repliseq:
+    input:
+        get_alignment_outputs_repliseq
+    output:
+        all_done="resources/repliseq/checks/{assembly_code}_alignment"
+    shell:
+        """
+        echo {input} >> {output}
+        """
+
+rule all_alignment_sorting_repliseq:
+    input:
+        get_alignment_sorting_outputs_repliseq
+    output:
+        all_done="resources/repliseq/checks/{assembly_code}_alignment_sorting"
+    shell:
+        """
+        echo {input} >> {output}
+        """
+
+rule all_alignment_indexing_repliseq:
+    input:
+        get_alignment_indexing_outputs_repliseq
+    output:
+        all_done="resources/repliseq/checks/{assembly_code}_alignment_indexing"
+    shell:
+        """
+        echo {input} >> {output}
+        """
+
+rule all_filtering_repliseq:
+    input:
+        get_filtering_outputs_repliseq
+    output:
+        all_done="resources/repliseq/checks/{assembly_code}_alignment_filtering"
+    shell:
+        """
+        echo {input} >> {output}
+        """
+
+rule all_sorting_filtered_alignment_repliseq:
+    input:
+        get_sorting_filtered_alignment_outputs_repliseq
+    output:
+        all_done="resources/repliseq/checks/{assembly_code}_filtered_alignment_sorting"
+    shell:
+        """
+        echo {input} >> {output}
+        """
+
+rule all_indexing_filtered_alignment_repliseq:
+    input:
+        get_indexing_filtered_alignment_outputs_repliseq
+    output:
+        all_done="resources/repliseq/checks/{assembly_code}_filtered_alignment_indexing"
+    shell:
+        """
+        echo {input} >> {output}
+        """
+
+rule all_bamqc_repliseq:
+    input:
+        get_bamqc_outputs_repliseq
+    output:
+        all_done="resources/repliseq/checks/{assembly_code}_bamqc"
+    shell:
+        """
+        echo {input} >> {output}
+        """
+
+rule all_deduplicated_alignment_repliseq:
+    input:
+        get_deduplicated_alignment_outputs_repliseq
+    output:
+        all_done="resources/repliseq/checks/{assembly_code}_alignment_deduplication"
+    shell:
+        """
+        echo {input} >> {output}
+        """
+
+rule all_filtered_deduplicated_alignment_repliseq:
+    input:
+        get_filtered_deduplicated_alignment_outputs_repliseq
+    output:
+        all_done="resources/repliseq/checks/{assembly_code}_{mapq_thr}_deduplicated_alignment_filtering"
+    shell:
+        """
+        echo {input} >> {output}
+        """
+
+rule all_remove_blacklisted_alignment_repliseq:
+    input:
+        get_remove_blacklisted_alignment_outputs_repliseq
+    output:
+        all_done="resources/repliseq/checks/{assembly_code}_{mapq_thr}_noblacklist_alignment"
+    shell:
+        """
+        echo {input} >> {output}
+        """
+
+rule all_sort_blacklisted_alignment_repliseq:
+    input:
+        get_sort_noblacklisted_alignment_outputs_repliseq
+    output:
+        all_done="resources/repliseq/checks/{assembly_code}_{mapq_thr}_noblacklist_alignment_sorting"
+    shell:
+        """
+        echo {input} >> {output}
+        """
+
+rule all_index_blacklisted_alignment_repliseq:
+    input:
+        get_index_noblacklisted_alignment_outputs_repliseq
+    output:
+        all_done="resources/repliseq/checks/{assembly_code}_{mapq_thr}_noblacklist_alignment_indexing"
+    shell:
+        """
+        echo {input} >> {output}
+        """
+
+rule all_get_coverage_repliseq:
+    input:
+        get_coverage_outputs_repliseq
+    output:
+        all_done="resources/repliseq/checks/{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}_coverage"
+    shell:
+        """
+        echo {input} >> {output}
+        """
+
+rule all_filter_coverage_repliseq:
+    input:
+        filter_coverage_outputs_repliseq
+    output:
+        all_done="resources/repliseq/checks/{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}_{cov_thr}_coverage_filtering"
+    shell:
+        """
+        echo {input} >> {output}
+        """
+
+rule all_prefetch_atacseq:
+    input:
+        get_prefetch_outputs_atacseq
+    output:
+        all_done="resources/atacseq/checks/prefetch"
+    shell:
+        """
+        echo {input} >> {output}
+        """
+
+rule all_fastqdump_atacseq:
+    input:
+        get_fastqdump_outputs_atacseq
+    output:
+        all_done="resources/atacseq/checks/fastq_dump"
+    shell:
+        """
+        echo {input} >> {output}
+        """
+
+rule all_trimgalore_atacseq:
+    input:
+        get_trim_galore_outputs_atacseq
+    output:
+        all_done="resources/atacseq/checks/trim_galore"
+    shell:
+        """
+        echo {input} >> {output}
+        """
+
+rule all_alignment_atacseq:
+    input:
+        get_alignment_outputs_atacseq
+    output:
+        all_done="resources/atacseq/checks/{assembly_code}_alignment"
+    shell:
+        """
+        echo {input} >> {output}
+        """
+
+rule all_alignment_sorting_atacseq:
+    input:
+        get_alignment_sorting_outputs_atacseq
+    output:
+        all_done="resources/atacseq/checks/{assembly_code}_alignment_sorting"
+    shell:
+        """
+        echo {input} >> {output}
+        """
+
+rule all_alignment_indexing_atacseq:
+    input:
+        get_alignment_indexing_outputs_atacseq
+    output:
+        all_done="resources/atacseq/checks/{assembly_code}_alignment_indexing"
+    shell:
+        """
+        echo {input} >> {output}
+        """
+
+rule all_filtering_atacseq:
+    input:
+        get_filtering_outputs_atacseq
+    output:
+        all_done="resources/atacseq/checks/{assembly_code}_alignment_filtering"
+    shell:
+        """
+        echo {input} >> {output}
+        """
+
+rule all_sorting_filtered_alignment_atacseq:
+    input:
+        get_sorting_filtered_alignment_outputs_atacseq
+    output:
+        all_done="resources/atacseq/checks/{assembly_code}_filtered_alignment_sorting"
+    shell:
+        """
+        echo {input} >> {output}
+        """
+
+rule all_indexing_filtered_alignment_atacseq:
+    input:
+        get_indexing_filtered_alignment_outputs_atacseq
+    output:
+        all_done="resources/atacseq/checks/{assembly_code}_filtered_alignment_indexing"
+    shell:
+        """
+        echo {input} >> {output}
+        """
+
+rule all_bamqc_atacseq:
+    input:
+        get_bamqc_outputs_atacseq
+    output:
+        all_done="resources/atacseq/checks/{assembly_code}_bamqc"
+    shell:
+        """
+        echo {input} >> {output}
+        """
+
+rule all_deduplicated_alignment_atacseq:
+    input:
+        get_deduplicated_alignment_outputs_atacseq
+    output:
+        all_done="resources/atacseq/checks/{assembly_code}_alignment_deduplication"
+    shell:
+        """
+        echo {input} >> {output}
+        """
+
+rule all_filtered_deduplicated_alignment_atacseq:
+    input:
+        get_filtered_deduplicated_alignment_outputs_atacseq
+    output:
+        all_done="resources/atacseq/checks/{assembly_code}_{mapq_thr}_deduplicated_alignment_filtering"
+    shell:
+        """
+        echo {input} >> {output}
+        """
+
+rule all_remove_blacklisted_alignment_atacseq:
+    input:
+        get_remove_blacklisted_alignment_outputs_atacseq
+    output:
+        all_done="resources/atacseq/checks/{assembly_code}_{mapq_thr}_noblacklist_alignment"
+    shell:
+        """
+        echo {input} >> {output}
+        """
+
+rule all_sort_blacklisted_alignment_atacseq:
+    input:
+        get_sort_noblacklisted_alignment_outputs_atacseq
+    output:
+        all_done="resources/atacseq/checks/{assembly_code}_{mapq_thr}_noblacklist_alignment_sorting"
+    shell:
+        """
+        echo {input} >> {output}
+        """
+
+rule all_index_blacklisted_alignment_atacseq:
+    input:
+        get_index_noblacklisted_alignment_outputs_atacseq
+    output:
+        all_done="resources/atacseq/checks/{assembly_code}_{mapq_thr}_noblacklist_alignment_indexing"
+    shell:
+        """
+        echo {input} >> {output}
+        """
+
+rule all_fix_mate_information_atacseq:
+    input:
+        get_fixed_alignment_outputs_atacseq
+    output:
+        all_done="resources/atacseq/checks/{assembly_code}_{mapq_thr}_mate_information_fixing"
+    shell:
+        """
+        echo {input} >> {output}
+        """
+
+rule all_get_is_metrics_atacseq:
+    input:
+        get_is_metrics_outputs_atacseq
+    output:
+        all_done="results/atacseq/checks/{assembly_code}_{mapq_thr}_is_metrics_getting"
+    shell:
+        """
+        echo {input} >> {output}
+        """
+
+wildcard_constraints:
+    assembly_code = "hg\\d{2}",
+    gencode_version="[0-9]+",
+    tss_subset="[a-z]+",
+    window_size = "[0-9]+",
+    step = "[0-9]+",
+    window_mode = "[a-z]+",
+    tumor_type_IntOGen = "[A-Z]+",
+    oncotree_code_DepMap = "[A-Z]+",
+    essentiality_cutoff = "\\d+(\\.\\d+)?",
+    num_assays_cutoff = "[0-9]+",
+    gender_COSMIC = "[a-z]+",
+    COSMIC_parameters = "[a-z_]+",
+    gender_GDC="[a-z]+",
+    tumor_type_GDC="[A-Z]+",
+    min_Num_Probes="[0-9]+",
+    min_abs_Segment_Mean="\\d+(\\.\\d+)?",
+    SRA_id="[A-Z]+[0-9]+",
+    mapq_thr="[0-9]+",
+    cov_thr="[0-9]+",
+    smoothing_size="[0-9]+"
