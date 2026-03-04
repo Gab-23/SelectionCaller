@@ -24,7 +24,7 @@ rule align_reads_atacseq:
         --no-discordant \
         --no-mixed \
         --dovetail \
-		-x {input.index} \
+		-x {params.index_prefix} \
         -1 {input.FWD} \
         -2 {input.REV} | \
         samtools view -@ {params.num_cores_atacseq} \

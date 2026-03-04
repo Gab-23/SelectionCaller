@@ -1,19 +1,11 @@
 DATASET:
-    ROADMAP:
-        - add multiple genomes
-	- add multiple samplees
-	- add multiple tisssues
-    GENE LIST:
-        - talk to ale
-    CRE LIST:
-        - talk to ale
     Hi-C:
         - talk to zhan
-
-DO ts models in Obsidian
 
 Check gokce for formulation of RoadMap features, for normalization to boost signal
 Make them a parameter
 
 Another feature might be TEs in bin, but risky due to repetitive nature
-xxx
+
+Add wrapper script to choose between bin-based analysis and peak based one
+Add peak calling stuff
