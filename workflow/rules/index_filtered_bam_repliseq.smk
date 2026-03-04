@@ -1,6 +1,6 @@
 rule index_filtered_bam_repliseq:
     output:
-        "resources/repliseq/files/bam/{SRA_id}/{assembly_code}.canon.sorted.bam.bai"
+        temp("resources/repliseq/files/bam/{SRA_id}/{assembly_code}.canon.sorted.bam.bai")
     input:
         "resources/repliseq/files/bam/{SRA_id}/{assembly_code}.canon.sorted.bam"
     log:

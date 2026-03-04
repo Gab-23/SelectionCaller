@@ -1,6 +1,6 @@
 rule remove_blacklisted_from_bam_repliseq:
     output:
-        "resources/repliseq/files/bam/{SRA_id}/{assembly_code}_{mapq_thr}.noblack.bam"
+        temp("resources/repliseq/files/bam/{SRA_id}/{assembly_code}_{mapq_thr}.noblack.bam")
     input:
         bam="resources/repliseq/files/bam/{SRA_id}/{assembly_code}_{mapq_thr}.dedup.filtered.bam",
         blacklist="resources/blacklist/{assembly_code}.bed"

@@ -1,7 +1,7 @@
 rule fastq_dump_repliseq:
     output:
-        "resources/repliseq/files/fastq/{SRA_id}/{SRA_id}_1.fastq.gz",
-        "resources/repliseq/files/fastq/{SRA_id}/{SRA_id}_2.fastq.gz"
+        temp("resources/repliseq/files/fastq/{SRA_id}/{SRA_id}_1.fastq.gz"),
+        temp("resources/repliseq/files/fastq/{SRA_id}/{SRA_id}_2.fastq.gz")
     input:
         "resources/repliseq/files/sra/{SRA_id}/{SRA_id}.sra"
     log:

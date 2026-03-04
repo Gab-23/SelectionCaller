@@ -1,6 +1,6 @@
 rule prefetch_repliseq:
     output:
-        "resources/repliseq/files/sra/{SRA_id}/{SRA_id}.sra"        
+        temp("resources/repliseq/files/sra/{SRA_id}/{SRA_id}.sra")        
     log:
         "logs/prefetch_repliseq/{SRA_id}.log"
     conda:

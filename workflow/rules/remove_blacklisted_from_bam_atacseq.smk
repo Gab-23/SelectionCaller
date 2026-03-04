@@ -1,6 +1,6 @@
 rule remove_blacklisted_from_bam_atacseq:
     output:
-        "resources/atacseq/files/bam/{SRA_id}/{assembly_code}_{mapq_thr}.noblack.bam"
+        temp("resources/atacseq/files/bam/{SRA_id}/{assembly_code}_{mapq_thr}.noblack.bam")
     input:
         bam="resources/atacseq/files/bam/{SRA_id}/{assembly_code}_{mapq_thr}.dedup.filtered.bam",
         blacklist="resources/blacklist/{assembly_code}.bed"

@@ -1,6 +1,6 @@
 rule align_reads_atacseq:
     output:
-        "resources/atacseq/files/bam/{SRA_id}/{assembly_code}.bam"
+        temp("resources/atacseq/files/bam/{SRA_id}/{assembly_code}.bam")
     input:
         FWD="resources/atacseq/files/fastq/{SRA_id}/{SRA_id}_1_val_1.fq.gz",
         REV="resources/atacseq/files/fastq/{SRA_id}/{SRA_id}_2_val_2.fq.gz",

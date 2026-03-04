@@ -1,6 +1,6 @@
 rule sort_noblacklist_bam_atacseq:
     output:
-        "resources/atacseq/files/bam/{SRA_id}/{assembly_code}_{mapq_thr}.noblack.sorted.bam"
+        temp("resources/atacseq/files/bam/{SRA_id}/{assembly_code}_{mapq_thr}.noblack.sorted.bam")
     input:
         "resources/atacseq/files/bam/{SRA_id}/{assembly_code}_{mapq_thr}.noblack.bam"
     log:

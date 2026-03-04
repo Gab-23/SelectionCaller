@@ -1,6 +1,6 @@
 rule deduplicate_bam_repliseq:
     output:
-        bam="resources/repliseq/files/bam/{SRA_id}/{assembly_code}.dedup.bam",
+        bam=temp("resources/repliseq/files/bam/{SRA_id}/{assembly_code}.dedup.bam"),
         metrics="resources/repliseq/files/bam/{SRA_id}/{assembly_code}.metrics.txt"
     input:
         "resources/repliseq/files/bam/{SRA_id}/{assembly_code}.canon.sorted.bam"

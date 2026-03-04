@@ -1,6 +1,6 @@
 rule deduplicate_bam_atacseq:
     output:
-        bam="resources/atacseq/files/bam/{SRA_id}/{assembly_code}.dedup.bam",
+        bam=temp("resources/atacseq/files/bam/{SRA_id}/{assembly_code}.dedup.bam"),
         metrics="resources/atacseq/files/bam/{SRA_id}/{assembly_code}.metrics.txt"
     input:
         "resources/atacseq/files/bam/{SRA_id}/{assembly_code}.canon.sorted.bam"

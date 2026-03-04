@@ -1,6 +1,6 @@
 rule sort_bam_atacseq:
     output:
-        "resources/atacseq/files/bam/{SRA_id}/{assembly_code}.sorted.bam"
+        temp("resources/atacseq/files/bam/{SRA_id}/{assembly_code}.sorted.bam")
     input:
         "resources/atacseq/files/bam/{SRA_id}/{assembly_code}.bam"
     log:

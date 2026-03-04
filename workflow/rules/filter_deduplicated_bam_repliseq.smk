@@ -1,6 +1,6 @@
 rule filter_deduplicated_bam_repliseq:
     output:
-        "resources/repliseq/files/bam/{SRA_id}/{assembly_code}_{mapq_thr}.dedup.filtered.bam"
+        temp("resources/repliseq/files/bam/{SRA_id}/{assembly_code}_{mapq_thr}.dedup.filtered.bam")
     input:
         "resources/repliseq/files/bam/{SRA_id}/{assembly_code}.dedup.bam",
     log:

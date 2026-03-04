@@ -1,6 +1,6 @@
 rule align_reads_repliseq:
     output:
-        "resources/repliseq/files/bam/{SRA_id}/{assembly_code}.bam"
+        temp("resources/repliseq/files/bam/{SRA_id}/{assembly_code}.bam")
     input:
         FWD="resources/repliseq/files/fastq/{SRA_id}/{SRA_id}_1_val_1.fq.gz",
         REV="resources/repliseq/files/fastq/{SRA_id}/{SRA_id}_2_val_2.fq.gz",

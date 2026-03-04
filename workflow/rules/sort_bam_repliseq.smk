@@ -1,6 +1,6 @@
 rule sort_bam_repliseq:
     output:
-        "resources/repliseq/files/bam/{SRA_id}/{assembly_code}.sorted.bam"
+        temp("resources/repliseq/files/bam/{SRA_id}/{assembly_code}.sorted.bam")
     input:
         "resources/repliseq/files/bam/{SRA_id}/{assembly_code}.bam"
     log:

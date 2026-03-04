@@ -1,6 +1,6 @@
 rule index_filtered_bam_atacseq:
     output:
-        "resources/atacseq/files/bam/{SRA_id}/{assembly_code}.canon.sorted.bam.bai"
+        temp("resources/atacseq/files/bam/{SRA_id}/{assembly_code}.canon.sorted.bam.bai")
     input:
         "resources/atacseq/files/bam/{SRA_id}/{assembly_code}.canon.sorted.bam"
     log:

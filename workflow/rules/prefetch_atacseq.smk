@@ -1,6 +1,6 @@
 rule prefetch_atacseq:
     output:
-        "resources/atacseq/files/sra/{SRA_id}/{SRA_id}.sra"
+        temp("resources/atacseq/files/sra/{SRA_id}/{SRA_id}.sra")
     log:
         "logs/prefetch_atacseq/{SRA_id}.log"
     shell:
