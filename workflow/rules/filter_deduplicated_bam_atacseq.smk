@@ -11,7 +11,7 @@ rule filter_deduplicated_bam_atacseq:
         "../envs/bowtie2_samtools.yml"
     shell:
         """
-        samtools view -@ {params.num_cores_repliseq} \
+        samtools view -@ {params.num_cores_atacseq} \
         -q {wildcards.mapq_thr} \
         -f 0x2 \
         -F 0x4 \
