@@ -1,12 +1,13 @@
 rule prefetch_atacseq:
     output:
-        "resources/atacseq/files/sra/{SRA_id}/{SRA_id}.sra"     
+        "resources/atacseq/files/sra/{SRA_id}/{SRA_id}.sra"
     log:
         "logs/prefetch_atacseq/{SRA_id}.log"
-    conda:
-        "../envs/sra_toolkit.yml"
     shell:
         """
-        cd resources/atacseq/files/sra/
-        prefetch {wildcards.SRA_id}
+        mkdir -p resources/atacseq/files/sra/{wildcards.SRA_id}
+
+        wget -O {output} \
+            https://sra-pub-run-odp.s3.amazonaws.com/sra/{wildcards.SRA_id}/{wildcards.SRA_id} \
+            2> {log}
         """

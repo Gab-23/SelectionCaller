@@ -8,5 +8,5 @@ rule prefetch_repliseq:
     shell:
         """
         cd resources/repliseq/files/sra/
-        prefetch {wildcards.SRA_id}
+        prefetch --force all --transport https {wildcards.SRA_id}
         """

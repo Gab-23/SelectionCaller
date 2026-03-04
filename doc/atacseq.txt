@@ -6,3 +6,10 @@ NOTA: -q reads for .fastq
 
 NOTA: stavo usando -X 250, Ale mi ha suggerito 2000,
 -X è maximum insert size
+
+Ci sono stati problemi nel prefetch, siccome SRA trova solo la versione lite di acluni campioni
+(28,30,35,36). Quindi uso wget direttamente dal link di SRA (suggerito da Chat, ma sembra affidabile)
+
+Per quantifica, Ale mi consiglia di:
+    - Saltare peak calling per ora
+    - Quantifica sui bins e normalizzazione con edgeR
