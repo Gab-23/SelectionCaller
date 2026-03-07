@@ -2,7 +2,7 @@
 #SBATCH --job-name=snakemake_single
 #SBATCH --partition=general
 #SBATCH --cpus-per-task=20
-#SBATCH --mem=150G
+#SBATCH --mem=400G
 #SBATCH --time=168:00:00
 #SBATCH --output=snakemake_%j.out
 
