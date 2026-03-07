@@ -4,7 +4,7 @@ rule filter_deduplicated_bam_atacseq:
     input:
         "resources/atacseq/files/bam/{SRA_id}/{assembly_code}.dedup.bam",
     log:
-        "logs/filter_bam_atacseq/{assembly_code}_{mapq_thr}_{SRA_id}.log"
+        "logs/filter_deduplicated_bam_atacseq/{assembly_code}_{mapq_thr}_{SRA_id}.log"
     params:
         num_cores_atacseq=num_cores_atacseq
     conda:

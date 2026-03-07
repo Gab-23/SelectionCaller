@@ -1,7 +1,7 @@
 rule fastq_dump_atacseq:
     output:
-        temp("resources/atacseq/files/fastq/{SRA_id}/{SRA_id}_1.fastq.gz"),
-        temp("resources/atacseq/files/fastq/{SRA_id}/{SRA_id}_2.fastq.gz")
+        "resources/atacseq/files/fastq/{SRA_id}/{SRA_id}_1.fastq.gz",
+        "resources/atacseq/files/fastq/{SRA_id}/{SRA_id}_2.fastq.gz"
     input:
         "resources/atacseq/files/sra/{SRA_id}/{SRA_id}.sra"
     log:

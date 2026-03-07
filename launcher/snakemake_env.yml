@@ -1,0 +1,7 @@
+name: snakemake-env
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - snakemake
+  - graphviz

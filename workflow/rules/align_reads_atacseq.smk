@@ -24,12 +24,15 @@ rule align_reads_atacseq:
         --no-discordant \
         --no-mixed \
         --dovetail \
-		-x {params.index_prefix} \
+        --rg-id {wildcards.SRA_id} \
+        --rg SM:{wildcards.SRA_id} \
+        --rg LB:lib1 \
+        --rg PL:ILLUMINA \
+        --rg PU:unit1 \
+        -x {params.index_prefix} \
         -1 {input.FWD} \
         -2 {input.REV} | \
-        samtools view -@ {params.num_cores_atacseq} \
-        -b \
-        -o {output} 2>{log}
+        samtools view -@ {params.num_cores_atacseq} -b -o {output} 2>{log}
         """
 
 

@@ -389,7 +389,7 @@ tissue_type_Roadmap, tumor_type_IntOGen, cohort_IntOGen, oncotree_code_DepMap, C
 gender_COSMIC, gender_DepMap, gender_GDC = map_gender(mapping_file_gender_location, gender)
 
 SRA_ids_repliseq = get_SRA_ids(repliseq_selected_samples_locations[0])
-SRA_ids_atacseq = get_SRA_ids(atacseq_selected_samples_locations[0])
+SRA_ids_atacseq = get_SRA_ids(atacseq_selected_samples_locations[0])[0]
 
 is_patterned_repliseq = get_is_patterned(sequencers_info_locations[0], "HiSeq_4000")
 is_patterned_atacseq = get_is_patterned(sequencers_info_locations[0], ["HiSeq_6000", "HiSeq_X_Ten"])
@@ -523,6 +523,7 @@ include: "rules/remove_blacklisted_from_bam_atacseq.smk"
 include: "rules/sort_noblacklist_bam_atacseq.smk"
 include: "rules/index_noblacklist_bam_atacseq.smk"
 include: "rules/fix_mate_information_atacseq.smk"
+include: "rules/compute_insert_size_metrics_atacseq.smk"
 include: "rules/compute_coverage_atacseq.smk"
 
 rule all:
@@ -535,132 +536,141 @@ rule all:
             step=steps,
             mapq_thr=mapq_thr
        ),
-       expand(
-            "data/repliseq/{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}_{cov_thr}_{smoothing_size}",
-            assembly_code=assembly_code,
-            window_mode=window_mode,
-            window_size=window_sizes,
-            step=steps,
-            mapq_thr=mapq_thr,
-            cov_thr=cov_thr,
-            smoothing_size=smoothing_sizes
-        ),
         expand(
-            "resources/repliseq/checks/{assembly_code}_{mapq_thr}_noblacklist_alignment_indexing",
-            assembly_code=assembly_code,
-            mapq_thr=mapq_thr
-        ),
-        expand(
-            "resources/repliseq/checks/{assembly_code}_bamqc",
+            "resources/atacseq/checks/{assembly_code}_bamqc",
             assembly_code=assembly_code
         ),
         expand(
-            "data/num_overlaps/CNAs/ampl/{assembly_code}_{window_mode}_{window_size}_{step}_{tumor_type_GDC}_{gender_GDC}_{min_Num_Probes}_{min_abs_Segment_Mean}",
+            "results/atacseq/checks/{assembly_code}_{mapq_thr}_is_metrics_getting",
             assembly_code=assembly_code,
-            window_mode=window_mode,
-            window_size=window_sizes,
-            step=steps,
-            tumor_type_GDC=tumor_type_GDC,
-            gender_GDC=gender_GDC,
-            min_Num_Probes=min_Num_Probes,
-            min_abs_Segment_Mean=min_abs_Segment_Means
-        ),
-        expand(
-            "data/num_overlaps/mutations/noncoding/{assembly_code}_{window_mode}_{window_size}_{step}_{gender_COSMIC}_{COSMIC_parameters}",
-            assembly_code=assembly_code,
-            window_mode=window_mode,
-            window_size=window_sizes,
-            step=steps,
-            gender_COSMIC=gender_COSMIC,
-            COSMIC_parameters=COSMIC_parameters
-        ),
-        expand(
-            "data/num_overlaps/mutations/coding/{assembly_code}_{window_mode}_{window_size}_{step}_{gender_COSMIC}_{COSMIC_parameters}",
-            assembly_code=assembly_code,
-            window_mode=window_mode,
-            window_size=window_sizes,
-            step=steps,
-            gender_COSMIC=gender_COSMIC,
-            COSMIC_parameters=COSMIC_parameters            
-        ),
-        expand(
-            "data/distances/essential/{assembly_code}_{window_mode}_{window_size}_{step}_{oncotree_code_DepMap}_{gender_DepMap}_{essentiality_cutoff}_{num_assays_cutoff}_v{gencode_version}.bed",
-            assembly_code=assembly_code,
-            window_mode=window_mode,
-            window_size=window_sizes,
-            step=steps,
-            oncotree_code_DepMap = oncotree_code_DepMap,
-            gender_DepMap = gender_DepMap,
-            essentiality_cutoff = essentiality_cutoff,
-            num_assays_cutoff = num_assays_cutoff,
-            gencode_version = gencode_version
-         ),
-        expand(
-            "data/distances/telomeres/{assembly_code}_{window_mode}_{window_size}_{step}",
-            assembly_code=assembly_code,
-            window_mode=window_mode,
-            window_size=window_sizes,
-            step=steps
-        ),
-        expand(
-            "data/distances/centromeres/{assembly_code}_{window_mode}_{window_size}_{step}",
-            assembly_code=assembly_code,
-            window_mode=window_mode,
-            window_size=window_sizes,
-            step=steps
-        ),
-        expand(
-            "data/GC/{assembly_code}_{window_mode}_{window_size}_{step}",
-            assembly_code=assembly_code,
-            window_mode=window_mode,
-            window_size=window_sizes,
-            step=steps 
-        ),
-        expand(
-            "data/num_overlaps/PC/{assembly_code}_{window_mode}_{window_size}_{step}_v{gencode_version}",
-            assembly_code=assembly_code,
-            window_mode=window_mode,
-            window_size=window_sizes,
-            step=steps,
-            gencode_version=gencode_version
-        ),
-        expand(
-            "data/distances/PC/{assembly_code}_{window_mode}_{window_size}_{step}_v{gencode_version}",
-            assembly_code=assembly_code,
-            window_mode=window_mode,
-            window_size=window_sizes,
-            step=steps,
-            gencode_version=gencode_version
-        ),
-        expand(
-            "data/distances/TSG/{assembly_code}_{window_mode}_{window_size}_{step}_v{gencode_version}_{tumor_type_IntOGen}",
-            assembly_code=assembly_code,
-            window_mode=window_mode,
-            window_size=window_sizes,
-            step=steps,
-            gencode_version=gencode_version,
-            tumor_type_IntOGen=tumor_type_IntOGen
-        ),
-        expand(
-            "data/distances/OG/{assembly_code}_{window_mode}_{window_size}_{step}_v{gencode_version}_{tumor_type_IntOGen}",
-            assembly_code=assembly_code,
-            window_mode=window_mode,
-            window_size=window_sizes,
-            step=steps,
-            gencode_version=gencode_version,
-            tumor_type_IntOGen=tumor_type_IntOGen
-        ),
-        expand(
-            "data/epigenomes/{tissue_type_Roadmap}_{sample_type}_{liftover_str}_{file_format}_{assembly_code}_{window_mode}_{window_size}_{step}",
-            tissue_type_Roadmap=tissue_type_Roadmap,
-            sample_type=sample_type,
-            liftover_str=liftover_str,
-            file_format=file_format,
-            assembly_code=assembly_code,
-            window_mode=window_modes,
-            window_size=window_sizes,
-            step=steps
+            mapq_thr=mapq_thr
         )
+#       expand(
+#            "data/repliseq/{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}_{cov_thr}_{smoothing_size}",
+#            assembly_code=assembly_code,
+#            window_mode=window_mode,
+#            window_size=window_sizes,
+#            step=steps,
+#            mapq_thr=mapq_thr,
+#            cov_thr=cov_thr,
+#            smoothing_size=smoothing_sizes
+#        ),
+#        expand(
+#            "resources/repliseq/checks/{assembly_code}_{mapq_thr}_noblacklist_alignment_indexing",
+#            assembly_code=assembly_code,
+#            mapq_thr=mapq_thr
+#        ),
+#        expand(
+#            "resources/repliseq/checks/{assembly_code}_bamqc",
+#            assembly_code=assembly_code
+#        ),
+#        expand(
+#            "data/num_overlaps/CNAs/ampl/{assembly_code}_{window_mode}_{window_size}_{step}_{tumor_type_GDC}_{gender_GDC}_{min_Num_Probes}_{min_abs_Segment_Mean}",
+#            assembly_code=assembly_code,
+#            window_mode=window_mode,
+#            window_size=window_sizes,
+#            step=steps,
+#            tumor_type_GDC=tumor_type_GDC,
+#            gender_GDC=gender_GDC,
+#            min_Num_Probes=min_Num_Probes,
+#            min_abs_Segment_Mean=min_abs_Segment_Means
+#        ),
+#        expand(
+#            "data/num_overlaps/mutations/noncoding/{assembly_code}_{window_mode}_{window_size}_{step}_{gender_COSMIC}_{COSMIC_parameters}",
+#            assembly_code=assembly_code,
+#            window_mode=window_mode,
+#            window_size=window_sizes,
+#            step=steps,
+#            gender_COSMIC=gender_COSMIC,
+#            COSMIC_parameters=COSMIC_parameters
+#        ),
+#        expand(
+#            "data/num_overlaps/mutations/coding/{assembly_code}_{window_mode}_{window_size}_{step}_{gender_COSMIC}_{COSMIC_parameters}",
+#            assembly_code=assembly_code,
+#            window_mode=window_mode,
+#            window_size=window_sizes,
+#            step=steps,
+#            gender_COSMIC=gender_COSMIC,
+#            COSMIC_parameters=COSMIC_parameters            
+#        ),
+#        expand(
+#            "data/distances/essential/{assembly_code}_{window_mode}_{window_size}_{step}_{oncotree_code_DepMap}_{gender_DepMap}_{essentiality_cutoff}_{num_assays_cutoff}_v{gencode_version}.bed",
+#            assembly_code=assembly_code,
+#            window_mode=window_mode,
+#            window_size=window_sizes,
+#            step=steps,
+#            oncotree_code_DepMap = oncotree_code_DepMap,
+#            gender_DepMap = gender_DepMap,
+#            essentiality_cutoff = essentiality_cutoff,
+#            num_assays_cutoff = num_assays_cutoff,
+#            gencode_version = gencode_version
+#         ),
+#        expand(
+#            "data/distances/telomeres/{assembly_code}_{window_mode}_{window_size}_{step}",
+#            assembly_code=assembly_code,
+#            window_mode=window_mode,
+#            window_size=window_sizes,
+#            step=steps
+#        ),
+#        expand(
+#            "data/distances/centromeres/{assembly_code}_{window_mode}_{window_size}_{step}",
+#            assembly_code=assembly_code,
+#            window_mode=window_mode,
+#            window_size=window_sizes,
+#            step=steps
+#        ),
+#        expand(
+#            "data/GC/{assembly_code}_{window_mode}_{window_size}_{step}",
+#            assembly_code=assembly_code,
+#            window_mode=window_mode,
+#            window_size=window_sizes,
+#            step=steps 
+#        ),
+#        expand(
+#            "data/num_overlaps/PC/{assembly_code}_{window_mode}_{window_size}_{step}_v{gencode_version}",
+#            assembly_code=assembly_code,
+#            window_mode=window_mode,
+#            window_size=window_sizes,
+#            step=steps,
+#            gencode_version=gencode_version
+#        ),
+#        expand(
+#            "data/distances/PC/{assembly_code}_{window_mode}_{window_size}_{step}_v{gencode_version}",
+#            assembly_code=assembly_code,
+#            window_mode=window_mode,
+#            window_size=window_sizes,
+#            step=steps,
+#            gencode_version=gencode_version
+#        ),
+#        expand(
+#            "data/distances/TSG/{assembly_code}_{window_mode}_{window_size}_{step}_v{gencode_version}_{tumor_type_IntOGen}",
+#            assembly_code=assembly_code,
+#            window_mode=window_mode,
+#            window_size=window_sizes,
+#            step=steps,
+#            gencode_version=gencode_version,
+#            tumor_type_IntOGen=tumor_type_IntOGen
+#        ),
+#        expand(
+#            "data/distances/OG/{assembly_code}_{window_mode}_{window_size}_{step}_v{gencode_version}_{tumor_type_IntOGen}",
+#            assembly_code=assembly_code,
+#            window_mode=window_mode,
+#            window_size=window_sizes,
+#            step=steps,
+#            gencode_version=gencode_version,
+#            tumor_type_IntOGen=tumor_type_IntOGen
+#        ),
+#        expand(
+#            "data/epigenomes/{tissue_type_Roadmap}_{sample_type}_{liftover_str}_{file_format}_{assembly_code}_{window_mode}_{window_size}_{step}",
+#            tissue_type_Roadmap=tissue_type_Roadmap,
+#            sample_type=sample_type,
+#            liftover_str=liftover_str,
+#            file_format=file_format,
+#            assembly_code=assembly_code,
+#            window_mode=window_modes,
+#            window_size=window_sizes,
+#            step=steps
+#        )
 
 rule all_prefetch_repliseq:
     input:
