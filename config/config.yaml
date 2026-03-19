@@ -111,3 +111,15 @@ smoothing_sizes:
 
 max_insert_size_atacseqs:
   - 2000
+
+minSamples_atacseqs:
+  - 1
+
+minCounts_atacseqs:
+  - 1
+
+min_length_atacseqs:
+  - 1
+
+q_val_thr_atacseqs:
+  - 1

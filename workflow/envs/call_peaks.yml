@@ -1,0 +1,7 @@
+name: call_peaks
+channels:
+  - bioconda
+  - conda-forge
+  - defaults
+dependencies:
+  - genrich
