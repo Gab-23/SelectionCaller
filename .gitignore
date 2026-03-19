@@ -1,0 +1,8 @@
+*.ipynb
+*.Rhistory
+.snakemake
+github_token
+data*/
+resources*/
+results*/
+logs*/
