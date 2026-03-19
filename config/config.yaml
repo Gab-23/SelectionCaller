@@ -113,10 +113,10 @@ max_insert_size_atacseqs:
   - 2000
 
 minSamples_atacseqs:
-  - 1
+  - 15
 
 minCounts_atacseqs:
-  - 1
+  - 300
 
 min_length_atacseqs:
   - 1

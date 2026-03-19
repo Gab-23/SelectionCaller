@@ -1,6 +1,6 @@
 rule fix_mate_information_atacseq:
     output:
-        temp("resources/atacseq/files/bam/{SRA_id}/{assembly_code}_{mapq_thr}.fixed.bam")
+        "resources/atacseq/files/bam/{SRA_id}/{assembly_code}_{mapq_thr}.fixed.bam"
     input:
         "resources/atacseq/files/bam/{SRA_id}/{assembly_code}_{mapq_thr}.noblack.sorted.bam"
     log:

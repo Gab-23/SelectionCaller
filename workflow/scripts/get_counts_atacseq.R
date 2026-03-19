@@ -12,7 +12,7 @@ minSamples_atacseq                    <- args$minSamples_atacseq
 minCounts_atacseq                     <- args$minCounts_atacseq
 
 files <- list.files(input_dir, recursive = T, full.names = T)
-metadata <- read.table(metadata_path, header = T, sep = "\t")
+metadata <- read.table(input_path_metadata, header = T, sep = "\t")
 
 sample_names <- unlist(lapply(X = files, FUN = function(x){strsplit(x, split = "/")[[1]][[5]]}))
 

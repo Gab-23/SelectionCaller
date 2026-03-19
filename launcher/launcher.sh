@@ -1,8 +1,8 @@
 #!/bin/bash
 #SBATCH --job-name=snakemake_single
 #SBATCH --partition=general
-#SBATCH --output=/hpcnfs/scratch/MS/ieo7429/SelectionCaller/logs/slurm/nextflow_%j.out
-#SBATCH --error=/hpcnfs/scratch/MS/ieo7429/SelectionCaller/logs/slurm/nextflow_%j.err
+#SBATCH --output=/hpcnfs/scratch/MS/ieo7429/SelectionCaller/nextflow_%j.out
+#SBATCH --error=/hpcnfs/scratch/MS/ieo7429/SelectionCaller/nextflow_%j.err
 #SBATCH --time=96:00:00
 #SBATCH --cpus-per-task=20
 #SBATCH --mem=500G
