@@ -7,3 +7,4 @@ resources*/
 results*/
 logs*/
 slurm_logs/
+snakemake_*
