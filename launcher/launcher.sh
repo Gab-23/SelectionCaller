@@ -3,7 +3,7 @@
 #SBATCH --partition=general
 #SBATCH --output=/hpcnfs/scratch/MS/ieo7429/SelectionCaller/nextflow_%j.out
 #SBATCH --error=/hpcnfs/scratch/MS/ieo7429/SelectionCaller/nextflow_%j.err
-#SBATCH --time=96:00:00
+#SBATCH --time=120:00:00
 #SBATCH --cpus-per-task=20
 #SBATCH --mem=500G
 #SBATCH --mail-type=END,FAIL
@@ -38,12 +38,12 @@ echo "[$(date)] Pulling input data from $SOURCE..."
 
 rsync -avz --progress \
   "$SOURCE:$SOURCE_RESOURCES" \
-  "$LOCAL_RESOURCES/" \
+  "$LOCAL_BASE/" \
   || { echo "ERROR: rsync of resources failed"; exit 1; }
 
 echo "[$(date)] Data transfer complete."
 
-source ~/anaconda3/etc/profile.d/conda.sh
+source ~/miniforge3/etc/profile.d/conda.sh
 conda activate snakemake-env
 
 snakemake --snakefile $SNAKEFILE --configfile $CONFIGFILE --unlock
@@ -74,9 +74,9 @@ if [ $EXIT_STATUS -eq 0 ]; then
     && echo "[$(date)] Logs/ transferred successfully." \
     || { echo "ERROR: rsync of Logs/ failed. NOT deleting local copy."; exit 1; }
 
-  echo "[$(date)] Cleaning up local data and results..."
-  rm -rf "$LOCAL_DATA" "$LOCAL_RESULTS" "$LOCAL_LOGS"
-  echo "[$(date)] Cleanup done."
+  #echo "[$(date)] Cleaning up local data and results..."
+  #rm -rf "$LOCAL_DATA" "$LOCAL_RESULTS" "$LOCAL_LOGS"
+  #echo "[$(date)] Cleanup done."
 
 else
   echo "ERROR: Pipeline failed (exit $EXIT_STATUS). Skipping result transfer and cleanup."
