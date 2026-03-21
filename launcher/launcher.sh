@@ -46,13 +46,33 @@ echo "[$(date)] Data transfer complete."
 source ~/miniforge3/etc/profile.d/conda.sh
 conda activate snakemake-env
 
+echo "[$(date)] Executing Dry-run..."
+
 snakemake --snakefile $SNAKEFILE --configfile $CONFIGFILE --unlock
-snakemake --snakefile $SNAKEFILE --configfile $CONFIGFILE --cores $CORES --use-conda
+snakemake --snakefile $SNAKEFILE --configfile $CONFIGFILE --dry-run
+EXIT_STATUS_DRY_RUN=$?
 
-EXIT_STATUS=$?
+if [ $EXIT_STATUS_DRY_RUN -eq 0 ]; then
+  echo "[$(date) Dry-run finished successfully. Executing main pipeline...]"
 
-if [ $EXIT_STATUS -eq 0 ]; then
-  echo "[$(date)] Pipeline finished successfully. Sending results to $SOURCE..."
+  snakemake --snakefile $SNAKEFILE --configfile $CONFIGFILE --unlock
+  snakemake --snakefile $SNAKEFILE --configfile $CONFIGFILE --cores $CORES --use-conda
+  EXIT_STATUS_FINAL_RUN=$?
+
+else
+  echo "ERROR: Dry-run failed."
+  
+  echo "=================================================="
+  echo "End time: $(date)"
+  echo "Exit status: $EXIT_STATUS_DRY_RUN"
+  echo "=================================================="
+
+  exit $EXIT_STATUS_DRY_RUN
+
+fi
+
+if [ $EXIT_STATUS_FINAL_RUN -eq 0 ]; then
+  echo "[$(date)] Pipeline finished successfully. Sending results to $SOURCE...]"
 
   ssh "$SOURCE" "mkdir -p $SOURCE_DATA $SOURCE_RESULTS $SOURCE_LOGS"
 
@@ -79,12 +99,12 @@ if [ $EXIT_STATUS -eq 0 ]; then
   #echo "[$(date)] Cleanup done."
 
 else
-  echo "ERROR: Pipeline failed (exit $EXIT_STATUS). Skipping result transfer and cleanup."
+  echo "ERROR: Main pipeline failed. Skipping result transfer and cleanup."
 fi
 
 echo "=================================================="
 echo "End time: $(date)"
-echo "Exit status: $EXIT_STATUS"
+echo "Exit status: $EXIT_STATUS_FINAL_RUN"
 echo "=================================================="
 
-exit $EXIT_STATUS
+exit $EXIT_STATUS_FINAL_RUN

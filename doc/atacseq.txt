@@ -13,3 +13,11 @@ Ci sono stati problemi nel prefetch, siccome SRA trova solo la versione lite di 
 Per quantifica, Ale mi consiglia di:
     - Saltare peak calling per ora
     - Quantifica sui bins e normalizzazione con edgeR
+
+Ale mi ha dato tutta una serie di idee su come selezionare samples belli e brutti.
+La pipeline l'ho integrata e:
+
+- In generale tutti i samples sono più belli, alcune ATAC-seq sono fallite palesemente
+- Ora provo a guardare PCA senza alcuni outliers e vedere che succede
+- Generalmente study ID separa tutto in PC1
+- Rimuovendo l'outlier che dice ale (64) la situazione migliora leggermente, ma dobbiamo fare sva

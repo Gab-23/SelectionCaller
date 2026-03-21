@@ -79,11 +79,14 @@ min_Num_Probes:
 min_abs_Segment_Means:
   - 0.2
 
-repliseq_selected_samples_locations:
+selected_samples_location_repliseqs:
   - config/HMEC_selected_samples_repliseq
 
-atacseq_selected_samples_locations:
+selected_samples_location_atacseqs:
   - config/BREAST_selected_samples_atacseq
+
+samples_to_exclude_location_atacseqs:
+  - config/BREAST_samples_to_exclude_atacseq
 
 sequencers_info_locations:
   - config/sequencers_info
@@ -116,7 +119,10 @@ minSamples_atacseqs:
   - 15
 
 minCounts_atacseqs:
-  - 300
+  - 200
+
+minCpm_atacseqs:
+  - 1
 
 min_length_atacseqs:
   - 1

@@ -15,21 +15,6 @@ def get_is_patterned(sequencers_info_location, sequencer_names):
     is_patterned = all(sequencers[[sequencer_name in sequencer_names for sequencer_name in sequencers.sequencer_name.tolist()]]["is_patterned"])
     return is_patterned
 
-def get_epigenome_ids(wildcards, tissue_type_Roadmap):
-
-    mapping_file = checkpoints.get_mapping_EID_tt.get(**wildcards).output[0]
-    mapping = pandas.read_csv(mapping_file, sep = "\t", header = 0)
-    
-    tissue_type = [tissue_type_Roadmap] if tissue_type_Roadmap != "anyTissue" else mapping.tissue_type.tolist()
-    sample_type = config["sample_types"] if config["sample_types"][0] != "anySample" else mapping.sample_type.tolist()
-    
-    epigenome_ids = mapping[((mapping.tissue_type.isin(tissue_type)) & (mapping.sample_type.isin(sample_type)))]["epigenome_id"].tolist()
-    
-    if len(epigenome_ids) == 0:
-        raise ValueError("Empty DataFrame")
-    else:
-        return epigenome_ids
-
 def map_tt_acronym(mapping_file_location, tumor_type, cohort_project):
     try:
         mapping = pandas.read_csv(mapping_file_location, header = 0, sep = "\t")

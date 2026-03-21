@@ -8,3 +8,5 @@ results*/
 logs*/
 slurm_logs/
 snakemake_*
+*.pdf
+TODO.txt
