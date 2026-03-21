@@ -520,6 +520,7 @@ include: "rules/compute_coverage_repliseq.smk"
 include: "rules/filter_coverage_repliseq.smk"
 include: "rules/process_repliseq.smk"
 
+include: "rules/explore_cohort_atacseq.smk"
 include: "rules/prefetch_atacseq.smk"
 include: "rules/fastq_dump_atacseq.smk"
 include: "rules/trim_reads_atacseq.smk"
@@ -545,36 +546,16 @@ include: "rules/call_peaks_bysample_atacseq.smk"
 
 rule all:
     input:
-       expand(
-            "resources/atacseq/checks/{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}_coverage",
+        expand(
+            "data/num_overlaps/CNAs/ampl/{assembly_code}_{window_mode}_{window_size}_{step}_{tumor_type_GDC}_{gender_GDC}_{min_Num_Probes}_{min_abs_Segment_Mean}",
             assembly_code=assembly_code,
             window_mode=window_mode,
             window_size=window_sizes,
             step=steps,
-            mapq_thr=mapq_thr
-       ),
-        expand(
-            "resources/atacseq/checks/{assembly_code}_bamqc",
-            assembly_code=assembly_code
-        ),
-        expand(
-            "results/atacseq/checks/{assembly_code}_{mapq_thr}_is_metrics_getting",
-            assembly_code=assembly_code,
-            mapq_thr=mapq_thr
-        ),
-       expand(
-            "data/repliseq/{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}_{cov_thr}_{smoothing_size}",
-            assembly_code=assembly_code,
-            window_mode=window_mode,
-            window_size=window_sizes,
-            step=steps,
-            mapq_thr=mapq_thr,
-            cov_thr=cov_thr,
-            smoothing_size=smoothing_sizes
-        ),
-        expand(
-            "resources/repliseq/checks/{assembly_code}_bamqc",
-            assembly_code=assembly_code
+            tumor_type_GDC=tumor_type_GDC,
+            gender_GDC=gender_GDC,
+            min_Num_Probes=min_Num_Probes,
+            min_abs_Segment_Mean=min_abs_Segment_Means
         ),
         expand(
             "data/num_overlaps/mutations/noncoding/{assembly_code}_{window_mode}_{window_size}_{step}_{gender_COSMIC}_{COSMIC_parameters}",
@@ -672,17 +653,37 @@ rule all:
             window_size=window_sizes,
             step=steps
         )#,
-#        expand(
-#            "data/num_overlaps/CNAs/ampl/{assembly_code}_{window_mode}_{window_size}_{step}_{tumor_type_GDC}_{gender_GDC}_{min_Num_Probes}_{min_abs_Segment_Mean}",
+#       expand(
+#            "resources/atacseq/checks/{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}_coverage",
 #            assembly_code=assembly_code,
 #            window_mode=window_mode,
 #            window_size=window_sizes,
 #            step=steps,
-#            tumor_type_GDC=tumor_type_GDC,
-#            gender_GDC=gender_GDC,
-#            min_Num_Probes=min_Num_Probes,
-#            min_abs_Segment_Mean=min_abs_Segment_Means
-#        )
+#            mapq_thr=mapq_thr
+#       ),
+#        expand(
+#            "resources/atacseq/checks/{assembly_code}_bamqc",
+#            assembly_code=assembly_code
+#        ),
+#        expand(
+#            "results/atacseq/checks/{assembly_code}_{mapq_thr}_is_metrics_getting",
+#            assembly_code=assembly_code,
+#            mapq_thr=mapq_thr
+#        ),
+#       expand(
+#            "data/repliseq/{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}_{cov_thr}_{smoothing_size}",
+#            assembly_code=assembly_code,
+#            window_mode=window_mode,
+#            window_size=window_sizes,
+#            step=steps,
+#            mapq_thr=mapq_thr,
+#            cov_thr=cov_thr,
+#            smoothing_size=smoothing_sizes
+#        ),
+#        expand(
+#            "resources/repliseq/checks/{assembly_code}_bamqc",
+#            assembly_code=assembly_code
+#        ),
 
 wildcard_constraints:
     assembly_code = "hg\\d{2}",
