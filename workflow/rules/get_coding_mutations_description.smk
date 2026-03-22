@@ -2,7 +2,7 @@ rule get_coding_mutations_description:
     output:
         "resources/COSMIC/mutations/coding/{gender_COSMIC}_{COSMIC_parameters}_w_description.bed"
     input:
-        path_coords="resources/COSMIC/coordinates/coding/{gender_COSMIC}_{COSMIC_parameters}.bed",
+        path_coords="resources/COSMIC/coordinates/coding/{gender_COSMIC}_{COSMIC_parameters}.sorted.bed",
         path_muts="resources/COSMIC/mutations/coding/{gender_COSMIC}_{COSMIC_parameters}.filtered.bed"
     conda:
         "../envs/r_roadmap.yml"
