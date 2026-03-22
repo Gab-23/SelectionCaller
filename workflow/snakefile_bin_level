@@ -575,7 +575,7 @@ rule all:
             essentiality_cutoff = essentiality_cutoff,
             num_assays_cutoff = num_assays_cutoff,
             gencode_version = gencode_version
-         ),
+        ),
         expand(
             "data/distances/telomeres/{assembly_code}_{window_mode}_{window_size}_{step}",
             assembly_code=assembly_code,
@@ -642,14 +642,14 @@ rule all:
             window_size=window_sizes,
             step=steps
         ),
-       expand(
+        expand(
             "resources/atacseq/checks/{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}_coverage",
             assembly_code=assembly_code,
             window_mode=window_mode,
             window_size=window_sizes,
             step=steps,
             mapq_thr=mapq_thr
-       ),
+        ),
         expand(
             "resources/atacseq/checks/{assembly_code}_bamqc",
             assembly_code=assembly_code
@@ -659,7 +659,7 @@ rule all:
             assembly_code=assembly_code,
             mapq_thr=mapq_thr
         ),
-       expand(
+        expand(
             "data/repliseq/{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}_{cov_thr}_{smoothing_size}",
             assembly_code=assembly_code,
             window_mode=window_mode,
