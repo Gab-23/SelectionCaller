@@ -8,5 +8,6 @@ dependencies:
   - r-essentials
   - r-r.utils
   - r-dplyr
+  - r-tidyr
   - r-ggplot2
   - r-gridextra
