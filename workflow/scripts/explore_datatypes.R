@@ -20,7 +20,6 @@ output_path_samples_barplot                   <- args$output_path_samples_barplo
 output_path_genes_barplot                     <- args$output_path_genes_barplot
 output_path_num_mutations_barplot             <- args$output_path_mutations_barplot
 output_path_coding_mut_descriptions_barplot   <- args$output_path_coding_mut_descriptions_barplot
-output_path_mut_ref_alt_barplot               <- args$output_path_mut_ref_alt_barplot
 
 `%>%` <- magrittr::`%>%`
 
