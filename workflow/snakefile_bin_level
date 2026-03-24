@@ -540,9 +540,18 @@ include: "rules/fix_mate_information_atacseq.smk"
 include: "rules/compute_insert_size_metrics_atacseq.smk"
 include: "rules/compute_coverage_atacseq.smk"
 include: "rules/get_counts_atacseq.smk"
+
 include: "rules/name_sort_final_bam_atacseq.smk"
 include: "rules/call_peaks_bysample_atacseq.smk"
 #include: "rules/process_peaks_atacseq.smk"
+#include: "rules/"
+#include: "rules/"
+#include: "rules/"
+#include: "rules/"
+#include: "rules/"
+
+#include: "rules/explore_datatypes.smk"
+
 
 rule all:
     input:
@@ -672,21 +681,7 @@ rule all:
         expand(
             "resources/repliseq/checks/{assembly_code}_bamqc",
             assembly_code=assembly_code
-        )#,
-#        expand(
-#            "data/num_overlaps/CNAs/ampl/{assembly_code}_{window_mode}_{window_size}_{step}_{tumor_type_GDC}_{gender_GDC}_{min_Num_Probes}_{min_abs_Segment_Mean}",
-#            assembly_code=assembly_code,
-#            window_mode=window_mode,
-#            window_size=window_sizes,
-#            step=steps,
-#            mapq_thr=mapq_thr,
-#            cov_thr=cov_thr,
-#            smoothing_size=smoothing_sizes
-#        ),
-#        expand(
-#            "resources/repliseq/checks/{assembly_code}_bamqc",
-#            assembly_code=assembly_code
-#        ),
+        ),
         expand(
             "data/num_overlaps/CNAs/ampl/{assembly_code}_{window_mode}_{window_size}_{step}_{tumor_type_GDC}_{gender_GDC}_{min_Num_Probes}_{min_abs_Segment_Mean}",
             assembly_code=assembly_code,
@@ -699,7 +694,6 @@ rule all:
             min_abs_Segment_Mean=min_abs_Segment_Means
         ),
         
-
 wildcard_constraints:
     assembly_code = "hg\\d{2}",
     gencode_version="[0-9]+",
