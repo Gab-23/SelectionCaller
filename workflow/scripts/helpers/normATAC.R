@@ -1,24 +1,34 @@
 normATAC <- function(counts,minCount_acc,minSamples_acc,minCpm_acc,group,libSize){
+	
 	num_bins_before_filtering <- nrow(counts)
 	
-	o <- counts[which(
-				  apply(X = counts[,-1], 
-					    MARGIN = 1, 
-					    minCount_acc = minCount_acc, 
-					    minSamples_acc = minSamples_acc, 
-					    function(x, minCount_acc, minSamples_acc){ 
-					  	  sum(x > minCount_acc)
-					  	}) > minSamples_acc), ]
+	keep_first_pass <- which(
+						apply(X = counts[,-1], 
+								MARGIN = 1, 
+								minCount_acc = minCount_acc, 
+								minSamples_acc = minSamples_acc, 
+								function(x, minCount_acc, minSamples_acc){ 
+								sum(x > minCount_acc)
+								}) > minSamples_acc)
 
-	num_bins_second_step <- nrow(o)
+	counts.f <- counts[keep_first_pass, ]
+
+	num_bins_first_pass <- nrow(counts.f)
 	
-	o <- DGEList(o,group=group,lib.size=libSize)
-	keep <- rowSums(cpm(o)>minCpm_acc) >= minSamples_acc
-	o <- o[keep, , keep.lib.sizes=TRUE]
+	counts.f <- DGEList(counts.f,group=group,lib.size=libSize)
 
-	num_bins_third_step <- nrow(o)
+	keep_second_pass <- rowSums(cpm(counts.f)>minCpm_acc) >= minSamples_acc
 
-	o <- as.data.frame(cpm(o,normalized.lib.sizes=T)*mean(o$samples$lib.size)/10000)
+	counts.ff <- counts.f[keep_second_pass, , keep.lib.sizes=TRUE]
+
+	num_bins_second_pass <- nrow(counts.ff)
+
+	binIDs <- counts.ff$genes
+	counts.ff.norm <- as.data.frame(cpm(counts.ff,normalized.lib.sizes=T)*mean(counts.ff$samples$lib.size)/100000)
+	
+	out.list <- list(binIDs = binIDs$binID, counts = counts.ff.norm)
+	
+	return(out.list)
 }
 
 # counts is my counts df

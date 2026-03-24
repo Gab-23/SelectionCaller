@@ -1,11 +1,12 @@
-pca_plot <- function(pca_df, hue, shape = NULL) {
+pca_plot <- function(pca, pca_df, hue, shape = NULL) {
 
   if (is.null(shape)) {
     p <- ggplot2::ggplot(
       pca_df,
       ggplot2::aes(x = PC1, y = PC2, color = .data[[hue]])
     ) +
-      ggplot2::geom_point(size = 3)
+      ggplot2::geom_point(size = 3) +
+      ggplot2::geom_text(ggplot2::aes(label = SRA_id), vjust = -0.5)
   } else {
     p <- ggplot2::ggplot(
       pca_df,
@@ -16,7 +17,8 @@ pca_plot <- function(pca_df, hue, shape = NULL) {
         shape = .data[[shape]]
       )
     ) +
-      ggplot2::geom_point(size = 3)
+      ggplot2::geom_point(size = 3) #+
+      #ggplot2::geom_text(ggplot2::aes(label = SRA_id), vjust = -0.5)
   }
 
   p + 

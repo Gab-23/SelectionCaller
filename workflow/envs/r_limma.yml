@@ -10,3 +10,4 @@ dependencies:
   - r-r.utils
   - r-ggplot2
   - bioconductor-edger
+  - bioconductor-sva 
