@@ -350,25 +350,25 @@ rule all_get_coverage_atacseq:
         echo {input} >> {output}
         """
 
-rule all_name_sort_final_bams_atacseq:
-    input:
-        get_final_bam_name_sorted_outputs_atacseq
-    output:
-        all_done="resources/atacseq/checks/{assembly_code}_{mapq_thr}_name_sorting"
-    shell:
-        """
-        echo {input} >> {output}
-        """
-
-rule all_peak_calling_atacseq:
-    input:
-        get_peak_calling_outputs_atacseq
-    output:
-        all_done="resources/atacseq/checks/{assembly_code}_{mapq_thr}_{min_length_atacseq}_{q_val_thr_atacseq}_peak_calling"
-    shell:
-        """
-        echo {input} >> {output}
-        """
+#rule all_name_sort_final_bams_atacseq:
+#    input:
+#        get_final_bam_name_sorted_outputs_atacseq
+#    output:
+#        all_done="resources/atacseq/checks/{assembly_code}_{mapq_thr}_name_sorting"
+#    shell:
+#        """
+#        echo {input} >> {output}
+#        """
+#
+#rule all_peak_calling_atacseq:
+#    input:
+#        get_peak_calling_outputs_atacseq
+#    output:
+#        all_done="resources/atacseq/checks/{assembly_code}_{mapq_thr}_{min_length_atacseq}_{q_val_thr_atacseq}_peak_calling"
+#    shell:
+#        """
+#        echo {input} >> {output}
+#        """
 
 #rule all_peak_processing_atacseq:
 #    input:

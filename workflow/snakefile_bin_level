@@ -133,11 +133,11 @@ def get_is_metrics_outputs_atacseq(wildcards):
 def get_coverage_outputs_atacseq(wildcards):
     return expand(rules.compute_coverage_atacseq.output, SRA_id=SRA_ids_atacseq, **wildcards)
 
-def get_final_bam_name_sorted_outputs_atacseq(wildcards):
-    return expand(rules.name_sort_final_bam_atacseq.output, SRA_id=SRA_ids_atacseq, **wildcards)
+#def get_final_bam_name_sorted_outputs_atacseq(wildcards):
+#    return expand(rules.name_sort_final_bam_atacseq.output, SRA_id=SRA_ids_atacseq, **wildcards)
 
-def get_peak_calling_outputs_atacseq(wildcards):
-    return expand(rules.call_peaks_bysample_atacseq.output, SRA_id=SRA_ids_atacseq, **wildcards)
+#def get_peak_calling_outputs_atacseq(wildcards):
+#    return expand(rules.call_peaks_bysample_atacseq.output, SRA_id=SRA_ids_atacseq, **wildcards)
 
 #def get_peak_processing_outputs_atacseq(wildcards):
 #    return expand(rules.process_peaks_atacseq.output, SRA_id=SRA_ids_atacseq, **wildcards)
