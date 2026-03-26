@@ -16,7 +16,7 @@ input_path_samples_to_exclude         <- args$input_path_samples_to_exclude
 minSamples_atacseq                    <- args$minSamples_atacseq                  # TODO: this can be automated in the snakefile, based on the metadata file
 minCounts_atacseq                     <- args$minCounts_atacseq                   # TODO: this can be automated in the snakefile, based on the metadata file
 minCpm_atacseq                        <- args$minCpm_atacseq                      # TODO: this can be automated in the snakefile, based on the metadata file
-SVs				      <- args$SVs
+SVs				                            <- args$SVs
 
 output_path_library_sizes             <- args$output_path_library_sizes
 
@@ -104,28 +104,18 @@ pca_plot_study        <- pca_plot(pca, pca_df, hue = "study_id", shape = "condit
 
 ############ POST SVA
 
-# definisci il batch che credi STA
 study <- metadata$study_id
-
-# definisci la variabile INDIE che vuoi testare davvero (in questo caso il genotipo)
 condition <- metadata$condition
 
-# model matrix senza covariate così vediamo quanta merda c'è
 mm1 <- model.matrix(~condition + study)
-
-# conta il numero di surrogate variables
-n.sv <- num.sv(count.f.norm[,-1], mm1, method="leek")
-
-# model matrix con solo le covariate
 mm0 <- model.matrix(~study)
 
-# salvo da parte i valori di SV
-sv <- sva(as.matrix(count.f.norm[,-1]),mm1,mm0)$sv
+n.sv <- num.sv(count.f.norm[,-1], mm1, method="leek")
 
-## generi la model matrix magggica
+sv <- sva(as.matrix(count.f.norm[,-1]),mm1,mm0, SVs)$sv
+
 mm <- model.matrix(~sv+condition)
 
-# correggi le conte con la funzia di PL (nota sempre il 2)
 count.f.norm.sva <- svaBatchCor(count.f.norm[,-1], mm1, mm0, SVs)$corrected
 
 pca_sva <- prcomp(t(count.f.norm.sva), scale. = TRUE)
@@ -140,21 +130,21 @@ pca_sva_df <- merge(pca_sva_df, metadata, by = "SRA_id")
 
 pca_sva_plot_condition    <- pca_plot(pca_sva, pca_sva_df, hue = "condition")          
 pca_sva_plot_library_size <- pca_plot(pca_sva, pca_sva_df, hue = "library_size")
-pca_sva_plot_sex          <- pca_plot(pca_sva, pca_sva_df, hue = "sex")                            # teniamo sex perchè potremmo volerlo per tts non BRCA
+pca_sva_plot_sex          <- pca_plot(pca_sva, pca_sva_df, hue = "sex") # teniamo sex perchè potremmo volerlo per tts non BRCA
 pca_sva_plot_subtype      <- pca_plot(pca_sva, pca_sva_df, hue = "subtype")      
 pca_sva_plot_donor        <- pca_plot(pca_sva, pca_sva_df, hue = "donor_id", shape = "condition")
 pca_sva_plot_study        <- pca_plot(pca_sva, pca_sva_df, hue = "study_id", shape = "condition")
 
 ############
 
-write.table(x = count.f.norm,                                                     # write output
+write.table(x = count.f.norm,
             file = output_path_counts, 
             quote = F, 
             sep = "\t", 
             row.names = F, 
             col.names = T)
 
-write.table(x = count.f.norm.sva,                                                 # write output
+write.table(x = count.f.norm.sva,
             file = output_path_counts_sva, 
             quote = F, 
             sep = "\t", 
