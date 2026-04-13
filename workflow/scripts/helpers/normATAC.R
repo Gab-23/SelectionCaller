@@ -1,20 +1,22 @@
-normATAC <- function(counts,minCount_acc,minSamples_acc,minCpm_acc,group,libSize){
+normATAC <- function(counts,minCount_acc,minSamples_acc,minCpm_acc,group,libSize,normalize){
 	
 	num_bins_before_filtering <- nrow(counts)
 	
 	keep_first_pass <- which(
-						apply(X = counts[,-1], 
-								MARGIN = 1, 
-								minCount_acc = minCount_acc, 
-								minSamples_acc = minSamples_acc, 
-								function(x, minCount_acc, minSamples_acc){ 
-								sum(x > minCount_acc)
-								}) > minSamples_acc)
+				apply(X = counts[,-1], 
+				      MARGIN = 1, 
+				      minCount_acc = minCount_acc, 
+				      minSamples_acc = minSamples_acc, 
+				      function(x, minCount_acc, minSamples_acc){ 
+				         sum(x > minCount_acc)}) > minSamples_acc)
 
 	counts.f <- counts[keep_first_pass, ]
-
 	num_bins_first_pass <- nrow(counts.f)
-	
+
+	if(!normalize){
+	  return(counts.f)
+	}
+
 	counts.f <- DGEList(counts.f,group=group,lib.size=libSize)
 
 	keep_second_pass <- rowSums(cpm(counts.f)>minCpm_acc) >= minSamples_acc

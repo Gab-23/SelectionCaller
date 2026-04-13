@@ -21,3 +21,17 @@ La pipeline l'ho integrata e:
 - Ora provo a guardare PCA senza alcuni outliers e vedere che succede
 - Generalmente study ID separa tutto in PC1
 - Rimuovendo l'outlier che dice ale (64) la situazione migliora leggermente, ma dobbiamo fare sva
+
+Dopo aver fatto sva, il batch viene risolto molto bene (da 50% variance explained in PC1 a 25%).
+Continuate analisi di DA, sia con edgeR che manualmente, per via di bassi FCs.
+Fatte anche analisi usando i campioni tumorali più lontani e i loro NATs. I risultati sono assolutamente comparabili
+
+Fatta analisi per capire correlazioni con CNA bias. Questo esiste e mi ha permesso di individuare z5929 mislabeled.
+Inverto normale e tumorale nel file ../config/BREAST_selected_samples_atacseq
+
+Devo fare peak level analysis e correggere CNA effect
+
+
+
+
+

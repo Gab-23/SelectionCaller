@@ -7,6 +7,7 @@ resources*/
 results*/
 logs*/
 slurm_logs/
+temp_*/
 snakemake_*
 *.pdf
 TODO.txt

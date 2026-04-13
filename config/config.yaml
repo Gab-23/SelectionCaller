@@ -124,6 +124,9 @@ minCounts_atacseqs:
 minCpm_atacseqs:
   - 1
 
+SVs:
+  - 6
+
 min_length_atacseqs:
   - 1
 

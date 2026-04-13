@@ -1,0 +1,3 @@
+Voglio iniziare a trattare il dataset con gli stessi strumenti di ricerca geografica
+Al momento moran test e moran plot, poi vediamo.
+Correlazione spaziale risulta chiaramente evidente e clusterizzata in diversi neighborhoods.

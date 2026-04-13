@@ -1,0 +1,45 @@
+I created a folder for fragile sites. this is mainly for Trieste collab, but you never know
+
+cd /hpcnfs/scratch/MS/ieo7429/TickTack_PENNE_collab/ # go to target directory
+tail -n+3 fragile_sites_li_2020.csv | cut -d , -f 1,2,3 | sed 's/,/\t/g' > fragile_sites_li_hg19.tsv # convert .csv to .tsv
+
+# lift file over
+# I am lazy so I went to https://genome.ucsc.edu/cgi-bin/hgLiftOver
+# From hg19 to hg38
+
+# Parameters used:
+#  Minimum ratio of bases that must map: 	0.95
+ 
+#  BED 4 to BED 6 Options
+#  Allow multiple output regions: 	on
+    #	Minimum hit size in query: 	0
+    #   Minimum chain size in target: 	0
+ 
+#  BED 12 Options
+#  Min ratio of alignment blocks or exons that must map: 	1.00
+#  If thickStart/thickEnd is not mapped, use the closest mapped base: 	off
+
+# Result:
+# chr1	71334317	72334317	chr1:71800001-72800000	1
+# chr1	245636698	246636698	chr1:245800001-246800000	1
+# chr2	140142431	142242431	chr2:140900001-143000000	1
+# chr2	204435277	205735276	chr2:205300001-206600000	1
+# chr3	59614274	61314326	chr3:59600001-61300000	1
+# chr3	115681153	115681153	chr3:115400001-115400000	1
+# chr3	174382210	175882212	chr3:174100001-175600000	1
+# chr4	89978849	91678849	chr4:90900001-92600000	1
+# chr5	58904173	60604173	chr5:58200001-59900000	1
+# chr6	161278968	162778968	chr6:161700001-163200000	1
+# chr7	69535014	70935014	chr7:69000001-70400000	1
+# chr7	110559943	111659944	chr7:110200001-111300000	1
+# chr10	50940240	52440240	chr10:52700001-54200000	1
+# chr16	77966103	79266103	chr16:78000001-79300000	1
+# chr20	13919354	16119355	chr20:13900001-16100000	1
+# chrX	6581959	8031959	chrX:6500001-8000000	1
+# chrX	30981883	33481883	chrX:31000001-33500000	1
+# chrX	96545001	97745001	chrX:95800001-97000000	1
+
+tail -n+4 fragile_sites_li_hg19.csv | cut -d , -f 1,2,3 | sed 's/,/\t/g' > fragile_sites_li_hg19.bed
+cut -f 1,2,3  fragile_sites_li_hg38.tsv > fragile_sites_li_hg38.bed
+
+

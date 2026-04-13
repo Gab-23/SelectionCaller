@@ -1,0 +1,9 @@
+name: r_spdep
+channels:
+  - conda-forge
+dependencies:
+  - r-base=4.3
+  - r-essentials
+  - r-spdep
+  - r-tidyr
+  - r-dplyr
