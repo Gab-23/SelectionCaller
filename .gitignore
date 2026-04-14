@@ -10,4 +10,5 @@ slurm_logs/
 temp_*/
 snakemake_*
 *.pdf
+*.png
 TODO.txt

@@ -31,7 +31,18 @@ Inverto normale e tumorale nel file ../config/BREAST_selected_samples_atacseq
 
 Devo fare peak level analysis e correggere CNA effect
 
+Per correggere il CNA effect, ho trovato questo approccio:
+https://link.springer.com/article/10.1186/s12864-025-11442-y 
 
+Guardando il supplementary file 3, ho trovato questo comando: 
 
+cnvkit.py batch \
+BS_D_gDNA_S3.hg38.q20DeDupExcludableRegion.bam \
+-n WT_K_gDNA_S4.hg38.q20DeDupExcludableRegion.bam \
+--fasta /genome/gbdb/hg38/hg38.fa \
+--method wgs \
+--target-avg-size 50000 \
+--targets ../hg38.access_50kb.bed \
+--processes 10
 
-
+Provo a seguirlo

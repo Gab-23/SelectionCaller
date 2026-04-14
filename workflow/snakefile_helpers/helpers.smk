@@ -350,6 +350,36 @@ rule all_get_coverage_atacseq:
         echo {input} >> {output}
         """
 
+rule all_get_CNVkit_outputs_atacseq:
+    input:
+        get_CNVkit_outputs_atacseq
+    output:
+        all_done="resources/atacseq/checks/{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}_CNVkit"
+    shell:
+        """
+	echo {input} >> {output}
+	"""
+rule all_process_CNVkit_outputs_atacseq:
+    input:
+        process_CNVkit_outputs_atacseq
+    output:
+        all_done="resources/atacseq/checks/{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}_processed_CNVkit"
+    shell:
+        """
+        echo {input} >> {output}
+        """
+
+rule all_get_CNVkit_scaling_factors_atacseq:
+    input:
+        get_CNVkit_scaling_factors_atacseq
+    output:
+        all_done="resources/atacseq/checks/{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}_scaling_factors"
+    shell:
+        """
+        echo {input} >> {output}
+        """
+
+
 #rule all_name_sort_final_bams_atacseq:
 #    input:
 #        get_final_bam_name_sorted_outputs_atacseq

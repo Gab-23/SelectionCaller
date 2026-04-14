@@ -6,7 +6,7 @@ dirs_lists = [["resources/", "resources/epigenomes/", "resources/epigenomes/road
               ["resources/", "resources/GDC/", "resources/GDC/CNAs/", "resources/GDC/CNAs/files/"],
               ["resources/", "resources/repliseq/", "resources/repliseq/files/", "resources/repliseq/files/sra/", "resources/repliseq/files/fastq/", "resources/repliseq/files/coverage/"],
               ["resources/", "resources/atacseq/", "resources/atacseq/files/", "resources/atacseq/files/sra/", "resources/atacseq/files/fastq/", "resources/atacseq/files/coverage/"]
-              ]
+             ]
 
 for dirs_list in dirs_lists:
     for dir in dirs_list:
@@ -132,6 +132,15 @@ def get_is_metrics_outputs_atacseq(wildcards):
 
 def get_coverage_outputs_atacseq(wildcards):
     return expand(rules.compute_coverage_atacseq.output, SRA_id=SRA_ids_atacseq, **wildcards)
+
+def get_CNVkit_outputs_atacseq(wildcards):
+    return expand(rules.run_CNVkit_atacseq.output, SRA_tumor_id=SRA_tumor_ids_atacseq, **wildcards)
+
+def process_CNVkit_outputs_atacseq(wildcards):
+    return expand(rules.process_CNVkit_output_atacseq.output, SRA_tumor_id=SRA_tumor_ids_atacseq, **wildcards)
+
+def get_CNVkit_scaling_factors_atacseq(wildcards):
+    return expand(rules.get_CNVkit_scaling_factors_atacseq.output, SRA_tumor_id=SRA_tumor_ids_atacseq, **wildcards)
 
 #def get_final_bam_name_sorted_outputs_atacseq(wildcards):
 #    return expand(rules.name_sort_final_bam_atacseq.output, SRA_id=SRA_ids_atacseq, **wildcards)
@@ -401,6 +410,11 @@ gender_COSMIC, gender_DepMap, gender_GDC = map_gender(mapping_file_gender_locati
 SRA_ids_repliseq = get_SRA_ids(selected_samples_location_repliseq)
 SRA_ids_atacseq = get_SRA_ids(selected_samples_location_atacseq)
 
+SRA_tumor_ids_atacseq = get_SRA_condition_ids(selected_samples_location_atacseq, "tumor")
+
+SRA_normal_ids_atacseq = get_SRA_condition_ids(selected_samples_location_atacseq, "NAT")
+normal_paths_atacseq = [f"resources/atacseq/files/bam/{SRA_normal_id_atacseq}/{SRA_normal_id_atacseq}_{assembly_code}_{mapq_thr}.fixed.bam" for SRA_normal_id_atacseq in SRA_normal_ids_atacseq]
+
 is_patterned_repliseq = get_is_patterned(sequencers_info_location, "HiSeq_4000")
 is_patterned_atacseq = get_is_patterned(sequencers_info_location, ["HiSeq_6000", "HiSeq_X_Ten"])
 
@@ -533,16 +547,19 @@ include: "rules/atacseq/index_noblacklist_bam_atacseq.smk"
 include: "rules/atacseq/fix_mate_information_atacseq.smk"
 include: "rules/atacseq/compute_insert_size_metrics_atacseq.smk"
 include: "rules/atacseq/compute_coverage_atacseq.smk"
+
+
+include: "rules/atacseq/run_CNVkit_atacseq.smk"
+include: "rules/atacseq/process_CNVkit_output_atacseq.smk"
+include: "rules/atacseq/get_CNVkit_scaling_factors_atacseq.smk"
+
 include: "rules/atacseq/get_counts_atacseq.smk"
+# include: "rules/atacseq/DA_analysis.smk"
+
 
 # include: "rules/atacseq/name_sort_final_bam_atacseq.smk"
 # include: "rules/atacseq/call_peaks_bysample_atacseq.smk"
 # include: "rules/atacseq/process_peaks_atacseq.smk"
-# include: "rules/atacseq/"
-# include: "rules/atacseq/"
-# include: "rules/atacseq/"
-# include: "rules/atacseq/"
-# include: "rules/atacseq/"
 
 # include: "rules/explore_datatypes.smk"
 
@@ -550,8 +567,16 @@ include: "rules/atacseq/get_counts_atacseq.smk"
 rule all:
     input:
         expand(
-            "resources/atacseq/files/counts/{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}_{minSamples_atacseq}_{minCounts_atacseq}_{minCpm_atacseq}_{SVs}_sva"
-        )
+            "resources/atacseq/checks/{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}_scaling_factors",
+            assembly_code=assembly_code,
+            window_mode=window_mode,
+            window_size=window_sizes,
+            step=steps,
+            mapq_thr=mapq_thr
+        )#,
+#        expand(
+#            "resources/atacseq/files/counts/{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}_{minSamples_atacseq}_{minCounts_atacseq}_{minCpm_atacseq}_{SVs}_sva"
+#        )
 #        expand(
 #            "data/num_overlaps/mutations/noncoding/{assembly_code}_{window_mode}_{window_size}_{step}_{gender_COSMIC}_{COSMIC_parameters}",
 #            assembly_code=assembly_code,

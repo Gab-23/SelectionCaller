@@ -5,6 +5,11 @@ def get_SRA_ids(selected_samples_location):
     SRA_ids = samples["SRA_id"].tolist()
     return SRA_ids
 
+def get_SRA_condition_ids(selected_samples_location, condition):
+    samples = pandas.read_csv(selected_samples_location, sep = "\t", header = 0)
+    SRA_ids = samples[samples.condition == condition]["SRA_id"].tolist()
+    return SRA_ids
+
 def get_conditions(selected_samples_location):
     samples = pandas.read_csv(selected_samples_location, sep = "\t", header = 0)
     conditions = samples["condition"].unique().tolist()
