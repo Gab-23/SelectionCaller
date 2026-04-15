@@ -4,6 +4,7 @@ source("workflow/scripts/helpers/pca_plot.R")
 source("workflow/scripts/helpers/pca_scree_plot.R")
 source("workflow/scripts/helpers/plot_distances_PCA.R")
 source("workflow/scripts/helpers/do_get_counts_analysis.R")
+source("workflow/scripts/helpers/plot_CNVkit_lines.R")
 
 library(edgeR)
 library(sva)
@@ -12,28 +13,28 @@ options(scipen=999)                                                             
 
 args <- R.utils::commandArgs(trailingOnly = TRUE, asValues = TRUE)                # read args
 
-#optional_analysis		              <- FALSE
-#correct_for_CNAs		              <- as.logical(args$correct_for_CNAs)
+#optional_analysis		                      <- FALSE
+#correct_for_CNAs		                      <- as.logical(args$correct_for_CNAs)
 
 input_dir_coverage                            <- args$input_dir_coverage
-input_dir_scaling_factors	              <- args$input_dir_scaling_factors
+input_dir_scaling_factors	                  <- args$input_dir_scaling_factors
 input_path_metadata                           <- args$input_path_metadata
 input_path_samples_to_exclude                 <- args$input_path_samples_to_exclude
 
 minSamples_atacseq                            <- as.integer(args$minSamples_atacseq)                  # TODO: this can be automated in the snakefile, based on the metadata file
 minCounts_atacseq                             <- as.integer(args$minCounts_atacseq)                   # TODO: this can be automated in the snakefile, based on the metadata file
 minCpm_atacseq                                <- as.integer(args$minCpm_atacseq)                      # TODO: this can be automated in the snakefile, based on the metadata file
-SVs				              <- as.integer(args$SVs)
+SVs				                              <- as.integer(args$SVs)
 
 output_path_library_sizes                     <- args$output_path_library_sizes
 output_path_library_sizes_woCNAs              <- args$output_path_library_sizes_woCNAs
 
-output_path_counts		              <- args$output_path_counts
-output_path_counts_woCNAs		      <- args$output_path_counts_woCNAs
+output_path_counts		                      <- args$output_path_counts
+output_path_counts_woCNAs		              <- args$output_path_counts_woCNAs
 
 #output_path_counts_norm                      <- args$output_path_counts_norm
 #output_path_counts_sva                       <- args$output_path_counts_sva			      # this is just for plotting
-output_path_model_matrix	              <- args$output_path_model_matrix
+output_path_model_matrix	                  <- args$output_path_model_matrix
 output_path_model_matrix_woCNAs	              <- args$output_path_model_matrix_woCNAs
 
 output_path_PCA_condition                     <- args$output_path_PCA_condition
@@ -54,8 +55,8 @@ output_path_PCA_study_woCNAs                  <- args$output_path_PCA_study_woCN
 output_path_PCA_subtype                       <- args$output_path_PCA_subtype
 output_path_PCA_subtype_woCNAs                <- args$output_path_PCA_subtype_woCNAs
 
-output_path_scree_plot		              <- args$output_path_scree_plot
-output_path_scree_plot_woCNAs		      <- args$output_path_scree_plot_woCNAs
+output_path_scree_plot		                  <- args$output_path_scree_plot
+output_path_scree_plot_woCNAs		          <- args$output_path_scree_plot_woCNAs
 
 output_path_PCA_sva_condition                 <- args$output_path_PCA_sva_condition
 output_path_PCA_sva_condition_woCNAs          <- args$output_path_PCA_sva_condition_woCNAs
@@ -75,14 +76,16 @@ output_path_PCA_sva_study_woCNAs              <- args$output_path_PCA_sva_study_
 output_path_PCA_sva_subtype                   <- args$output_path_PCA_sva_subtype 
 output_path_PCA_sva_subtype_woCNAs            <- args$output_path_PCA_sva_subtype_woCNAs 
 
-output_path_scree_plot_sva	              <- args$output_path_scree_plot_sva
-output_path_scree_plot_sva_woCNAs	      <- args$output_path_scree_plot_sva_woCNAs
+output_path_scree_plot_sva	                  <- args$output_path_scree_plot_sva
+output_path_scree_plot_sva_woCNAs	          <- args$output_path_scree_plot_sva_woCNAs
 
-output_path_distance_plot	              <- args$output_path_distance_plot
-output_path_distance_plot_woCNAs	      <- args$output_path_distance_plot_woCNAs
+output_path_distance_plot	                  <- args$output_path_distance_plot
+output_path_distance_plot_woCNAs	          <- args$output_path_distance_plot_woCNAs
+
+output_path_CNVkit_lineplot                   <- args$output_path_CNVkit_lineplot
 
 files_coverage <- list.files(input_dir_coverage, recursive = T, full.names = T)
-files_scaling_factors <- list.files(input_dir_scaling_factors, recursive = T, full.names = T)
+files_scaling_factors <- list.files(input_dir_scaling_factors, recursive = T, full.names = T, pattern = "scaling")
 
 metadata <- read.table(input_path_metadata, header = T, sep = "\t")
 samples_to_exclude <- readLines(input_path_samples_to_exclude)
@@ -110,11 +113,13 @@ scaling_factors_list <- lapply(X = seq(length(files_scaling_factors)),
                     return(to.return)
                     })
 
-counts <- Reduce(f = function(x,y){merge(x,y)}, x = cov_list)
+counts <- Reduce(f = function(x,y){merge(x,y, by = "binID")}, x = cov_list)
 counts <- counts[,!(colnames(counts) %in% samples_to_exclude)]
 
-scaling_factors <- Reduce(f = function(x, y){merge(x,y)}, x = scaling_factors_list)
+scaling_factors <- Reduce(f = function(x, y){merge(x,y, by = "binID")}, x = scaling_factors_list)
 scaling_factors <- scaling_factors[,!(colnames(scaling_factors) %in% samples_to_exclude)]
+
+CNVkit_lineplot <- plot_CNVkit_lines(scaling_factors)
 
 ## filter counts to account bins in scaling_factors
 
@@ -186,3 +191,4 @@ ggplot2::ggsave(output_path_scree_plot_sva, plot = out.list.woCNAs$scree_plot_sv
 
 ggplot2::ggsave(output_path_distance_plot, plot = out.list.woCNAs$pca_distance_plot, width = 6, height = 5)
 
+ggplot2::ggsave(output_path_CNVkit_lineplot, plot = CNVkit_lineplot, width = 14, height = 4)

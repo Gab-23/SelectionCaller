@@ -35,7 +35,8 @@ rule get_counts_atacseq:
         path_PCA_sva_study_woCNAs="results/plots/atacseq/woCNAs/PCA/study/{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}_{minSamples_atacseq}_{minCounts_atacseq}_{minCpm_atacseq}_{SVs}_sva.pdf",
         path_PCA_sva_subtype_woCNAs="results/plots/atacseq/woCNAs/PCA/subtype/{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}_{minSamples_atacseq}_{minCounts_atacseq}_{minCpm_atacseq}_{SVs}_sva.pdf",
         path_scree_plot_sva_woCNAs="results/plots/atacseq/woCNAs/scree/{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}_{minSamples_atacseq}_{minCounts_atacseq}_{minCpm_atacseq}_{SVs}_sva.pdf",
-        path_distance_plot_woCNAs="results/plots/atacseq/woCNAs/distance/{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}_{minSamples_atacseq}_{minCounts_atacseq}_{minCpm_atacseq}_{SVs}.pdf"
+        path_distance_plot_woCNAs="results/plots/atacseq/woCNAs/distance/{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}_{minSamples_atacseq}_{minCounts_atacseq}_{minCpm_atacseq}_{SVs}.pdf",
+        path_CNVkit_lineplot="results/plots/atacseq/CNVkit/{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}_{minSamples_atacseq}_{minCounts_atacseq}_{minCpm_atacseq}_{SVs}.pdf"
     input:
         path_check_coverage="resources/atacseq/checks/{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}_coverage",
         path_check_scaling_factors="resources/atacseq/checks/{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}_scaling_factors",
@@ -93,5 +94,6 @@ rule get_counts_atacseq:
         --output_path_PCA_sva_study_woCNAs={output.path_PCA_sva_study_woCNAs} \
         --output_path_PCA_sva_subtype_woCNAs={output.path_PCA_sva_subtype_woCNAs} \
 	    --output_path_scree_plot_sva_woCNAs={output.path_scree_plot_sva_woCNAs} \
-	    --output_path_distance_plot_woCNAs={output.path_distance_plot_woCNAs}
+	    --output_path_distance_plot_woCNAs={output.path_distance_plot_woCNAs} \
+        --output_path_CNVkit_lineplot={output.path_CNVkit_lineplot}
         """

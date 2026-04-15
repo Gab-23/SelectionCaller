@@ -1,5 +1,7 @@
 plot_CNVkit_lines <- function(df){
 
+chr_levels <- 1:22
+
 df.out <- df %>%
   dplyr::mutate(
     chromosome = sub("_.*", "", binID),
@@ -10,7 +12,7 @@ df.out <- df %>%
 df.out$binID <- NULL
 
 df.out.long <- df.out %>%
-  dplyr::pivot_longer(
+  tidyr::pivot_longer(
     cols = -c(bin, chromosome),   # keep these, reshape the rest
     names_to = "sample",
     values_to = "scaling_factors"
@@ -25,7 +27,7 @@ p <- ggplot2::ggplot(df.out.long,
     fun = mean,
     geom = "line",
     color = "black",
-    linewidth = 1.2
+    linewidth = 0.5
   ) +                               
   ggplot2::facet_wrap(~ chromosome, scales = "free_x", nrow = 1) +
   ggplot2::labs(                                                  
