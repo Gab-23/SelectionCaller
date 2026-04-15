@@ -1,3 +1,14 @@
 For the final dataset generation, remember to:
 - check if all regions are there
 - do a full join and NAs become 0
+- normalize epigenetic state
+
+This imputation works for only some of the variables, like the overlapping ones.
+For other variables, like repliseq, the lack of value is due to filtering, so it's a true NA
+
+In the end:
+- for epigenomes and repliseq, it's true NAs
+- for all the mutation variables, it's actually 0s
+
+I am generating a correlation heatmap, in this case pearson works best, because some very strong correlation are spurious
+e.g. num genes and dist to closest gene being strongly negative, is just driven by the monotonic relationship in case of spearman correlation

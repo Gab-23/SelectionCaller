@@ -3,7 +3,7 @@ rule process_dist_to_genes:
         dist_protein_coding="data/distances/PC/{assembly_code}_{window_mode}_{window_size}_{step}_v{gencode_version}",
         dist_lncRNA="data/distances/lncRNA/{assembly_code}_{window_mode}_{window_size}_{step}_v{gencode_version}",
         dist_miRNA="data/distances/miRNA/{assembly_code}_{window_mode}_{window_size}_{step}_v{gencode_version}",
-        dist_rRNA="data/distances/rRNA/{assembly_code}_{window_mode}_{window_size}_{step}_v{gencode_version}",
+        dist_rRNA="data/distances/rRNA/{assembly_code}_{window_mode}_{window_size}_{step}_v{gencode_version}"
     input:
         dist_protein_coding="resources/distances/PC/{assembly_code}_{window_mode}_{window_size}_{step}_v{gencode_version}.bed",
         dist_lncRNA="resources/distances/lncRNA/{assembly_code}_{window_mode}_{window_size}_{step}_v{gencode_version}.bed",

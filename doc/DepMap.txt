@@ -17,3 +17,6 @@ then the dependency probabilities may make more sense to use.
 
 
 For DepMap all BRCA models are female (checked on 29 jan 2026)
+
+Ci sono dei bin duplicati, probabilmente per via di parimeriti nelle distanze
+Ho notato che usando unique() si risolve, perciò l'ho aggiunto al codice

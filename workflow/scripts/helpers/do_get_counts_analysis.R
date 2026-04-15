@@ -1,12 +1,9 @@
 do_get_counts_analysis <- function(counts, scaling_factors, correct_for_CNAs){
 
 if (correct_for_CNAs){
-    
-    ampl_idxs <- which(scaling_factors >= 1)
-    del_idxs <- which(scaling_factors < 1)
-
-    counts[ampl_idxs] <- round(counts[ampl_idxs] / scaling.factors[ampl_idxs])
-    counts[del_idxs] <- round(counts[del_idxs] * scaling_factors[del_idxs])
+    all(counts$binID == scaling_factors$binID)
+    all(colnames(counts[,colnames(scaling_factors)]) == colnames(scaling_factors))
+    counts[,colnames(scaling_factors[,-1])] <- round(counts[,colnames(scaling_factors[,-1])] / scaling_factors[,-1])
 
 }
 
@@ -93,7 +90,7 @@ pca_sva_plot_library_size <- pca_plot(pca_sva, pca_sva_df, hue = "library_size")
 pca_sva_plot_sex          <- pca_plot(pca_sva, pca_sva_df, hue = "sex")
 pca_sva_plot_subtype      <- pca_plot(pca_sva, pca_sva_df, hue = "subtype")
 pca_sva_plot_donor        <- pca_plot(pca_sva, pca_sva_df, hue = "donor_id", shape = "condition")
-pca_sva_plot_study        <- pca_plot(pca_sva, pca_sva_df, hue = "study_id", shape = "condition", label = T)
+pca_sva_plot_study        <- pca_plot(pca_sva, pca_sva_df, hue = "study_id", shape = "condition")
 
 pca_distance_plot         <- plot_distances_PCA(pca, pca_sva, metadata)
 

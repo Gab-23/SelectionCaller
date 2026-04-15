@@ -1,3 +1,5 @@
+source("workflow/scripts/helpers/plot_landscape.R")
+
 options(scipen=999)                                                               # unable scientific notation           
 
 args <- R.utils::commandArgs(trailingOnly = TRUE, asValues = TRUE)                # read args
@@ -38,37 +40,15 @@ del.out <- del %>%
     chromosome = factor(chromosome, levels = chr_levels)
   )
 
-p_ampl <- ggplot2::ggplot(ampl.out,
-                 ggplot2::aes(x = bin, y = ampl.frequency, group = chromosome)) +
-  ggplot2::geom_line(alpha = 0.8) +
-  ggplot2::facet_wrap(~ chromosome, scales = "free_x", nrow = 1) +
-  ggplot2::labs(
-    x = "Genomic bin",
-    y = "Amplification frequency",
-    title = "Amplification frequency across genome"
-  ) +
-  ggplot2::theme_bw() +
-  ggplot2::theme(
-    strip.background = ggplot2::element_blank(),
-    strip.text = ggplot2::element_text(face = "bold"),
-    axis.text.x = ggplot2::element_text(angle = 45, hjust = 1)
-  )
+p_ampl <- plot_landscape(df = ampl.out, 
+                         what_to_plot = "ampl.frequency",
+                         y_axis = "Amplification frequency",
+                         title = "Amplification frequency across genome")
 
-p_del <- ggplot2::ggplot(del.out,
-                ggplot2::aes(x = bin, y = del.frequency, group = chromosome)) +
-  ggplot2::geom_line(alpha = 0.8) +
-  ggplot2::facet_wrap(~ chromosome, scales = "free_x", nrow = 1) +
-  ggplot2::labs(
-    x = "Genomic bin",
-    y = "Deletion frequency",
-    title = "Deletion frequency across genome"
-  ) +
-  ggplot2::theme_bw() +
-  ggplot2::theme(
-    strip.background = ggplot2::element_blank(),
-    strip.text = ggplot2::element_text(face = "bold"),
-    axis.text.x = ggplot2::element_text(angle = 45, hjust = 1)
-  )
+p_del <- plot_landscape(df = del.out, 
+                         what_to_plot = "del.frequency",
+                         y_axis = "Deletion frequency",
+                         title = "Deletion frequency across genome")
 
 write.table(x = ampl.out[,c("binID", "ampl.frequency")],                                                         # write output
             file = output_path_ampl, 

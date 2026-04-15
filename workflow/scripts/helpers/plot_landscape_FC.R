@@ -1,8 +1,13 @@
 plot_landscape_FC <- function(topTags){
 	
+	chr_levels <- sort(unique(topTags$chr), na.last = TRUE)
+	chr_levels <- chr_levels[order(as.numeric(gsub("chr", "", chr_levels)))]
+	topTags$chr <- factor(topTags$chr, levels = chr_levels)
+
 	chr_lengths <- tapply(topTags$start, topTags$chr, max)
 	chr_offsets <- cumsum(c(0, head(chr_lengths, -1)))
 	names(chr_offsets) <- names(chr_lengths)
+	
 	topTags$cum_pos <- topTags$start + chr_offsets[topTags$chr]
 
 	chr_boundaries <- data.frame(

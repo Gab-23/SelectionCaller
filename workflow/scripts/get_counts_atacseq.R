@@ -11,6 +11,8 @@ library(sva)
 
 options(scipen=999)                                                               # unable scientific notation           
 
+`%>%` <- magrittr::`%>%`
+
 args <- R.utils::commandArgs(trailingOnly = TRUE, asValues = TRUE)                # read args
 
 #optional_analysis		                      <- FALSE
@@ -108,8 +110,11 @@ scaling_factors_list <- lapply(X = seq(length(files_scaling_factors)),
                     file_scaling_factors <- files_scaling_factors[idx]
                     sample_name_scaling_factors <- sample_names_scaling_factors[idx]
                     tab_scaling_factors <- read.table(file_scaling_factors, header = F, sep = "\t")
-                    colnames(tab_scaling_factors) <- c("chr", "start", "end", "binID", "segmentID", sample_name_scaling_factors)
+                    colnames(tab_scaling_factors) <- c("chr", "start", "end", "binID", "segmentID", sample_name_scaling_factors) 
                     to.return <- tab_scaling_factors[,c("binID", sample_name_scaling_factors)]
+                    to.return <- to.return %>% 
+                                    dplyr::group_by(binID) %>% 
+                                    dplyr::summarise(!!sample_name_scaling_factors := mean(.data[[sample_name_scaling_factors]]))
                     return(to.return)
                     })
 
@@ -118,6 +123,7 @@ counts <- counts[,!(colnames(counts) %in% samples_to_exclude)]
 
 scaling_factors <- Reduce(f = function(x, y){merge(x,y, by = "binID")}, x = scaling_factors_list)
 scaling_factors <- scaling_factors[,!(colnames(scaling_factors) %in% samples_to_exclude)]
+scaling_factors <- scaling_factors[scaling_factors$binID %in% counts$binID,]
 
 CNVkit_lineplot <- plot_CNVkit_lines(scaling_factors)
 
@@ -125,6 +131,9 @@ CNVkit_lineplot <- plot_CNVkit_lines(scaling_factors)
 
 out.list <- do_get_counts_analysis(counts = counts, scaling_factors = scaling_factors, correct_for_CNAs = FALSE)
 out.list.woCNAs <- do_get_counts_analysis(counts = counts, scaling_factors = scaling_factors, correct_for_CNAs = TRUE)
+
+mm <- out.list$mm
+mm.woCNAs <- out.list.woCNAs$mm
 
 ############ FINAL STEPS
 
@@ -142,11 +151,11 @@ out.list.woCNAs <- do_get_counts_analysis(counts = counts, scaling_factors = sca
 ############ SAVE OUTPUTS
 
 write.table(x = out.list$count.f, file = output_path_counts, quote = F, sep = "\t", row.names = F, col.names = T)
-#write.table(x = count.f.norm, file = output_path_counts_norm, quote = F, sep = "\t", row.names = F, col.names = T)
-#write.table(x = count.f.norm.sva, file = output_path_counts_sva, quote = F, sep = "\t", row.names = F, col.names = T)
 write.table(x = out.list$library_sizes_df, file = output_path_library_sizes, quote = F, sep = "\t", row.names = F, col.names = T)
-
-save(out.list$mm, file = output_path_model_matrix)
+save(mm, file = output_path_model_matrix)
+write.table(x = out.list.woCNAs$count.f, file = output_path_counts_woCNAs, quote = F, sep = "\t", row.names = F, col.names = T)
+write.table(x = out.list.woCNAs$library_sizes_df, file = output_path_library_sizes_woCNAs, quote = F, sep = "\t", row.names = F, col.names = T)
+save(mm.woCNAs, file = output_path_model_matrix_woCNAs)
 
 ggplot2::ggsave(output_path_PCA_condition, plot = out.list$pca_plot_condition, width = 6, height = 5)
 ggplot2::ggsave(output_path_PCA_library_size, plot = out.list$pca_plot_library_size, width = 6, height = 5)
@@ -155,7 +164,6 @@ ggplot2::ggsave(output_path_PCA_donor, plot = out.list$pca_plot_donor, width = 6
 ggplot2::ggsave(output_path_PCA_study, plot = out.list$pca_plot_study, width = 6, height = 5)
 ggplot2::ggsave(output_path_PCA_subtype, plot = out.list$pca_plot_subtype, width = 6, height = 5)
 ggplot2::ggsave(output_path_scree_plot, plot = out.list$scree_plot, width = 6, height = 5)
-
 ggplot2::ggsave(output_path_PCA_sva_condition, plot = out.list$pca_sva_plot_condition, width = 6, height = 5)
 ggplot2::ggsave(output_path_PCA_sva_library_size, plot = out.list$pca_sva_plot_library_size, width = 6, height = 5)
 ggplot2::ggsave(output_path_PCA_sva_sex, plot = out.list$pca_sva_plot_sex, width = 6, height = 5)
@@ -163,32 +171,20 @@ ggplot2::ggsave(output_path_PCA_sva_donor, plot = out.list$pca_sva_plot_donor, w
 ggplot2::ggsave(output_path_PCA_sva_study, plot = out.list$pca_sva_plot_study, width = 6, height = 5)
 ggplot2::ggsave(output_path_PCA_sva_subtype, plot = out.list$pca_sva_plot_subtype, width = 6, height = 5)
 ggplot2::ggsave(output_path_scree_plot_sva, plot = out.list$scree_plot_sva, width = 6, height = 5)
-
 ggplot2::ggsave(output_path_distance_plot, plot = out.list$pca_distance_plot, width = 6, height = 5)
-
-write.table(x = out.list.woCNAs$count.f, file = output_path_counts, quote = F, sep = "\t", row.names = F, col.names = T)
-#write.table(x = count.f.norm, file = output_path_counts_norm, quote = F, sep = "\t", row.names = F, col.names = T)
-#write.table(x = count.f.norm.sva, file = output_path_counts_sva, quote = F, sep = "\t", row.names = F, col.names = T)
-write.table(x = out.list.woCNAs$library_sizes_df, file = output_path_library_sizes, quote = F, sep = "\t", row.names = F, col.names = T)
-
-save(out.list.woCNAs$mm, file = output_path_model_matrix)
-
-ggplot2::ggsave(output_path_PCA_condition, plot = out.list.woCNAs$pca_plot_condition, width = 6, height = 5)
-ggplot2::ggsave(output_path_PCA_library_size, plot = out.list.woCNAs$pca_plot_library_size, width = 6, height = 5)
-ggplot2::ggsave(output_path_PCA_sex, plot = out.list.woCNAs$pca_plot_sex, width = 6, height = 5)
-ggplot2::ggsave(output_path_PCA_donor, plot = out.list.woCNAs$pca_plot_donor, width = 6, height = 5)
-ggplot2::ggsave(output_path_PCA_study, plot = out.list.woCNAs$pca_plot_study, width = 6, height = 5)
-ggplot2::ggsave(output_path_PCA_subtype, plot = out.list.woCNAs$pca_plot_subtype, width = 6, height = 5)
-ggplot2::ggsave(output_path_scree_plot, plot = out.list.woCNAs$scree_plot, width = 6, height = 5)
-
-ggplot2::ggsave(output_path_PCA_sva_condition, plot = out.list.woCNAs$pca_sva_plot_condition, width = 6, height = 5)
-ggplot2::ggsave(output_path_PCA_sva_library_size, plot = out.list.woCNAs$pca_sva_plot_library_size, width = 6, height = 5)
-ggplot2::ggsave(output_path_PCA_sva_sex, plot = out.list.woCNAs$pca_sva_plot_sex, width = 6, height = 5)
-ggplot2::ggsave(output_path_PCA_sva_donor, plot = out.list.woCNAs$pca_sva_plot_donor, width = 6, height = 5)
-ggplot2::ggsave(output_path_PCA_sva_study, plot = out.list.woCNAs$pca_sva_plot_study, width = 6, height = 5)
-ggplot2::ggsave(output_path_PCA_sva_subtype, plot = out.list.woCNAs$pca_sva_plot_subtype, width = 6, height = 5)
-ggplot2::ggsave(output_path_scree_plot_sva, plot = out.list.woCNAs$scree_plot_sva, width = 6, height = 5)
-
-ggplot2::ggsave(output_path_distance_plot, plot = out.list.woCNAs$pca_distance_plot, width = 6, height = 5)
-
+ggplot2::ggsave(output_path_PCA_condition_woCNAs, plot = out.list.woCNAs$pca_plot_condition, width = 6, height = 5)
+ggplot2::ggsave(output_path_PCA_library_size_woCNAs, plot = out.list.woCNAs$pca_plot_library_size, width = 6, height = 5)
+ggplot2::ggsave(output_path_PCA_sex_woCNAs, plot = out.list.woCNAs$pca_plot_sex, width = 6, height = 5)
+ggplot2::ggsave(output_path_PCA_donor_woCNAs, plot = out.list.woCNAs$pca_plot_donor, width = 6, height = 5)
+ggplot2::ggsave(output_path_PCA_study_woCNAs, plot = out.list.woCNAs$pca_plot_study, width = 6, height = 5)
+ggplot2::ggsave(output_path_PCA_subtype_woCNAs, plot = out.list.woCNAs$pca_plot_subtype, width = 6, height = 5)
+ggplot2::ggsave(output_path_scree_plot_woCNAs, plot = out.list.woCNAs$scree_plot, width = 6, height = 5)
+ggplot2::ggsave(output_path_PCA_sva_condition_woCNAs, plot = out.list.woCNAs$pca_sva_plot_condition, width = 6, height = 5)
+ggplot2::ggsave(output_path_PCA_sva_library_size_woCNAs, plot = out.list.woCNAs$pca_sva_plot_library_size, width = 6, height = 5)
+ggplot2::ggsave(output_path_PCA_sva_sex_woCNAs, plot = out.list.woCNAs$pca_sva_plot_sex, width = 6, height = 5)
+ggplot2::ggsave(output_path_PCA_sva_donor_woCNAs, plot = out.list.woCNAs$pca_sva_plot_donor, width = 6, height = 5)
+ggplot2::ggsave(output_path_PCA_sva_study_woCNAs, plot = out.list.woCNAs$pca_sva_plot_study, width = 6, height = 5)
+ggplot2::ggsave(output_path_PCA_sva_subtype_woCNAs, plot = out.list.woCNAs$pca_sva_plot_subtype, width = 6, height = 5)
+ggplot2::ggsave(output_path_scree_plot_sva_woCNAs, plot = out.list.woCNAs$scree_plot_sva, width = 6, height = 5)
+ggplot2::ggsave(output_path_distance_plot_woCNAs, plot = out.list.woCNAs$pca_distance_plot, width = 6, height = 5)
 ggplot2::ggsave(output_path_CNVkit_lineplot, plot = CNVkit_lineplot, width = 14, height = 4)

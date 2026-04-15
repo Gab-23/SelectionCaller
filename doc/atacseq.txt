@@ -45,4 +45,4 @@ BS_D_gDNA_S3.hg38.q20DeDupExcludableRegion.bam \
 --targets ../hg38.access_50kb.bed \
 --processes 10
 
-Provo a seguirlo
+Remember to remove the FDR from the table for atacseq dataset.

@@ -1,6 +1,6 @@
 rule process_num_overlaps_fragile_sites:
     output:
-        "data/num_overlaps/fragile_sites/{assembly_code}_{window_mode}_{window_size}_{step}",
+        "data/num_overlaps/fragile_sites/{assembly_code}_{window_mode}_{window_size}_{step}"
     input:
         "resources/num_overlaps/fragile_sites/{assembly_code}_{window_mode}_{window_size}_{step}.bed",
     log:
