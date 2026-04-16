@@ -1,9 +1,15 @@
 name: r_spdep
 channels:
+  - bioconda
   - conda-forge
 dependencies:
   - r-base=4.3
   - r-essentials
   - r-spdep
+  - r-nbclust
   - r-tidyr
   - r-dplyr
+  - r-ggplot2
+  - bioconductor-topgo
+  - bioconductor-annotationdbi
+  - bioconductor-org.hs.eg.db

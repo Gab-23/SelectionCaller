@@ -132,3 +132,9 @@ min_length_atacseqs:
 
 q_val_thr_atacseqs:
   - 1
+
+ohnologs_locations:
+  - "resources/ohnologs_and_paralogs/origin/OhnologList.RData"
+
+paralogs_locations:
+  - "resources/ohnologs_and_paralogs/origin/ParalogList.RData"

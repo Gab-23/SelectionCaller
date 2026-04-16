@@ -215,6 +215,9 @@ minCpm_atacseqs = config["minCpm_atacseqs"]
 min_length_atacseqs = config["min_length_atacseqs"]
 q_val_thr_atacseqs = config["q_val_thr_atacseqs"]
 
+ohnologs_locations = config["ohnologs_locations"]
+paralogs_locations = config["paralogs_locations"]
+
 ##### 
 
 if len(selected_samples_location_repliseqs) > 1:
@@ -402,6 +405,16 @@ if len(q_val_thr_atacseqs) > 1:
 else:
     q_val_thr_atacseq = q_val_thr_atacseqs[0]
 
+if len(ohnologs_locations) > 1:
+    raise ValueError("ERROR, multiple ohnologs_locations selected")
+else:
+    ohnologs_location = ohnologs_locations[0]
+
+if len(paralogs_locations) > 1:
+    raise ValueError("ERROR, multiple paralogs_locations selected")
+else:
+    paralogs_location = paralogs_locations[0]
+
 #####
 
 tissue_type_Roadmap, tumor_type_IntOGen, cohort_IntOGen, oncotree_code_DepMap, COSMIC_parameters, tumor_type_GDC, cohort_GDC = map_tt_acronym(mapping_file_tt_location, tumor_type, "TCGA")
@@ -505,6 +518,13 @@ include: "rules/GDC_CNA/compute_ampl_overlap.smk"
 include: "rules/GDC_CNA/compute_del_overlap.smk"
 include: "rules/GDC_CNA/process_GDC_CNA_overlap.smk"
 
+include: "rules/fragile_sites/get_dist_num_overlaps_fragile_sites.smk"
+include: "rules/fragile_sites/process_dist_to_fragile_sites.smk"
+include: "rules/fragile_sites/process_num_overlaps_fragile_sites.smk"
+
+include: "rules/ohnologs_and_paralogs/compute_and_process_ohnologs.smk"
+include: "rules/ohnologs_and_paralogs/compute_and_process_paralogs.smk"
+
 include: "rules/genome/get_reference_genome.smk"
 include: "rules/genome/index_reference_genome_bwa.smk"
 include: "rules/genome/index_reference_genome_bowtie2.smk"
@@ -554,7 +574,7 @@ include: "rules/atacseq/process_CNVkit_output_atacseq.smk"
 include: "rules/atacseq/get_CNVkit_scaling_factors_atacseq.smk"
 
 include: "rules/atacseq/get_counts_atacseq.smk"
-# include: "rules/atacseq/DA_analysis.smk"
+include: "rules/atacseq/DA_analysis.smk"
 
 
 # include: "rules/atacseq/name_sort_final_bam_atacseq.smk"

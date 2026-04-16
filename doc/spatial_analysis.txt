@@ -1,3 +1,9 @@
 Voglio iniziare a trattare il dataset con gli stessi strumenti di ricerca geografica
 Al momento moran test e moran plot, poi vediamo.
 Correlazione spaziale risulta chiaramente evidente e clusterizzata in diversi neighborhoods.
+
+La funzione find_neighbors assume che la backbone sia sortate
+inoltre trova i closest neighbors senza considerare il numero di bin, ma i closest in 1-D space
+Diventa un macello se decido di aggiungere questa features, per via di diversi bins senza alcun neighbor
+
+Qua per fare GO uso come background tutti i geni nella backbone, alcuni potrebbero essere stati filtrati
