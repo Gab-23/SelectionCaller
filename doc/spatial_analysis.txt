@@ -7,3 +7,6 @@ inoltre trova i closest neighbors senza considerare il numero di bin, ma i close
 Diventa un macello se decido di aggiungere questa features, per via di diversi bins senza alcun neighbor
 
 Qua per fare GO uso come background tutti i geni nella backbone, alcuni potrebbero essere stati filtrati
+
+Per ora sto usando FDR all'interno dei singoli clusters -> local adjustments
+Se volessi correggere su altri layers, cioè su tutti i clusters / tutte le features, allora avrò global adjustments

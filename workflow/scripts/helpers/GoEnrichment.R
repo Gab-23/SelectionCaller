@@ -13,16 +13,14 @@ go.enrichment <- function (allGenes, deGenes, gotype = c("BP", "MF", "CC"), cuto
   org <- match.arg(org, c("hs", "mm"))
   if (org == "hs") {
     require("org.Hs.eg.db")
-  }
-  else {
+  } else {
     require("org.Mm.eg.db")
   }
   if (all(is.na(allGenes))) {
     message("Using all genes as a background.")
     if (org == "hs") {
       data("hg38.refseq")
-    }
-    else {
+    } else {
       data("mm10.refseq")
     }
     allGenes <- unique(as.character(gtf$gene_id))
@@ -42,17 +40,19 @@ go.enrichment <- function (allGenes, deGenes, gotype = c("BP", "MF", "CC"), cuto
     resultFisher <- runTest(data, algorithm = "classic", statistic = "fisher")
     df <- GenTable(data, classicFisher = resultFisher, orderBy = "classicFisher", topNodes = length(score(resultFisher)))
     df <- df[df$Annotated < maxCatSize, ]
+    df$classicFisher <- gsub(x = df$classicFisher, pattern = "< ", replacement = "")
     df$FDR <- p.adjust(df$classicFisher, method = "fdr")
     df <- df[df$FDR <= cutoff, ]
     if (nrow(df) > 0) {
       if (org == "hs") {
-        df$genes <- unlist(lapply(AnnotationDbi::mget(as.character(df$GO.ID), 
-                                                      org.Hs.egGO2ALLEGS), FUN = function(x) {
-                                                        tmp <- unique(as.character(unlist(AnnotationDbi::mget(as.character(x), org.Hs.egSYMBOL))))
-                                                        return(paste(tmp[which(tmp %in% deGenes)], sep = ", ", collapse = ", "))
-                                                      }))
-      }
-      else {
+        df$genes <- unlist(lapply(X = AnnotationDbi::mget(as.character(df$GO.ID), org.Hs.egGO2ALLEGS), 
+                                  FUN = function(x) {
+                                          tmp <- unique(as.character(unlist(AnnotationDbi::mget(as.character(x), org.Hs.egSYMBOL))))
+                                          return(paste(tmp[which(tmp %in% deGenes)], sep = ", ", collapse = ", "))
+                                        }
+                                      )
+                                    )
+      } else {
         df$genes <- unlist(lapply(AnnotationDbi::mget(as.character(df$GO.ID), 
                                                       org.Mm.egGO2ALLEGS), FUN = function(x) {
                                                         tmp <- unique(as.character(unlist(AnnotationDbi::mget(as.character(x), org.Mm.egSYMBOL))))
@@ -73,10 +73,9 @@ go.enrichment <- function (allGenes, deGenes, gotype = c("BP", "MF", "CC"), cuto
   }
   if (length(ll) == 0) {
     message("Nothing found!")
-  }
-  else {
+  } else {
     if (length(ll) == 1) 
-      return(ll[[1]])
+      return(ll)
     if (!mergeOntologies) 
       return(ll)
     df <- ll[[1]]

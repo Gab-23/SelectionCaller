@@ -2,10 +2,13 @@ source("workflow/scripts/helpers/find_neighbors.R")
 source("workflow/scripts/helpers/plot_moran_autocorrelation.R")
 source("workflow/scripts/helpers/GoEnrichment.R")
 source("workflow/scripts/helpers/plotGO.R")
+source("workflow/scripts/helpers/pva.R")
 
 library(spdep)
+library(parallel)
 
-options(scipen=999)                                                               # unable scientific notation           
+options(scipen=999)                                                               # unable scientific notation  
+invisible(spdep::set.coresOption(5L))
 
 args <- R.utils::commandArgs(trailingOnly = TRUE, asValues = TRUE)                # read args
 
@@ -14,6 +17,8 @@ plots_dir		                          <- args$plots_dir
 input_path_dataset                    <- args$input_path_dataset
 input_path_backbone                   <- args$input_path_backbone
 K				                              <- as.integer(args$K)
+FDR_thr                               <- 0.05
+ID                                    <- "SYMBOL"
 
 output_path_univariate_table	        <- args$output_path_univariate_table
 output_path_plot_univariate           <- args$output_path_plot_univariate
@@ -64,6 +69,8 @@ p <- ggplot2::ggplot(global_moran_results, ggplot2::aes(x = state, y = statistic
      ggplot2::labs(x = "State", y = "Statistic", title = "Moran Results Statistic") +
      ggplot2::theme_bw()
 
+valid_symbols <- keys(org.Hs.eg.db, keytype = ID)
+
 lapply(X = (1:ncol(dataset))[-1],
        FUN = function(idx){
     	  col <- dataset[,idx]
@@ -92,6 +99,7 @@ lapply(X = (1:ncol(dataset))[-1],
                                     }
                                   )
                                 )
+        allGenes <- allGenes[allGenes %in% valid_symbols]
         
         for (cluster in clusters){                                      # For cluster in clusters
           cluster_data <- plot_data.s[plot_data.s$cluster == cluster, ] # subset dataset
@@ -101,10 +109,12 @@ lapply(X = (1:ncol(dataset))[-1],
                                     }
                                   )
                                 )
+          clusterGenes <- clusterGenes[clusterGenes %in% valid_symbols]
 
-          go <- go.enrichment(unique(allGenes), unique(clusterGenes), ID = "SYMBOL")
-
-          if (class(go) == "data.frame"){go <- list(GO = go)}
+          go <- go.enrichment(allGenes = unique(allGenes), 
+                              deGenes = unique(clusterGenes), 
+                              ID = ID, 
+                              cutoff = 1)
 
           for (go.class in names(go)){
             output_path_go <- paste0(go_dir, K, "_go_", go.class, "_", col_name, "_", cluster, ".tsv")
@@ -114,23 +124,21 @@ lapply(X = (1:ncol(dataset))[-1],
             go.df <- go.df %>%
                   dplyr::mutate(
                     Term = factor(Term, levels = rev(unique(Term))),
-                    signif = ifelse(FDR < 0.05, "Significant", "Not significant"),
+                    signif = ifelse(FDR < FDR_thr, "Significant", "Not significant"),
                     sizeVar = -log10(FDR)
                   )
 
-            p <- plotGO(go.df)
+            #p <- plotGO(go.df, FDR_thr)
 
             write.table(x = go.df, file = output_path_go, col.names = T, row.names = F, sep = "\t", quote = F)
-            ggplot2::ggsave(output_path_dotplot, p, width = 7, height = 7)
+            #ggplot2::ggsave(output_path_dotplot, p, width = 7, height = 7)
           }
         }
 
     	  plot_autocorrelation <- plot_moran_autocorrelation(plot_data.s, K = K, plot_genes = F, plot_clusters = T)
         output_path_plot_autocorrelation <- paste0(plots_dir, K, "_autocorrelation_annotated_", col_name, ".pdf")
 
-    	  ggplot2::ggsave(output_path_plot_autocorrelation, 
-                        plot_autocorrelation, 
-                        width = 7, height = 7)
+    	  ggplot2::ggsave(output_path_plot_autocorrelation, plot_autocorrelation, width = 7, height = 7)
     }
   )
 
@@ -138,8 +146,29 @@ local_moran_results <- do.call(rbind,
                         lapply(X = (1:ncol(dataset))[-1],
                                FUN = function(idx){
                                      feature_name <- colnames(dataset)[idx]
-                                     localmoran_result <- localmoran(log1p(dataset[,idx]), listw = listw)
-                                     ### FDR correction here
+                                     col <- log1p(dataset[,idx])
+
+                                     localmoran_result <- localmoran(col, listw = listw)
+                                     pvsp <- pva(subset(x = localmoran_result, select = "Pr(z != E(Ii))", drop = TRUE))
+                                     apply(X = pvsp, MARGIN = 2, FUN = function(x) sum(x < 0.005))
+
+                                     localmoran_perm_results <- localmoran_perm(col, listw = listw, nsim = 9999, iseed = 1) 
+                                     pvsp <- pva(subset(x = localmoran_perm_results, select = "Pr(z != E(Ii))", drop = TRUE))
+                                     apply(pvsp, 2, f)
+
+                                     col$localmoran_pval <- p.adjust(localmoran_result[, "Pr(z != E(Ii))"], "fdr")
+                                     col$localmoran_std_pval <- p.adjust(localmoran_perm_results[, "Pr(z != E(Ii))"], "fdr")
+                                     col$localmoran_perm_pval <- p.adjust(localmoran_perm_results[, "Pr(z != E(Ii)) Sim"],"fdr")
+
+                                     quadr <- attr(localmoran_result, "quadr")$mean
+                                     a <- table(addNA(quadr))
+                                     col$hs_an_q <- hotspot(obj = localmoran_result, Prname="Pr(z != E(Ii))", cutoff = 0.005, droplevels=FALSE)
+                                     col$hs_ac_q  <- hotspot(obj = localmoran_perm_results, Prname="Pr(z != E(Ii))", cutoff = 0.005, droplevels=FALSE)
+                                     col$hs_cp_q <- hotspot(obj = localmoran_perm_results, Prname="Pr(z != E(Ii)) Sim", cutoff = 0.005, droplevels = FALSE)
+                                     b <- table(addNA(col$hs_an_q))
+                                     c <- table(addNA(col$hs_ac_q))
+                                     d <- table(addNA(col$hs_cp_q))
+                                     t(rbind("Moran plot quadrants" = a, "Analytical cond." = b, "Permutation std. cond." = c, "Permutation rank cond." = d))
                                      ### plotting here
                                }))
 
@@ -152,5 +181,3 @@ write.table(x = global_moran_results,
             quote = F)
 
 ggplot2::ggsave(output_path_plot_univariate, p, width = 7, height = 7)
-
-

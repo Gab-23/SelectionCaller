@@ -1,4 +1,4 @@
-plotGO <- function(df){
+plotGO <- function(df, pval_thr){
 
 p <- ggplot2::ggplot(df, ggplot2::aes(x = Enrichment, y = Term)) +
   ggplot2::geom_point(ggplot2::aes(size = sizeVar, color = signif)) +
@@ -8,7 +8,7 @@ p <- ggplot2::ggplot(df, ggplot2::aes(x = Enrichment, y = Term)) +
   ggplot2::labs(
     x = "Enrichment",
     y = "GO Term",
-    color = "FDR < 0.05"
+    color = paste0("FDR < ", pval_thr)
   ) +
   ggplot2::theme(
     strip.text = ggplot2::element_text(face = "bold"),

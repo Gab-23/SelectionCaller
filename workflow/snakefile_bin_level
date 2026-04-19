@@ -5,7 +5,8 @@ from snakefile_helpers.helpers import *
 dirs_lists = [["resources/", "resources/epigenomes/", "resources/epigenomes/roadmap/"],
               ["resources/", "resources/GDC/", "resources/GDC/CNAs/", "resources/GDC/CNAs/files/"],
               ["resources/", "resources/repliseq/", "resources/repliseq/files/", "resources/repliseq/files/sra/", "resources/repliseq/files/fastq/", "resources/repliseq/files/coverage/"],
-              ["resources/", "resources/atacseq/", "resources/atacseq/files/", "resources/atacseq/files/sra/", "resources/atacseq/files/fastq/", "resources/atacseq/files/coverage/"]
+              ["resources/", "resources/atacseq/", "resources/atacseq/files/", "resources/atacseq/files/sra/", "resources/atacseq/files/fastq/", "resources/atacseq/files/coverage/"],
+              ["results/", "results/go/", "results/plots/", "results/plots/go/"]
              ]
 
 for dirs_list in dirs_lists:
