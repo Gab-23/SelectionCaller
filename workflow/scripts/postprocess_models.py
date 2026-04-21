@@ -1,0 +1,6 @@
+#### reload all models and do argmax()
+
+best_model = FIND_BEST_MODEL()
+TRAIN_ON_FULL_DATASET()
+DO_SUPERVISED_ANNOTATION()
+DO_UNSUPERVISED_ANNOTATION()  

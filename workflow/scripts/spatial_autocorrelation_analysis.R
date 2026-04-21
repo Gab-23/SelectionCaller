@@ -22,6 +22,7 @@ ID                                    <- "SYMBOL"
 
 output_path_univariate_table	        <- args$output_path_univariate_table
 output_path_plot_univariate           <- args$output_path_plot_univariate
+output_path_bool_autocorrelation      <- args$output_path_bool_autocorrelation
 
 `%>%` <- magrittr::`%>%`
 
@@ -172,12 +173,9 @@ local_moran_results <- do.call(rbind,
                                      ### plotting here
                                }))
 
+### INSERT LOGIC TO DECIDE IF YOU HAVE AUTOCORRELATION
+bool_autocorrelation <- any(global_moran_results$FDR < FDR_thr)
 
-write.table(x = global_moran_results, 
-            file = output_path_univariate_table, 
-            sep = "\t", 
-            col.names = T, 
-            row.names = F, 
-            quote = F)
-
+writeLines(text = as.character(bool_autocorrelation), con = output_path_bool_autocorrelation, sep = "\n")
+write.table(x = global_moran_results, file = output_path_univariate_table, sep = "\t", col.names = T, row.names = F, quote = F)
 ggplot2::ggsave(output_path_plot_univariate, p, width = 7, height = 7)
