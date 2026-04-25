@@ -12,6 +12,8 @@ def SPLIT_DATASET(DATASET, BLOCKING, SEED, TEST_SIZE):
         binIDs_train, binIDs_test = sk.model_selection.train_test_split(X, y, bin_IDs, test_size = TEST_SIZE, random_state = SEED)
 
     else:
+        if CHECK_CHR_SORTING(X, binIDs):
+            raise ValueError("BLOCKING != 'no_blocking' and CHECK_CHR_SORTING = False")
 
         X_train, X_test, 
         y_train, y_test, 

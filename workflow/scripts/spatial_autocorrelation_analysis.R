@@ -17,6 +17,7 @@ plots_dir		                          <- args$plots_dir
 input_path_dataset                    <- args$input_path_dataset
 input_path_backbone                   <- args$input_path_backbone
 K				                              <- as.integer(args$K)
+C                                     <- as.integer(args$C)
 FDR_thr                               <- 0.05
 ID                                    <- "SYMBOL"
 
@@ -36,7 +37,9 @@ dataset <- dataset[startsWith(prefix = "1_", x = dataset$binID),]
 dataset <- dataset[dataset$binID %in% backbone$binID,]
 backbone <- backbone[backbone$binID %in% dataset$binID,]
 
-nb <- lapply(X = 1:nrow(backbone), 
+nb <- parallel::mclapply(
+     mc.cores = C,
+     X = 1:nrow(backbone), 
 	   FUN = function(idx){
 	           neighbors <- find_neighbors(backbone, idx, K = K)
 	   }

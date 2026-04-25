@@ -1,0 +1,39 @@
+Due to lack of ability of collaborators to provide working code:
+
+I took haploinsufficiency scores from https://static-content.springer.com/esm/art%3A10.1038%2Fnature19057/MediaObjects/41586_2016_BFnature19057_MOESM241_ESM.zip
+
+Supplementary Information Table 6.xlsx
+Format: Excel File
+Description: Supplementary Information Table 6. Per sample SNP and Indel false discovery rate by allele frequency and functional annotation.
+
+Supplementary Information Table 9.xlsx
+Format: Excel File
+Description: Supplementary Information Table 9. The breakdown of observed (ExAC) and possible (synthetic) variants by functional class and mutational class. 
+
+Supplementary Information Table 13.xlsx
+Format: Excel File
+Description: Supplementary Information Table 13. Z scores, pLI, pRec and pNull for all genes.
+
+Supplementary Information Table 16.xlsx
+Format: Excel File
+Description: Supplementary Information Table 16. 58 pathways that show significant deviations in pLI 
+
+Supplementary Information Table 19.xlsx
+Format: Excel File
+Description: Supplementary Information Table 19. HGMD variants with >1% global allele frequency variant curation. 
+
+Supplementary Information Table 20.xlsx
+Format: Excel File
+Description: Supplementary Information Table 20.  HGMD variants with >1% population (AMR and SAS) allele frequency variant curation. 
+
+
+I took Table 13:
+
+Tab	Description
+Overview	Supplementary Information Table 13. Z scores, pLI, pRec and pNull for all genes.
+Gene Constraint	Z scores, pLI, pRec and pNull for all genes.
+LoF Intolerant	Genes pLI > 0.9. Additional columns clinvar_path, omim and clinvar_path_omim indicate gene listed in Clinvar, OMIM or ClinVar/OMIM.
+
+Took the Gene Constraint table, removed scientific notation and converted it to csv, then uploaded it here.
+
+I will compute the average haploinsufficiency score per bin. First I aggregate over gene, then over regions. 

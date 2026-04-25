@@ -1,11 +1,15 @@
 import sklearn as sk
 
-def GENERATE_KFOLD_IDXS(BLOCKING, OUTER_CV, X_train):
+def GENERATE_KFOLD_IDXS(BLOCKING, OUTER_CV, X, binIDs):
+    # this function assumes that if BLOCKING = "no_blocking", X_train should still at least chromosome sorted
+    # This is because the function BLOCK_DATASET should keep this sorting and KFold generates sequential indexes
+    if BLOCKING != "no_blocking" and CHECK_CHR_SORTING(X, binIDs):
+        raise ValueError("BLOCKING != 'no_blocking' and CHECK_CHR_SORTING = False")
 
-    if BLOCKING == "no_blocking":
-           kf = KFold(n_splits=OUTER_CV)
-           idxs = kf.split(X_train) # dictionary over which I can iterate
-       else:
-           idxs = BLOCKED_KFOLD(X_train, OUTER_CV)
+    kf = KFold(n_splits=OUTER_CV)
+    idxs = dict() # dictionary over which I can iterate
+    
+    for idx, (train_idx, test_idx) in enumerate(kf.split(X)):
+        idxs[str(idx)] = (train_idx, test_idx)
 
     return(idxs)
