@@ -1,0 +1,5 @@
+model	handles_NAs	needs_scaling
+LinearRegression	0	1
+SVR	0	1
+KNeighborsRegressor	0	1
+XGBRegressor	1	0

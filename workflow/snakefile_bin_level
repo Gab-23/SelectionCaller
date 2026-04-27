@@ -219,6 +219,10 @@ q_val_thr_atacseqs = config["q_val_thr_atacseqs"]
 ohnologs_locations = config["ohnologs_locations"]
 paralogs_locations = config["paralogs_locations"]
 
+haploinsufficiency_locations = config["haploinsufficiency_locations"]
+
+num_cores_Rs = config["num_cores_Rs"]
+
 ##### 
 
 if len(selected_samples_location_repliseqs) > 1:
@@ -415,6 +419,16 @@ if len(paralogs_locations) > 1:
     raise ValueError("ERROR, multiple paralogs_locations selected")
 else:
     paralogs_location = paralogs_locations[0]
+
+if len(haploinsufficiency_locations) > 1:
+    raise ValueError("ERROR, multiple haploinsufficiency_locations selected")
+else:
+    haploinsufficiency_location = haploinsufficiency_locations[0]
+
+if len(num_cores_Rs) > 1:
+    raise ValueError("ERROR, multiple num_cores_Rs selected")
+else:
+    num_cores_R = num_cores_Rs[0]
 
 #####
 

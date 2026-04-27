@@ -94,6 +94,7 @@ samples_to_exclude <- readLines(input_path_samples_to_exclude)
 
 sample_names_coverage <- unlist(lapply(X = files_coverage, FUN = function(x){strsplit(x, split = "/")[[1]][[5]]}))
 sample_names_scaling_factors <- unlist(lapply(X = files_scaling_factors, FUN = function(x){strsplit(x, split = "/")[[1]][[5]]}))
+sample_names_scaling_factors <- gsub(x = sample_names_scaling_factors, pattern = "_hg38_20.scaling", replacement = "")
 
 cov_list <- lapply(X = seq(length(files_coverage)), 
                    FUN = function(idx){

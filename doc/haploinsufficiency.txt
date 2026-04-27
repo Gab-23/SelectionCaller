@@ -37,3 +37,7 @@ LoF Intolerant	Genes pLI > 0.9. Additional columns clinvar_path, omim and clinva
 Took the Gene Constraint table, removed scientific notation and converted it to csv, then uploaded it here.
 
 I will compute the average haploinsufficiency score per bin. First I aggregate over gene, then over regions. 
+
+I did that, some of the genes in backbone are not in haplo and viceversa, this will be NaNs
+
+Moreover, some NAs will be created when merging with other data, since some bins have no genes, there the haploinsufficiency score is 0 by definition

@@ -5,7 +5,7 @@ def OPTIMIZE_HYPERPARAMS(ESTIMATOR, HYPERPARAM_SPACE, OPTIMIZER, X, y, SEED, N_J
     
     if OPTIMIZER == "GridSearchCV":
         
-        opti = sk.model_selection.GridSearchCV(estimator = REGRESSOR, 
+        opti = sk.model_selection.GridSearchCV(estimator = ESTIMATOR, 
                                                search_spaces = HYPERPARAM_SPACE,
                                                n_iter = N_ITER, 
                                                cv = CV,
@@ -15,7 +15,7 @@ def OPTIMIZE_HYPERPARAMS(ESTIMATOR, HYPERPARAM_SPACE, OPTIMIZER, X, y, SEED, N_J
 
     elif OPTIMIZER == "RandomSearchCV":
         
-        opti = sk.model_selection.RandomizedSearchCV(estimator = REGRESSOR, 
+        opti = sk.model_selection.RandomizedSearchCV(estimator = ESTIMATOR, 
                                                      search_spaces = HYPERPARAM_SPACE,
                                                      n_iter = N_ITER, 
                                                      cv = CV, 
@@ -26,7 +26,7 @@ def OPTIMIZE_HYPERPARAMS(ESTIMATOR, HYPERPARAM_SPACE, OPTIMIZER, X, y, SEED, N_J
  
     elif OPTIMIZER == "BayesSearchCV":
         
-        opti = sko.BayesSearchCV(estimator = REGRESSOR, 
+        opti = sko.BayesSearchCV(estimator = ESTIMATOR, 
                                  search_spaces = HYPERPARAM_SPACE,
                                  n_iter = N_ITER, 
                                  cv = CV, 

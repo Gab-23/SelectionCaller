@@ -138,3 +138,9 @@ ohnologs_locations:
 
 paralogs_locations:
   - "resources/ohnologs_and_paralogs/origin/ParalogList.RData"
+
+haploinsufficiency_locations:
+  - "resources/haploinsufficiency/haploinsufficiency.csv"
+
+num_cores_Rs:
+  - 10

@@ -33,6 +33,7 @@ colnames(dataset) <- gsub(pattern = "/", replacement = "_", x = colnames(dataset
 backbone <- read.table(input_path_backbone, header = F, sep = "\t")
 colnames(backbone) <- c("chr", "start", "end", "binID", "annot")
 
+# do it chromosome specific?
 dataset <- dataset[startsWith(prefix = "1_", x = dataset$binID),]
 dataset <- dataset[dataset$binID %in% backbone$binID,]
 backbone <- backbone[backbone$binID %in% dataset$binID,]
