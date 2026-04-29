@@ -1,5 +1,5 @@
 find_contiguous_subsets <- function(chr_subset){
-    
+    # helper fuunction for repliseq smoothing
     breaks <- which(diff(as.numeric(chr_subset$pos)) != 1)
     num_breaks <- length(breaks)
     

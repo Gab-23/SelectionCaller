@@ -1,0 +1,5 @@
+I want to reduce the number of 0s. I split the data by chr.
+Then I compute the distribution of stretches of 0s and choose the median
+if the stretch is < median, I impute the value as that of the neighborhood, otherwise I leave it there
+Then I recompute the 0s vs non0s boxplots expecting an improvement in the difference in distrubtion wrt to the target variable
+If this does not improve, then I avoid imputing

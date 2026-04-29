@@ -100,7 +100,7 @@ zero_frac_plot <- fraction_plot(zero_fraction, y_axis = "zero")
 boxplots <- feature_boxplots(long_data)
 boxplots.scaled <- feature_boxplots(long_data.scaled)
 boxplots_0s_non0s_muts <- boxplots_0s_non0s(dataset, "length_(non)?coding")
-boxplots_0s_chromstates <- boxplots_0s_non0s(dataset, "[0-9]+_[aA-zZ]+")
+boxplots_0s_chromstates <- boxplots_0s_non0s(dataset, "^[0-9]+_[aA-zZ]+")
 heatmap <- plot_heatmap_corr(cor.df)
 
 cols_to_test <- colnames(dataset)[-c(1,2)] # remove binID and logFC (the target variable)

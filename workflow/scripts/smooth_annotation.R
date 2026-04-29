@@ -1,4 +1,5 @@
-source("workflow/scripts/helpers/find_neighbors_for_smoothing.R")				  # slight variation
+source("workflow/scripts/helpers/find_neighbors.R")				  # slight variation
+source("workflow/scripts/helpers/smooth_something.R")
 
 library(parallel)
 
@@ -20,54 +21,55 @@ colnames(annotation) <- c("chr", "start", "end", "binID", "class")
 
 KNN <- parallel::mclapply(
 	   mc.cores = C, 
-	   X = 1:nrow(annotation), 
+	   X = 1:nrow(annotation),
 	   FUN = function(idx){
-	           neighbors <- find_neighbors(annotation, idx, K = K)
+	           neighbors <- find_neighbors(annotation, idx, K = K, mode = "smoothing")
 	   }
 	  )
 
-res <- do.call(
-	cbind,
-	parallel::mclapply(
-	mc.cores = C,
-	mc.set.seed = TRUE,
-	X = seq(B), 
-	FUN = function(b){
+# res <- do.call(
+# 	cbind,
+# 	parallel::mclapply(
+# 	mc.cores = C,
+# 	mc.set.seed = TRUE,
+# 	X = seq(B), 
+# 	FUN = function(b){
+# 
+# 		out <- rep(NA, nrow(annotation))
+# 		
+# 		shuffled_KNN <- KNN[sample.int(length(KNN), length(KNN))]
+# 
+# 		for (idx in seq(shuffled_KNN)) {
+# 			shuffled_KNN.idxs <- shuffled_KNN[[idx]]
+# 			unsmoothed_annot <- annotation$class[shuffled_KNN.idxs]
+# 			most_common_class <- names(which.max(table(unsmoothed_annot)))
+# 			out[shuffled_KNN.idxs] <- most_common_class
+#     	}
+# 
+# 		return(out)
+# 
+# 		}
+# 	)
+# )
+# 
+# res <- as.data.frame(res)
+# colnames(res) <- paste0("smoothed_class_", seq(B))
+# annotation <- cbind(annotation, res)
+# 
+# stability <- apply(res, 1, function(x) {
+#   max(table(x)) / length(x)
+# })
+# 
+# annotation$smoothed_class_final <- lapply(X = seq(nrow(annotation)), 
+# 									 	  FUN = function(idx){
+# 									 		row <- unlist(annotation[idx, grep(pattern = "smoothed", x = colnames(annotation))])
+# 									 		most_common_class <- names(which.max(table(row)))
+# 									 		return(most_common_class)
+# 									 	  }
+# 										)
 
-		out <- rep(NA, nrow(annotation))
-		
-		shuffled_KNN <- KNN[sample.int(length(KNN), length(KNN))]
-
-		for (idx in seq(shuffled_KNN)) {
-			shuffled_KNN.idxs <- shuffled_KNN[[idx]]
-			unsmoothed_annot <- annotation$class[shuffled_KNN.idxs]
-			most_common_class <- names(which.max(table(unsmoothed_annot)))
-			out[shuffled_KNN.idxs] <- most_common_class
-    	}
-
-		return(out)
-
-		}
-	)
-)
-
-res <- as.data.frame(res)
-colnames(res) <- paste0("smoothed_class_", seq(B))
-annotation <- cbind(annotation, res)
-
-annotation$smoothed_class_final <- lapply(X = seq(nrow(annotation)), 
-									 	  FUN = function(idx){
-									 		row <- unlist(annotation[idx, grep(pattern = "smoothed", x = colnames(annotation))])
-									 		most_common_class <- names(which.max(table(row)))
-									 		return(most_common_class)
-									 	  }
-										)
-
+annotation$smoothed_class_final <- smooth_something(KNN, annotation, "class", type = "char", C, B)$annotation
 annotation <- annotation[,c("chr","start","end","binID","class","smoothed_class_final")]
-
-stability <- apply(res, 1, function(x) {
-  max(table(x)) / length(x)
-})
 
 write.table(
 	x = annotation,

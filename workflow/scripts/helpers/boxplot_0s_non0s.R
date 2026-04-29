@@ -2,6 +2,8 @@ boxplots_0s_non0s <- function(df, pattern){
 
   cols_to_plot <- grep(pattern = pattern, x = colnames(df), value = T) # "length_(non)?coding"
 
+  print(all(sapply(df[cols_to_plot], function(col) identical(col, df[[cols_to_plot[1]]]))))
+
   df <- df[,c("logFC", cols_to_plot)]
   
   df_long <- df %>%

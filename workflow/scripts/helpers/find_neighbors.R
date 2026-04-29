@@ -1,10 +1,18 @@
-find_neighbors <- function(data, idx, K = 1){
+find_neighbors <- function(data, idx, K = 1, mode = "spatial_analysis"){
     # TODO: add bin number taking into account
-    # NOTA: problem because messes up indexing of spdep	
+    # NOTA: problem because messes up indexing of spdep
+	# added mode argument, for smoothing and spatial analysis
+	
+	# add chr column if not present
+	if (!("chr" %in% colnames(data))){
+		data$chr <- as.integer(gsub(pattern = "_[0-9]+", replacement = "", x = data$binID))
+	}
+	
     data$bin_number <- as.integer(gsub(pattern = "[0-9]+_", replacement = "", x = data$binID))
     
     n <- nrow(data)
-    neighbors <- c()    
+	if (mode == "spatial_analysis"){neighbors <- c()}
+	else if (mode == "smoothing"){neighbors <- c(idx)}    
 
     for (k in 1:K){
 

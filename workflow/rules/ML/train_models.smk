@@ -5,7 +5,7 @@ rule train_models:
         path_selected_features="",
         path_performances=""
     input:
-        path_dataset="",
+        path_dataset="the smoothed one",
         path_is_autocorrelated="",
         path_is_multicollinear="",
         path_models="",
