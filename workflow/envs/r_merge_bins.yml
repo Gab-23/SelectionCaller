@@ -1,0 +1,7 @@
+name: r_merge_bins
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - r-fnn

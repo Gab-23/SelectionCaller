@@ -15,10 +15,10 @@ options(scipen=999)                                                             
 args <- R.utils::commandArgs(trailingOnly = TRUE, asValues = TRUE)                # read args
 
 go_dir                                <- args$go_dir
-plots_dir		                          <- args$plots_dir
+plots_dir		                    <- args$plots_dir
 input_path_dataset                    <- args$input_path_dataset
 input_path_backbone                   <- args$input_path_backbone
-K				                              <- as.integer(args$K)
+K				              <- as.integer(args$K)
 C                                     <- as.integer(args$C)
 FDR_thr                               <- 0.05
 ID                                    <- "SYMBOL"
@@ -50,7 +50,7 @@ nb <- parallel::mclapply(
      mc.cores = C,
      X = 1:nrow(backbone), 
 	   FUN = function(idx){
-	           neighbors <- find_neighbors(backbone, idx, K = K, mode = "spatial_analysis")
+	           neighbors <- find_neighbors(backbone, idx, K = K, return_self = F)
 	   }
 	  )
 

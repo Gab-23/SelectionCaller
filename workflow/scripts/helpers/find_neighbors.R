@@ -1,4 +1,4 @@
-find_neighbors <- function(data, idx, K = 1, mode = "spatial_analysis"){
+find_neighbors <- function(data, idx, K = 1, return_self = T){
     # TODO: add bin number taking into account
     # NOTA: problem because messes up indexing of spdep
 	# added mode argument, for smoothing and spatial analysis
@@ -11,8 +11,8 @@ find_neighbors <- function(data, idx, K = 1, mode = "spatial_analysis"){
     data$bin_number <- as.integer(gsub(pattern = "[0-9]+_", replacement = "", x = data$binID))
     
     n <- nrow(data)
-	if (mode == "spatial_analysis"){neighbors <- c()}
-	else if (mode == "smoothing"){neighbors <- c(idx)}    
+	if (!(return_self)){neighbors <- c()}
+	else if ((return_self)){neighbors <- c(idx)}    
 
     for (k in 1:K){
 

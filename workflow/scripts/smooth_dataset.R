@@ -77,7 +77,7 @@ KNN <- parallel::mclapply(
 	   mc.cores = C, 
 	   X = 1:nrow(dataset),
 	   FUN = function(idx){
-	           neighbors <- find_neighbors(dataset, idx, K = K, mode = "smoothing")
+	           neighbors <- find_neighbors(dataset, idx, K = K, return_self = T)
 	   }
 	  )
 

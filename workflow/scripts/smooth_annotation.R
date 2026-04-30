@@ -23,7 +23,7 @@ KNN <- parallel::mclapply(
 	   mc.cores = C, 
 	   X = 1:nrow(annotation),
 	   FUN = function(idx){
-	           neighbors <- find_neighbors(annotation, idx, K = K, mode = "smoothing")
+	           neighbors <- find_neighbors(annotation, idx, K = K, return_self = T)
 	   }
 	  )
 
