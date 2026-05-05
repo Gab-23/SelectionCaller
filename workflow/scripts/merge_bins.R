@@ -1,11 +1,13 @@
-# more simply I can do that I compute the KNN looking at the data, 
-# and I merge whenever i meet neighboring bins
+# idea: generate metric for each dataset and evaluate
 
-("workflow/scripts/helpers/find_neighbors.R")
+source("workflow/scripts/helpers/find_neighbors.R")
+source("workflow/scripts/helpers/connect_KNN.R")
+source("workflow/scripts/helpers/connect_KNN_igraph.R")
 
 options(scipen=999)                                                               # unable scientific notation           
 
 library(FNN)
+library(ComplexHeatmap)
 
 args <- R.utils::commandArgs(trailingOnly = TRUE, asValues = TRUE)                # read args
 
@@ -49,6 +51,9 @@ KNNs_list <- parallel::mclapply(
                         
                         neighbors.data <- FNN::get.knnx(dataset.f, row, ((K*2)+1), "kd_tree")$nn.index[1,]
                         neighbors.data <- neighbors.data[neighbors.data != idx]
+                        # if (data_mode == "corr"){}else{}
+                        # K*2 is because find_neighbors looks for K upstream and K downstream
+                        # here we do need to use FNN::get.knnx(dataset, row, ((K*2)+1), "kd_tree")$nn.index[1,] since we do not have the correlation space
                         
                         neighbors.intersect <- intersect(neighbors.spatial, neighbors.data)
                         if (length(neighbors.intersect) > 0){
@@ -58,18 +63,29 @@ KNNs_list <- parallel::mclapply(
                         }
                     })
 
-        # names(KNN.chr) <- backbone.f$binID
-        KNN.chr.connected <- ... # connect
+        names(KNN.chr) <- backbone.f$binID
+        
+        KNN.chr.connected <- connect_KNN_igraph(KNN.chr)
+        names(KNN.chr.connected) <- paste0(chr, "_", names(KNN.chr.connected))
 
         return(KNN.chr.connected)
         
         })
 
     names(KNN) <- unique_chromosomes
-    KNN <- ... # flatten 
+    KNN <- do.call(c, KNN) # flatten
 
-    return(KNN)
+    freq.closest.similar.bins <- lapply(X = KNN, 
+                                        FUN = function(x){
+                                            to.return <- (length(x)/K)
+                                            return(to.return)
+                                        })
+    
+    avg.freq.closest.similar.bins <- mean(unlist(freq.closest.similar.bins))
+
+    to.return <- list(KNN = KNN, statistic = statistic)
+
+    return(to.return)
 
     })
 
-    

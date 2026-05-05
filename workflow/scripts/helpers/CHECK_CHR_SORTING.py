@@ -1,7 +1,9 @@
-def CHECK_CHR_SORTING(binIDs):
+import numpy as np
 
-    chromosomes = [int(elem.split("_")[0]) for elem in binIDs]
-    bin_nums = [int(elem.split("_")[1]) for elem in binIDs]
+def CHECK_CHR_SORTING(binIDs):
+        
+    chromosomes = [int(elem.split("_")[0]) for elem in binIDs.tolist()]
+    bin_nums = [int(elem.split("_")[1]) for elem in binIDs.tolist()]
     
     unique_chromosomes = sorted([int(x) for x in list(set(chromosomes))])
 

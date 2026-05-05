@@ -5,3 +5,11 @@ channels:
   - defaults
 dependencies:
   - r-fnn
+  - r-igraph
+  - r-r.utils
+  - r-ggplot2
+  - r-circlize
+  - r-xml2
+  - libxml2
+  - libpng
+  - bioconductor-complexheatmap 

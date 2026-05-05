@@ -1,10 +1,14 @@
+import numpy as np
+import math as mh
+import sklearn.model_selection as sk
+
 def BLOCK_DATASET(X, y, binIDs, BLOCKING):
     ### The function assumes that the dataset is at least chromosome sorted!
     
     RATIO = 2.5
 
-    chromosomes = [int(elem.split("_")[0]) for elem in binIDs]
-    bin_nums = [int(elem.split("_")[1]) for elem in binIDs]
+    chromosomes = [int(elem.split("_")[0]) for elem in binIDs.tolist()]
+    bin_nums = [int(elem.split("_")[1]) for elem in binIDs.tolist()]
 
     idxs_train_list = list()
     idxs_test_list = list()

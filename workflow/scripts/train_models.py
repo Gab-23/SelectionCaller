@@ -14,6 +14,19 @@ import random
 import warnings
 import argparse
 
+from workflow.scripts.helpers.BUILD_MODEL import *
+from workflow.scripts.helpers.GET_HYPERPARAM_SPACE import *
+
+from workflow.scripts.helpers.SPLIT_DATASET import *
+from workflow.scripts.helpers.CHECK_CHR_SORTING import *
+from workflow.scripts.helpers.BLOCK_DATASET import *
+
+from workflow.scripts.helpers.GENERATE_KFOLD_IDXS import *
+from workflow.scripts.helpers.SUBSET_DATA_BY_IDXS import *
+from workflow.scripts.helpers.OPTIMIZE_HYPERPARAMS import *
+from workflow.scripts.helpers.EVALUATE_PERFORMANCES import *
+from workflow.scripts.helpers.AGGREGATE_SELECTED_FEATURES import *
+
 parser = argparse.ArgumentParser()
 
 parser.add_argument('--input_path_dataset', dest='input_path_dataset', required=True, type=str, help='')
@@ -79,26 +92,28 @@ selected_features_dict = dict()
 performances_dict = dict()
 
 for MODEL in MODELS:
+
     HANDLES_NAs = bool(models_df[models_df.model == MODEL].handles_NAs.values)
     NEEDS_SCALING = bool(models_df[models_df.model == MODEL].needs_scaling.values)
     REGRESSOR = BUILD_MODEL(MODEL)
-    HYPERPARAM_SPACE = GET_HYPERPARAM_SPACE(MODEL) # rework GET_HYPERPARAM_SPACE
+    HYPERPARAM_SPACE = GET_HYPERPARAM_SPACE(MODEL) # add hyperparam spaces
     bool_optimize_hyperparams = True
 
     for BLOCKING in BLOCKINGS:
 
         X_train, X_test, \
         y_train, y_test, \
-        binIDs_train, binIDs_test = SPLIT_DATASET(DATASET, BLOCKING, SEED, TEST_SIZE)
+        binIDs_train, binIDs_test = SPLIT_DATASET(DATASET, BLOCKING, SEED, TEST_SIZE, CHECK_CHR_SORTING)
 
         num_rows_test_set = X_test.shape[0]
         empirical_test_size = (num_rows_test_set / num_rows_dataset)
     
-        outer_idxs = GENERATE_KFOLD_IDXS(BLOCKING, OUTER_CV, X_train)
+        outer_idxs = GENERATE_KFOLD_IDXS(BLOCKING, OUTER_CV, X_train, binIDs_train)
        
         for outer_fold, outer_idxs_tuple in outer_idxs.items():
 
             row_name = f"{MODEL}_{BLOCKING}_{outer_fold}"
+            print(row_name)
 
             X_train_train, X_train_val, \
             y_train_train, y_train_val, \
@@ -109,7 +124,7 @@ for MODEL in MODELS:
             if (not NEEDS_SCALING) and (HANDLES_NAs):
 
                 pipe = sk.pipeline.Pipeline([
-                    ("feature_selection", SequentialFeatureSelector(estimator = sk.base.clone(REGRESSOR), n_features_to_select = "auto", direction = 'forward', cv = INNER_CV, n_jobs = N_JOBS)),
+                    ("feature_selection", sk.feature_selection.SequentialFeatureSelector(estimator = sk.base.clone(REGRESSOR), n_features_to_select = "auto", direction = 'forward', cv = INNER_CV, n_jobs = N_JOBS)),
                     ("model", sk.base.clone(REGRESSOR))
                 ])
 
@@ -118,11 +133,10 @@ for MODEL in MODELS:
                 pipe = sk.pipeline.Pipeline([
                     ("imputation", sk.impute.SimpleImputer()),
                     ("scaling", sk.preprocessing.StandardScaler()),
-                    ("feature_selection", SequentialFeatureSelector(estimator = sk.base.clone(REGRESSOR), n_features_to_select = "auto", direction = 'forward', cv = INNER_CV, n_jobs = N_JOBS)),
+                    ("feature_selection", sk.feature_selection.SequentialFeatureSelector(estimator = sk.base.clone(REGRESSOR), n_features_to_select = "auto", direction = 'forward', cv = INNER_CV, n_jobs = N_JOBS)),
                     ("model", sk.base.clone(REGRESSOR))
                 ])
 
-            
             best_model, best_hyperparams = OPTIMIZE_HYPERPARAMS(pipe, HYPERPARAM_SPACE, OPTIMIZER, X_train_train, y_train_train, SEED, N_JOBS, N_ITER, INNER_CV)
             
             performances = EVALUATE_PERFORMANCES(best_model, X_train_val, y_train_val, METRICS_LIST)
