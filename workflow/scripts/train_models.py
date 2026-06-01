@@ -42,6 +42,7 @@ parser.add_argument('--test_size', dest = 'test_size', required = True, type = f
 parser.add_argument('--optimizer', dest = 'optimizer', required = True, type = str, help = '')
 parser.add_argument('--n_iter', dest = 'n_iter', required = True, type = int, help = '')
 parser.add_argument('--n_jobs', dest = 'n_jobs', required = True, type = int, help = '')
+parser.add_argument('--output_dir_models', dest = 'output_dir_models', required = True, type = str, help = '')
 parser.add_argument('--output_path_warning', dest = 'output_path_warning', required = True, type = str, help = '')
 parser.add_argument('--output_path_hyperparams', dest = 'output_path_hyperparams', required = True, type = str, help = '')
 parser.add_argument('--output_path_selected_features', dest = 'output_path_selected_features', required = True, type = str, help = '')
@@ -50,6 +51,8 @@ parser.add_argument('--output_path_performances', dest = 'output_path_performanc
 args = parser.parse_args()
 
 DATASET = pd.read_csv(args.input_path_dataset, header = 0, sep = "\t") #!# we iterate over datasets
+#DATASET.drop(columns=["FDR"], inplace=True)
+
 TEST_SIZE = args.test_size
 OUTER_CV = args.outer_cv
 INNER_CV = args.inner_cv
@@ -60,16 +63,15 @@ SEED = 48047510 #!# TODO: list of seeds
 
 METRICS_LIST = ["r2", "adj_r2", "explained_variance", "neg_mean_squared_error",
                 "neg_root_mean_squared_error", "neg_mean_absolute_error", "neg_median_absolute_error",
-                "neg_mean_absolute_percentage_error", "neg_mean_squared_log_error", "neg_root_mean_squared_log_error",
-                "neg_max_error", "neg_mean_poisson_deviance", "neg_mean_gamma_deviance", "d2_absolute_error_score"]
+                "neg_max_error", "d2_absolute_error_score"]
 
 with open(args.input_path_is_autocorrelated) as f:
     line = f.readline().rstrip()
-    IS_AUTOCORRELATED = np.where(line == "TRUE", True, False).tolist()[0]
+    IS_AUTOCORRELATED = (line == "TRUE")
 
 with open(args.input_path_is_multicollinear) as f:
     line = f.readline().rstrip()
-    IS_MULTICOLLINEAR = np.where(line == "TRUE", True, False).tolist()[0]
+    IS_MULTICOLLINEAR = (line == "TRUE")
 
 models_df = pd.read_csv(args.input_path_models, header = 0, sep = "\t")
 MODELS = models_df.model.tolist()
@@ -95,6 +97,8 @@ for MODEL in MODELS:
 
     HANDLES_NAs = bool(models_df[models_df.model == MODEL].handles_NAs.values)
     NEEDS_SCALING = bool(models_df[models_df.model == MODEL].needs_scaling.values)
+    IS_TREE_BASED = bool(models_df[models_df.model == MODEL].is_tree_based.values)
+    IS_LINEAR = bool(models_df[models_df.model == MODEL].is_linear.values)
     REGRESSOR = BUILD_MODEL(MODEL)
     HYPERPARAM_SPACE = GET_HYPERPARAM_SPACE(MODEL) # add hyperparam spaces
     bool_optimize_hyperparams = True
@@ -103,12 +107,12 @@ for MODEL in MODELS:
 
         X_train, X_test, \
         y_train, y_test, \
-        binIDs_train, binIDs_test = SPLIT_DATASET(DATASET, BLOCKING, SEED, TEST_SIZE, CHECK_CHR_SORTING)
+        binIDs_train, binIDs_test = SPLIT_DATASET(DATASET, BLOCKING, SEED, TEST_SIZE, CHECK_CHR_SORTING, BLOCK_DATASET)
 
         num_rows_test_set = X_test.shape[0]
         empirical_test_size = (num_rows_test_set / num_rows_dataset)
     
-        outer_idxs = GENERATE_KFOLD_IDXS(BLOCKING, OUTER_CV, X_train, binIDs_train)
+        outer_idxs = GENERATE_KFOLD_IDXS(BLOCKING, OUTER_CV, X_train, binIDs_train, CHECK_CHR_SORTING)
        
         for outer_fold, outer_idxs_tuple in outer_idxs.items():
 
@@ -145,7 +149,7 @@ for MODEL in MODELS:
             selected_features_dict[row_name] = X_train_train.columns[best_model.named_steps["feature_selection"].get_support()]
             performances_dict[row_name] = performances
             
-            jbl.dump(best_model, (row_name + ".pkl"))
+            jbl.dump(best_model, (args.output_dir_models + "/" + row_name + ".pkl"))
 
             with open(args.output_path_warning, "a") as f:
                 f.write(f"[{outer_fold}] {args.input_path_dataset} with BLOCKING = {str(BLOCKING)} has empirical TEST_SIZE = {str(empirical_test_size)}" + "\n")
@@ -154,13 +158,13 @@ for MODEL in MODELS:
                 for k,v in performances.items():
                     f.write(f"[{outer_fold}] {MODEL} scored {v} on {k} with BLOCKING = {str(BLOCKING)}" + "\n")
 
-            if BLOCKING == "no_blocking" and IS_AUTOCORRELATED:
+            if BLOCKING == "noblocking" and IS_AUTOCORRELATED:
                 with open(args.output_path_warning, "a") as f:
                     f.write(f"[{outer_fold}] {MODEL} was trained on {args.input_path_dataset} with BLOCKING = {str(BLOCKING)} while IS_AUTOCORRELATED = {str(IS_AUTOCORRELATED)}" + "\n")
     
         
 aggregated_best_hyperparams = pd.DataFrame.from_dict(best_hyperparams_dict, orient="index")
-aggregated_selected_features = AGGREGATE_SELECTED_FEATURES(selected_features_dict)
+aggregated_selected_features = AGGREGATE_SELECTED_FEATURES(X_train.columns.tolist(), selected_features_dict)
 aggregated_performances = pd.DataFrame.from_dict(performances_dict, orient="index")
 
 aggregated_best_hyperparams.to_csv(args.output_path_hyperparams, sep = "\t", header = True, index = False)

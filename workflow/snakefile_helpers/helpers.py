@@ -28,12 +28,13 @@ def map_tt_acronym(mapping_file_location, tumor_type, cohort_project):
         tumor_type_GDC = mapping[mapping.common_name == tumor_type].tumor_type_GDC.values[0]
         oncotree_code_DepMap = mapping[mapping.common_name == tumor_type].oncotree_code_DepMap.values[0]
         COSMIC_parameters = mapping[mapping.common_name == tumor_type].COSMIC_parameters.values[0]
+        GTEx_cohort = mapping[mapping.common_name == tumor_type].GTEx_cohort.values[0]
         if cohort_project == "TCGA":
             cohort_IntOGen = mapping[mapping.common_name == tumor_type].TCGA_cohort_IntOGen.values[0]
             cohort_GDC = mapping[mapping.common_name == tumor_type].cohort_GDC.values[0]
         else:
             pass    
-        return [tissue_type_Roadmap, tumor_type_IntOGen, cohort_IntOGen, oncotree_code_DepMap, COSMIC_parameters, tumor_type_GDC, cohort_GDC]
+        return [tissue_type_Roadmap, tumor_type_IntOGen, cohort_IntOGen, oncotree_code_DepMap, COSMIC_parameters, tumor_type_GDC, cohort_GDC, GTEx_cohort]
     except FileNotFoundError as err:
         print(f"{mapping_file_location} does not exist")
 

@@ -4,7 +4,7 @@ import skopt as sko
 def OPTIMIZE_HYPERPARAMS(ESTIMATOR, HYPERPARAM_SPACE, OPTIMIZER, X, y, SEED, N_JOBS, N_ITER, CV):
     
     HYPERPARAM_SPACE = HYPERPARAM_SPACE[OPTIMIZER]
-    
+    # fix space for BayesSearch    
     if OPTIMIZER == "GridSearchCV":
         
         opti = sk.model_selection.GridSearchCV(estimator = ESTIMATOR, 

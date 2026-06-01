@@ -13,7 +13,7 @@ rule get_dist_num_overlaps_genes:
         path_lncRNA_gene="resources/reference_data/gencode/lncRNA/v{gencode_version}_gene.sorted.bed",
         path_miRNA_gene="resources/reference_data/gencode/miRNA/v{gencode_version}_gene.sorted.bed",
         path_rRNA_gene="resources/reference_data/gencode/rRNA/v{gencode_version}_gene.sorted.bed",
-        path_backbone="resources/backbone/{assembly_code}_{window_mode}_{window_size}_{step}.filtered.sorted.bed"
+        path_backbone="resources/backbone/{assembly_code}_{window_mode}_{window_size}_{step}.mask.filtered.sorted.bed"
     log:
         "logs/get_dist_num_overlaps_genes/{assembly_code}_{window_mode}_{window_size}_{step}_v{gencode_version}.log"
     conda:

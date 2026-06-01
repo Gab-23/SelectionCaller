@@ -172,6 +172,7 @@ IntOGen_locations = config["IntOGen_locations"]
 
 DepMap_models_locations = config["DepMap_models_locations"]
 DepMap_probabilities_locations = config["DepMap_probabilities_locations"]
+DepMap_scores_locations = config["DepMap_scores_locations"]
 
 essentiality_cutoffs = config["essentiality_cutoffs"]
 num_assays_cutoffs = config["num_assays_cutoffs"]
@@ -222,6 +223,8 @@ paralogs_locations = config["paralogs_locations"]
 haploinsufficiency_locations = config["haploinsufficiency_locations"]
 
 num_cores_Rs = config["num_cores_Rs"]
+
+input_path_masks = config["input_path_masks"]
 
 ##### 
 
@@ -308,10 +311,13 @@ if len(IntOGen_locations) > 1:
     raise ValueError("ERROR, multiple IntOGen_locations selected")
 
 if len(DepMap_models_locations) > 1:
-    raise ValueError("ERROR, multiple IntOGen_locations selected")
+    raise ValueError("ERROR, multiple DepMap_models_locations selected")
 
 if len(DepMap_probabilities_locations) > 1:
-    raise ValueError("ERROR, multiple IntOGen_cohorts selected")
+    raise ValueError("ERROR, multiple DepMap_probabilities_locations selected")
+
+if len(DepMap_scores_locations) > 1:
+    raise ValueError("ERROR, multiple DepMap_scores_locations selected")
 
 if len(COSMIC_classification_locations) > 1:
     raise ValueError("ERROR, multiple COSMIC_classification_locations selected")
@@ -430,9 +436,14 @@ if len(num_cores_Rs) > 1:
 else:
     num_cores_R = num_cores_Rs[0]
 
+if len(input_path_masks) > 1:
+    raise ValueError("ERROR, multiple input_path_masks selected")
+else:
+    input_path_mask = input_path_masks[0]
+
 #####
 
-tissue_type_Roadmap, tumor_type_IntOGen, cohort_IntOGen, oncotree_code_DepMap, COSMIC_parameters, tumor_type_GDC, cohort_GDC = map_tt_acronym(mapping_file_tt_location, tumor_type, "TCGA")
+tissue_type_Roadmap, tumor_type_IntOGen, cohort_IntOGen, oncotree_code_DepMap, COSMIC_parameters, tumor_type_GDC, cohort_GDC, GTEx_cohort = map_tt_acronym(mapping_file_tt_location, tumor_type, "TCGA")
 gender_COSMIC, gender_DepMap, gender_GDC = map_gender(mapping_file_gender_location, gender)
 
 SRA_ids_repliseq = get_SRA_ids(selected_samples_location_repliseq)

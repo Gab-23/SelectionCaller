@@ -2,7 +2,7 @@ rule compute_and_process_ohnologs:
     output:
         "data/ohnologs_and_paralogs/ohnologs/{assembly_code}_{window_mode}_{window_size}_{step}"
     input:
-        path_backbone="resources/backbone/{assembly_code}_{window_mode}_{window_size}_{step}.filtered.sorted.annotated.bed",
+        path_backbone="resources/backbone/{assembly_code}_{window_mode}_{window_size}_{step}.mask.filtered.sorted.annotated.bed",
         path_ohnologs=ohnologs_location
     log:
         "logs/compute_ohnologs/{assembly_code}_{window_mode}_{window_size}_{step}.log"

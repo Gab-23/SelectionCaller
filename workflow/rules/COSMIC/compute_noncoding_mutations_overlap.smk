@@ -3,7 +3,7 @@ rule compute_noncoding_mutations_overlap:
         "data/num_overlaps/mutations/noncoding/{assembly_code}_{window_mode}_{window_size}_{step}_{gender_COSMIC}_{COSMIC_parameters}"
     input:
         path_mutation="resources/COSMIC/coordinates/noncoding/{gender_COSMIC}_{COSMIC_parameters}.sorted.bed",
-        path_backbone="resources/backbone/{assembly_code}_{window_mode}_{window_size}_{step}.filtered.sorted.bed"
+        path_backbone="resources/backbone/{assembly_code}_{window_mode}_{window_size}_{step}.mask.filtered.sorted.bed"
     conda:
         "../envs/r_roadmap.yml"
     log:

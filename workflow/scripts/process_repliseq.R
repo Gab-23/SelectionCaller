@@ -7,17 +7,20 @@ args <- R.utils::commandArgs(trailingOnly = TRUE, asValues = TRUE)              
 
 input_path_dir                           <- args$input_path_dir
 input_path_samples                       <- args$input_path_samples
+input_path_backbone_mask                 <- args$input_path_backbone_mask
 output_path_data                         <- args$output_path_data
 output_path_plot_distribution            <- args$output_path_plot_distribution
 output_path_plot_landscape               <- args$output_path_plot_landscape
 output_path_plot_raw_smooth              <- args$output_path_plot_raw_smooth
-window_size                              <- as.numeric(args$window_size)
+window_size                              <- args$window_size
 smoothing_size                           <- as.numeric(args$smoothing_size)
+chr_to_plot                              <- 17
 
 `%>%` <- magrittr::`%>%`
 
 files <- list.files(input_path_dir, recursive = T, full.names = T, pattern = "filtered")
 
+# read backbone mask
 samples <- read.table(file = input_path_samples, header = T, sep = "\t")
 
 sample_types <- c("ES", "LS", "G1")
@@ -109,6 +112,12 @@ replication_timing$binID <- paste0(replication_timing$chr, "_", replication_timi
 replication_timing$chr <- NULL
 replication_timing$pos <- NULL
 
+# add subsetting here using GenomicRanges
+# given replication timing, overlap with 
+#
+#
+#
+
 hist <- ggplot2::ggplot(replication_timing, ggplot2::aes(x = replication.timing)) +
   ggplot2::geom_histogram(
     bins = 50,
@@ -152,8 +161,6 @@ landscape <- ggplot2::ggplot(
     title = "Replication timing across chromosomes"
   ) +
   ggplot2::theme_bw()
-
-chr_to_plot <- 17
 
 raw_smooth <- ggplot2::ggplot(
   replication_timing %>%

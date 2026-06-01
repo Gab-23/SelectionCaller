@@ -2,7 +2,7 @@ rule generate_genes_on_bins_obj:
     output:
         "resources/backbone/{assembly_code}_{window_mode}_{window_size}_{step}.genes_on_bins.RData"
     input:
-        "resources/backbone/{assembly_code}_{window_mode}_{window_size}_{step}.filtered.sorted.annotated.bed"
+        "resources/backbone/{assembly_code}_{window_mode}_{window_size}_{step}.mask.filtered.sorted.annotated.bed"
     log:
         "logs/generate_genes_on_bins_obj/{assembly_code}_{window_mode}_{window_size}_{step}.log"
     shell:

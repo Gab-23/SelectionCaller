@@ -2,7 +2,7 @@ rule process_haploinsufficiency:
     output:
         "data/haploinsufficiency/{assembly_code}_{window_mode}_{window_size}_{step}_{haplo_thr}"
     input:
-        backbone = "resources/backbone/{assembly_code}_{window_mode}_{window_size}_{step}.filtered.sorted.annotated.bed",
+        backbone = "resources/backbone/{assembly_code}_{window_mode}_{window_size}_{step}.mask.filtered.sorted.annotated.bed",
         haplo = haploinsufficiency_location
     log:
         "logs/process_haploinsufficiency/{assembly_code}_{window_mode}_{window_size}_{step}_{haplo_thr}.log"

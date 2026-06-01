@@ -1,20 +1,31 @@
-# this shitty code is fortunately not mine
-
 options(scipen=999)                                                                                # unable scientific notation
 
 library(openxlsx)
+library(dplyr)
 
-args <- R.utils::commandArgs(trailingOnly = TRUE, asValues = TRUE)                                 # read args
+# args <- R.utils::commandArgs(trailingOnly = TRUE, asValues = TRUE)                                 # read args
 
-info_path                                             <- args$info_path                            # "resources/GTEx/GTEX_tissuenames_tcganames.xlsx"
-gtex_protein_path                                     <- args$gtex_protein_path                    # "resources/GTEx/Table_S1_gene_info_at_protein_level.xlsx"
-gtex_mrna_path                                        <- args$gtex_mrna_path                       # "resources/GTEx/Table_S2_gene_info_at_RNA_level.xlsx"
-tissuenames_tcganames_path                            <- args$tissuenames_tcganames_path           # "resources/GTEx/eGTEX_tissuenames_tcganames.xlsx"
-gtex_protein_tissue_median_path                       <- args$gtex_protein_tissue_median_path      # "resources/GTEx/eGTEX_mrna_protein_tissue_median.RData"
-mrna_v8_path                                          <- args$mrna_v8_path                         # "resources/GTEx/GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_median_tpm.gct"
-gtex_outpath                                          <- args$gtex_outpath                         # "resources/GTEx/GTEx_different_versions_TCGA_cohort_map.RData"
-tissue_specific_genes_v8                              <- args$tissue_specific_genes_v8             # "resources/GTEx/Tissue_specific_genes_based_on_GTEx_v8.RData"
-tissuespec_proteins                                   <- args$tissuespec_proteins                  # "resources/GTEx/Tissue_specific_proteins_based_on_eGTEx_TSscore.RData"
+# info_path                                             <- args$info_path                            # "resources/GTEx/GTEX_tissuenames_tcganames.xlsx"
+# gtex_protein_path                                     <- args$gtex_protein_path                    # "resources/GTEx/Table_S1_gene_info_at_protein_level.xlsx"
+# gtex_mrna_path                                        <- args$gtex_mrna_path                       # "resources/GTEx/Table_S2_gene_info_at_RNA_level.xlsx"
+# tissuenames_tcganames_path                            <- args$tissuenames_tcganames_path           # "resources/GTEx/eGTEX_tissuenames_tcganames.xlsx"
+# gtex_protein_tissue_median_path                       <- args$gtex_protein_tissue_median_path      # "resources/GTEx/eGTEX_mrna_protein_tissue_median.RData"
+# gtex_v6_RNA_median_path                               <- args$gtex_v6_RNA_median_path              # "resources/GTEx/GTEx_Analysis_v6p_RNA-seq_RNA-SeQCv1.1.8_gene_median_rpkm.gct"
+# mrna_v8_path                                          <- args$mrna_v8_path                         # "resources/GTEx/GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_median_tpm.gct"
+# gtex_outpath                                          <- args$gtex_outpath                         # "resources/GTEx/GTEx_different_versions_TCGA_cohort_map.RData"
+# tissue_specific_genes_v8                              <- args$tissue_specific_genes_v8             # "resources/GTEx/Tissue_specific_genes_based_on_GTEx_v8.RData"
+# tissuespec_proteins                                   <- args$tissuespec_proteins                  # "resources/GTEx/Tissue_specific_proteins_based_on_eGTEx_TSscore.RData"
+
+info_path                                               <- "resources/GTEx/GTEX_tissuenames_tcganames.xlsx"
+gtex_protein_path                                       <- "resources/GTEx/Table_S1_gene_info_at_protein_level.xlsx"
+gtex_mrna_path                                          <- "resources/GTEx/Table_S2_gene_info_at_RNA_level.xlsx"
+tissuenames_tcganames_path                              <- "resources/GTEx/eGTEX_tissuenames_tcganames.xlsx"
+gtex_protein_tissue_median_path                         <- "resources/GTEx/eGTEX_mrna_protein_tissue_median.RData"
+gtex_v6_RNA_median_path                                 <- "resources/GTEx/GTEx_Analysis_v6p_RNA-seq_RNA-SeQCv1.1.8_gene_median_rpkm.gct"
+mrna_v8_path                                            <- "resources/GTEx/GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_median_tpm.gct"
+gtex_outpath                                            <- "resources/GTEx/GTEx_different_versions_TCGA_cohort_map.RData"
+tissue_specific_genes_v8                                <- "resources/GTEx/Tissue_specific_genes_based_on_GTEx_v8.RData"
+tissuespec_proteins                                     <- "resources/GTEx/Tissue_specific_proteins_based_on_eGTEx_TSscore.RData"
 
 info <- read.xlsx(info_path,startRow = 2)
 
@@ -32,7 +43,11 @@ tissue.names$Colnames <- colnames(gtex.protein)[3:34]
 write.xlsx(tissue.names, file = tissuenames_tcganames_path)
 save(gtex.mrna, gtex.protein, file = gtex_protein_tissue_median_path)
 
-rm(list = setdiff(ls(),c("info","datasets")))
+#rm(list = setdiff(ls(), c("info","datasets",
+#                         "gtex_protein_tissue_median_path",
+#                         "gtex_v6_RNA_median_path",
+#                         "mrna_v8_path",
+#                         "gtex_outpath")))
 
 datasets <- list()
 
@@ -68,10 +83,15 @@ m <- merge(gtex.protein[,1:2],m,by.x = "ensembl_id" ,by.y = "Gene.stable.ID")
 colnames(m)[1:2] <- c("Gene.stable.ID","Gene.name") 
 datasets[["eGTEX.protein"]] <- m
 
-rm(list = setdiff(ls(),c("info","datasets")))
-
+#rm(list = setdiff(ls(), c("info","datasets",
+#                         "gtex_protein_tissue_median_path",
+#                         "gtex_v6_RNA_median_path",
+#                         "mrna_v8_path",
+#                         "gtex_outpath",
+#                         "tissue_specific_genes_v8")))
+                         
 #GTEx.v6.RPKM
-mrna.v6p <- read.delim(gtex_v6_RNA_median,skip = 2)
+mrna.v6p <- read.delim(gtex_v6_RNA_median_path,skip = 2)
 mrna.v6p$Name <- unlist(lapply(mrna.v6p$Name, function(x) gsub("\\..*","",x)))
 rownames(mrna.v6p) <- mrna.v6p$Name
 m <- as.data.frame(t(mrna.v6p[,-c(1,2)]))
@@ -109,7 +129,7 @@ m <- merge(mrna.v8[,1:2],m,by.x = "Name" ,by.y = "Gene.stable.ID")
 colnames(m)[1:2] <- c("Gene.stable.ID","Gene.name")
 datasets[["GTEx.v8.TPM"]] <- m
 
-save(datasets, file = gtex_outpath)
+#save(datasets, file = gtex_outpath)
 
 #scaled.GTEx.v8.TPM
 m <- datasets$GTEx.v8.TPM

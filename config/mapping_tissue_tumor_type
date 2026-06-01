@@ -1,2 +1,2 @@
-common_name	tissue_type_Roadmap	tumor_type_IntOGen	TCGA_cohort_IntOGen	oncotree_code_DepMap	COSMIC_parameters	tumor_type_GDC	cohort_GDC
-BRCA	BREAST	BRCA	TCGA_WXS_BRCA	BRCA	breast_carcinoma	BRCA	TCGA-BRCA
+common_name	tissue_type_Roadmap	tumor_type_IntOGen	TCGA_cohort_IntOGen	oncotree_code_DepMap	COSMIC_parameters	tumor_type_GDC	cohort_GDC	GTEx_cohort
+BRCA	BREAST	BRCA	TCGA_WXS_BRCA	BRCA	breast_carcinoma	BRCA	TCGA-BRCA	BRCA

@@ -20,3 +20,14 @@ For DepMap all BRCA models are female (checked on 29 jan 2026)
 
 Ci sono dei bin duplicati, probabilmente per via di parimeriti nelle distanze
 Ho notato che usando unique() si risolve, perciò l'ho aggiunto al codice
+
+Added CRISPRGeneEffect.csv to add essentiality score of the bin
+
+I now generate an intersection with the annotated backbone and the sorted gene ess score averaged across all models
+chr1	153640000	153660000	1_7683	CHTOP,SNAPIN	chr1	153633982	153646306	CHTOP	-0.38434284367212
+chr1	153640000	153660000	1_7683	CHTOP,SNAPIN	chr1	153658703	153661852	SNAPIN	-0.363102622186678
+
+from here we see that if a bin contains 2 essential genes, the row gets duplicated, so we can simply do a groupby binID
+
+bedtools intersect -a resources/backbone/hg38_binned_20000_0.filtered.sorted.annotated.bed -b resources/DepMap/scores/BRCA_Female_0.5_4_v45.sorted.bed -wa -wb | cut -f 4 | wc -l 1895
+bedtools intersect -a resources/backbone/hg38_binned_20000_0.filtered.sorted.annotated.bed -b resources/DepMap/scores/BRCA_Female_0.5_4_v45.sorted.bed -wa -wb | cut -f 4 | sort|uniq|wc -l 1878

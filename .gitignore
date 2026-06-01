@@ -12,3 +12,6 @@ snakemake_*
 *.pdf
 *.png
 TODO.txt
+train*
+*Regressor
+*Regression

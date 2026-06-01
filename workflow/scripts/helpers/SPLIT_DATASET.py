@@ -1,13 +1,13 @@
 import numpy as np
-import sklearn.model_selection as sk
+import sklearn as sk
 
-def SPLIT_DATASET(DATASET, BLOCKING, SEED, TEST_SIZE, CHECK_SORTING_FUN):
+def SPLIT_DATASET(DATASET, BLOCKING, SEED, TEST_SIZE, CHECK_SORTING_FUN, BLOCK_DATASET_FUN):
 
-    X = DATASET.loc[:, (DATASET.columns != "logFC") & (DATASET.columns != "binID")]
+    X = DATASET.loc[:, (DATASET.columns != "logFC") & (DATASET.columns != "binID") & (DATASET.columns != "FDR")] # remove the FDR too!
     y = DATASET.loc[:, "logFC"]
     binIDs = DATASET["binID"]
 
-    if BLOCKING == "no_blocking":
+    if BLOCKING == "noblocking":
 
         X_train, X_test, \
         y_train, y_test, \
@@ -15,10 +15,10 @@ def SPLIT_DATASET(DATASET, BLOCKING, SEED, TEST_SIZE, CHECK_SORTING_FUN):
 
     else:
         if not CHECK_SORTING_FUN(binIDs):
-            raise ValueError(f"BLOCKING != 'no_blocking' and {CHECK_SORTING_FUN} = False")
+            raise ValueError(f"BLOCKING != 'noblocking' and {CHECK_SORTING_FUN} = False")
 
         X_train, X_test, \
         y_train, y_test, \
-        binIDs_train, binIDs_test = BLOCK_DATASET(X, y, binIDs, int(BLOCKING))
+        binIDs_train, binIDs_test = BLOCK_DATASET_FUN(X, y, binIDs, int(BLOCKING))
 
     return([X_train, X_test, y_train, y_test, binIDs_train, binIDs_test])

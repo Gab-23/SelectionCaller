@@ -9,7 +9,8 @@ num_assays_cutoff       <- args$num_assays_cutoff
 
 crispr <- read.delim(input_path, sep = ",")
 
-col_names <- gsub(pattern = "\\..*", replacement = "", x = colnames(crispr))
+col_names <- gsub(pattern = "\\.\\..*", replacement = "", x = colnames(crispr))
+col_names <- gsub(pattern = "\\.", replacement = "-", x = col_names)
 col_names[1] <- "ModelID"
 
 colnames(crispr) <- col_names

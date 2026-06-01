@@ -1,13 +1,16 @@
-# this shitty code is fortunately not mine
-
 options(scipen=999)                                                               # unable scientific notation           
 
-args <- R.utils::commandArgs(trailingOnly = TRUE, asValues = TRUE)                # read args
+# args <- R.utils::commandArgs(trailingOnly = TRUE, asValues = TRUE)                # read args
 
-input_path_backbone                                 <- args$input_path_backbone   # "resources/backbone/hg38_binned_20000_0.filtered.sorted.annotated.bed"
-ensembl_corum_path                                  <- args$ensembl_corum_path    # "resources/GTEx/Ensembl_CORUM_features_tissue_general.RData"
-hippie_path                                         <- args$hippie_path           # "resources/GTEx/HIPPIE_PPIs_tissue_general.RData"
-output_path                                         <- args$output_path           # ""
+# input_path_backbone                                 <- args$input_path_backbone   # "resources/backbone/hg38_binned_20000_0.filtered.sorted.annotated.bed"
+# ensembl_corum_path                                  <- args$ensembl_corum_path    # "resources/GTEx/Ensembl_CORUM_features_tissue_general.RData"
+# hippie_path                                         <- args$hippie_path           # "resources/GTEx/HIPPIE_PPIs_tissue_general.RData"
+# output_path                                         <- args$output_path           # "features_df.tsv"
+
+input_path_backbone                                 <- "resources/backbone/hg38_binned_20000_0.filtered.sorted.annotated.bed"
+ensembl_corum_path                                  <- "resources/GTEx/Ensembl_CORUM_features_tissue_general.RData"
+hippie_path                                         <- "resources/GTEx/HIPPIE_PPIs_tissue_general.RData"
+output_path                                         <- "features_df.tsv"
 
 backbone_annotated <- read.table(input_path_backbone, sep = "\t", header = F)
 colnames(backbone_annotated) <- c("chr", "start", "end", "binID", "genes")
@@ -69,11 +72,11 @@ for(binID in backbone_annotated$binID){
 
 features.df <- as.data.frame(features.df)
 
-colnames(features.df) <- c("bin", "genes", "n_genes", "total.complex.subunit",
-                            "Partners","total_n_partners", "Partners.trans","total_n_partners.trans", "PPIs-HIPPIE","total_n_PPIs-HIPPIE",
-                            "PPIs.trans-HIPPIE","total_n_PPIs.trans-HIPPIE", "PPIs_063-HIPPIE","total_n_PPIs_063-HIPPIE", 
-                            "PPIs_063.trans-HIPPIE","total_n_PPIs_063.trans-HIPPIE", "PPIs_073-HIPPIE","total_n_PPIs_073-HIPPIE", 
-                            "PPIs_073.trans-HIPPIE","total_n_PPIs_073.trans-HIPPIE")
+colnames(features.df) <- c("binID", "genes", "n_genes", "total.complex.subunit",
+                            "Partners","total_n_partners", "Partners.trans","total_n_partners.trans", "PPIs.HIPPIE","total_n_PPIs.HIPPIE",
+                            "PPIs.trans.HIPPIE","total_n_PPIs.trans.HIPPIE", "PPIs_063.HIPPIE","total_n_PPIs_063.HIPPIE", 
+                            "PPIs_063.trans.HIPPIE","total_n_PPIs_063.trans.HIPPIE", "PPIs_073.HIPPIE","total_n_PPIs_073.HIPPIE", 
+                            "PPIs_073.trans.HIPPIE","total_n_PPIs_073.trans.HIPPIE")
 
 features.df[,c(3,4,6,8,10,12,14,16,18,20)] <- sapply(features.df[,c(3,4,6,8,10,12,14,16,18,20)], as.numeric)
 

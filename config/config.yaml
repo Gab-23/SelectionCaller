@@ -38,7 +38,10 @@ DepMap_models_locations:
   - "resources/DepMap/models/Model.csv"
 
 DepMap_probabilities_locations:
-  - "resources/DepMap/probabilities/CRISPRGeneDependency.csv"
+  - "resources/DepMap/probabilities/CRISPRGeneEffect.csv"
+
+DepMap_scores_locations:
+  - "resources/DepMap/scores/CRISPRGeneDependency.csv"
 
 essentiality_cutoffs:
   - 0.5
@@ -144,3 +147,6 @@ haploinsufficiency_locations:
 
 num_cores_Rs:
   - 10
+
+input_path_masks:
+  - ""

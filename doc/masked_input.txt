@@ -1,0 +1,7 @@
+For the pipeline to work even with different input data rather than just bin I split the logic in two.
+Each time we run the pipeline we compute two backbones:
+
+- the full one --> used to smooth the RepliSeq (TODO)
+- the masked one --> used to compute all other features (and to intersect w Repliseq)
+
+If no input mask is provided, the two backbones will be equal

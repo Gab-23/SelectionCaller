@@ -2,7 +2,7 @@ rule get_dist_to_telomeres:
     output:
         "resources/distances/telomeres/{assembly_code}_{window_mode}_{window_size}_{step}.bed"
     input:
-        backbone="resources/backbone/{assembly_code}_{window_mode}_{window_size}_{step}.filtered.sorted.bed",
+        backbone="resources/backbone/{assembly_code}_{window_mode}_{window_size}_{step}.mask.filtered.sorted.bed",
         telomeres="resources/reference_data/telomeres/{assembly_code}.bed"
     conda:
         "../envs/bedtools.yml"

@@ -2,7 +2,7 @@ rule get_GC_content:
     output:
         "resources/GC/{assembly_code}_{window_mode}_{window_size}_{step}"
     input:
-        "resources/backbone/{assembly_code}_{window_mode}_{window_size}_{step}.filtered.sorted.bed"
+        "resources/backbone/{assembly_code}_{window_mode}_{window_size}_{step}.mask.filtered.sorted.bed"
     conda:
         "../envs/gc_content.yml"
     log:

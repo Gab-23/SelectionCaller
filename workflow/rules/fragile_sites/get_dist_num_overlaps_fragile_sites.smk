@@ -4,7 +4,7 @@ rule get_dist_num_overlaps_fragile_sites:
 	    num_overlaps="resources/num_overlaps/fragile_sites/{assembly_code}_{window_mode}_{window_size}_{step}.bed"
     input:
         path_fragile_sites="resources/fragile_sites/origin/fragile_sites_li_{assembly_code}.bed",
-        path_backbone="resources/backbone/{assembly_code}_{window_mode}_{window_size}_{step}.filtered.sorted.bed"
+        path_backbone="resources/backbone/{assembly_code}_{window_mode}_{window_size}_{step}.mask.filtered.sorted.bed"
     log:
         "logs/get_dist_num_overlaps_fragile_sites/{assembly_code}_{window_mode}_{window_size}_{step}.log"
     conda:

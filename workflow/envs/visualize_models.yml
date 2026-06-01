@@ -1,0 +1,11 @@
+name: visualize_models
+channels:
+  - bioconda
+  - conda-forge
+dependencies:
+  - r-base
+  - r-r.utils
+  - r-tidyverse
+  - r-ggplot2
+  - r-tibble
+  - r-complexupset

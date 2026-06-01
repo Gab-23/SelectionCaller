@@ -7,7 +7,7 @@ def adj_r2(REGRESSOR, X, y):
     p = X.shape[1]
     return 1-(1-r2)*(n-1)/(n-p-1)
 
-def EVALUATE_PERFORMANCES(REGRESSOR, X, y, metrics_list):
+def EVALUATE_PERFORMANCES(REGRESSOR, X, y, CV, metrics_list):
 
     performances = {}
 
@@ -18,6 +18,9 @@ def EVALUATE_PERFORMANCES(REGRESSOR, X, y, metrics_list):
         else:
             evaluator = sk.metrics.get_scorer(metric)
 
-        performances[metric] = evaluator(REGRESSOR, X, y)
+        if CV != 1:
+            performances[f"cv_{metric}"] = sk.model_selection.cross_val_score(REGRESSOR, X, y, scoring=evaluator, cv=CV)
+        else:
+            performances[f"train_{metric}"] = evaluator(REGRESSOR, X, y)
         
     return(performances)

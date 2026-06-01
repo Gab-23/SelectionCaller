@@ -1,11 +1,8 @@
 rule train_models:
     output:
-        path_warning="",
-        path_hyperparams="",
-        path_selected_features="",
-        path_performances=""
+        check=""
     input:
-        path_dataset="the smoothed one",
+        path_dataset="",
         path_is_autocorrelated="",
         path_is_multicollinear="",
         path_models="",

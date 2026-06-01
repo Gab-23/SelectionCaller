@@ -1,0 +1,7 @@
+For computing gene density, in order to avoid overinflating the dataset with NAs, due to
+0 / 0 operations (for bins w/o genes), I will use the formula
+
+num_of_target_genes / (num_genes + 1)
+
+This poses the problem that 0 due to lack of genes is different than 0 due to lack of target genes
+To solve this issue I also include the number of genes in the dataset, so that the model will be able to learn these associations
