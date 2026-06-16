@@ -3,7 +3,7 @@ rule get_backbone_file:
         path_full="resources/backbone/{assembly_code}_{window_mode}_{window_size}_{step}.bed",
         path_mask="resources/backbone/{assembly_code}_{window_mode}_{window_size}_{step}.mask.bed"
     input:
-        chrom_sizes="resources/reference_data/chrom_sizes/{assembly_code}.clean.chrom.sizes"
+        path_chrom_sizes="resources/reference_data/chrom_sizes/{assembly_code}.clean.chrom.sizes"
     log:
         "logs/get_backbone_file/{assembly_code}_{window_mode}_{window_size}_{step}.log"
     conda:

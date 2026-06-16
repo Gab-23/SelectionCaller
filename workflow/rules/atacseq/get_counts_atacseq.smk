@@ -41,7 +41,7 @@ rule get_counts_atacseq:
         path_check_coverage="resources/atacseq/checks/{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}_coverage",
         path_check_scaling_factors="resources/atacseq/checks/{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}_scaling_factors",
         path_dir_coverage="resources/atacseq/files/coverage",
-	    path_dir_scaling_factors="resources/atacseq/files/cnvkit",
+        path_dir_scaling_factors="resources/atacseq/files/cnvkit",
         path_metadata=selected_samples_location_atacseq,
         path_samples_to_exclude=samples_to_exclude_location_atacseq
     log:

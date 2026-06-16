@@ -29,6 +29,8 @@ def get_epigenome_ids(wildcards, tissue_type_Roadmap):
     else:
         return epigenome_ids
 
+####
+
 def get_prefetch_outputs_repliseq(wildcards):
     return expand(rules.prefetch_repliseq.output, SRA_id=SRA_ids_repliseq)
 
@@ -79,6 +81,8 @@ def get_coverage_outputs_repliseq(wildcards):
 
 def filter_coverage_outputs_repliseq(wildcards):
     return expand(rules.filter_coverage_repliseq.output, SRA_id=SRA_ids_repliseq, **wildcards)
+
+####
 
 def get_prefetch_outputs_atacseq(wildcards):
     return expand(rules.prefetch_atacseq.output, SRA_id=SRA_ids_atacseq)
@@ -152,21 +156,64 @@ def get_CNVkit_scaling_factors_atacseq(wildcards):
 #def get_peak_processing_outputs_atacseq(wildcards):
 #    return expand(rules.process_peaks_atacseq.output, SRA_id=SRA_ids_atacseq, **wildcards)
 
+####
+
+def get_prefetch_outputs_hic(wildcards):
+    return expand(rules.prefetch_hic.output, SRA_id=SRA_ids_hic)
+
+def get_fastqdump_outputs_hic(wildcards):
+    return expand(rules.fastq_dump_hic.output, SRA_id=SRA_ids_hic)
+
+def get_alignment_outputs_hic(wildcards):
+    return expand(rules.align_read_hic.output, SRA_id=SRA_ids_hic, **wildcards)
+
+def get_alignment_sorting_outputs_hic(wildcards):
+    return expand(rules.sort_bam_hic.output, SRA_id=SRA_ids_hic, **wildcards)
+
+def get_alignment_indexing_outputs_hic(wildcards):
+    return expand(rules.index_bam_hic.output, SRA_id=SRA_ids_hic, **wildcards)
+
+def get_filtering_outputs_hic(wildcards):
+    return expand(rules.filter_bam_hic.output, SRA_id=SRA_ids_hic, **wildcards)
+
+def get_sorting_filtered_alignment_outputs_hic(wildcards):
+    return expand(rules.sort_filtered_bam_hic.output, SRA_id=SRA_ids_hic, **wildcards)
+
+def get_hicqc_outputs(wildcards):
+    return expand(rules.run_HiCQC.output, SRA_id=SRA_ids_hic, **wildcards)
+
+def get_pairs_outputs_hic(wildcards):
+    return expand(rules.compute_pairs_hic.output, SRA_id=SRA_ids_hic, **wildcards)
+
+def get_sorting_pairs_outputs_hic(wildcards):
+    return expand(rules.sort_pairs_hic.output, SRA_id=SRA_ids_hic, **wildcards)
+    
+def get_deduplicated_pairs_outputs_hic(wildcards):
+    return expand(rules.deduplicate_pairs_hic.output, SRA_id=SRA_ids_hic, **wildcards)
+
+def get_filtered_pairs_outputs_hic(wildcards):
+    return expand(rules.filter_pairs_hic.output, SRA_id=SRA_ids_hic, **wildcards)
+
+def get_pairs_stats_outputs_hic(wildcards):
+    return expand(rules.compute_pairs_stats_hic.output, SRA_id=SRA_ids_hic, **wildcards)
+
+def get_pairs_multiqc_outputs_hic(wildcards):
+    return expand(rules.compute_multiqc_hic.output, SRA_id=SRA_ids_hic, **wildcards)
+
+def get_matrices_outputs_hic(wildcards):
+    return expand(rules.compute_matrices_hic.output, SRA_id=SRA_ids_hic, **wildcards)
+
+####
+
+input_path_masks = config["input_path_masks"]
+
 mapping_file_tt_locations = config["mapping_file_tt_locations"]
 mapping_file_gender_locations = config["mapping_file_gender_locations"]
+sequencers_info_locations=config["sequencers_info_locations"]
 
-assembly_codes = config["assembly_codes"]
-gencode_versions = config["gencode_versions"]
-
-sample_types = config["sample_types"]
-file_formats = config["file_formats"]
-
-window_sizes = config["window_sizes"]
-window_modes = config["window_modes"]
-steps = config["steps"]
-
-tumor_types = config["tumor_types"]
-genders = config["genders"]
+ohnologs_locations = config["ohnologs_locations"]
+paralogs_locations = config["paralogs_locations"]
+haploinsufficiency_locations = config["haploinsufficiency_locations"]
 
 IntOGen_locations = config["IntOGen_locations"]
 
@@ -174,32 +221,46 @@ DepMap_models_locations = config["DepMap_models_locations"]
 DepMap_probabilities_locations = config["DepMap_probabilities_locations"]
 DepMap_scores_locations = config["DepMap_scores_locations"]
 
-essentiality_cutoffs = config["essentiality_cutoffs"]
-num_assays_cutoffs = config["num_assays_cutoffs"]
-
 COSMIC_classification_locations = config["COSMIC_classification_locations"]
 COSMIC_samples_locations = config["COSMIC_samples_locations"]
 COSMIC_coding_locations = config["COSMIC_coding_locations"]
 COSMIC_noncoding_locations = config["COSMIC_noncoding_locations"]
-
-COSMIC_sample_name_patterns = config["COSMIC_sample_name_patterns"]
 
 GDC_clinical_locations = config["GDC_clinical_locations"]
 GDC_sample_sheet_locations= config["GDC_sample_sheet_locations"]
 GDC_manifest_locations= config["GDC_manifest_locations"]
 GDC_CNA_files_locations= config["GDC_CNA_files_locations"]
 
-min_Num_Probes= config["min_Num_Probes"]
-min_abs_Segment_Means= config["min_abs_Segment_Means"]
-
 selected_samples_location_repliseqs=config["selected_samples_location_repliseqs"]
 selected_samples_location_atacseqs=config["selected_samples_location_atacseqs"]
 samples_to_exclude_location_atacseqs=config["samples_to_exclude_location_atacseqs"]
+selected_samples_location_hics=config["selected_samples_location_hics"]
 
-sequencers_info_locations=config["sequencers_info_locations"]
+hic_qc_script_locations = config["hic_qc_script_locations"]
+
+assembly_codes = config["assembly_codes"]
+gencode_versions = config["gencode_versions"]
+window_sizes = config["window_sizes"]
+window_modes = config["window_modes"]
+steps = config["steps"]
+
+sample_types = config["sample_types"]
+file_formats = config["file_formats"]
+
+tumor_types = config["tumor_types"]
+genders = config["genders"]
+
+essentiality_cutoffs = config["essentiality_cutoffs"]
+num_assays_cutoffs = config["num_assays_cutoffs"]
+
+COSMIC_sample_name_patterns = config["COSMIC_sample_name_patterns"]
+
+min_Num_Probes= config["min_Num_Probes"]
+min_abs_Segment_Means= config["min_abs_Segment_Means"]
 
 num_cores_repliseqs = config["num_cores_repliseqs"]
 num_cores_atacseqs = config["num_cores_atacseqs"]
+num_cores_hics = config["num_cores_hics"]
 
 java_mem_size_repliseqs = config["java_mem_size_repliseqs"]
 java_mem_size_atacseqs = config["java_mem_size_atacseqs"]
@@ -217,16 +278,80 @@ minCpm_atacseqs = config["minCpm_atacseqs"]
 min_length_atacseqs = config["min_length_atacseqs"]
 q_val_thr_atacseqs = config["q_val_thr_atacseqs"]
 
-ohnologs_locations = config["ohnologs_locations"]
-paralogs_locations = config["paralogs_locations"]
-
-haploinsufficiency_locations = config["haploinsufficiency_locations"]
-
 num_cores_Rs = config["num_cores_Rs"]
 
-input_path_masks = config["input_path_masks"]
-
 ##### 
+
+if len(input_path_masks) > 1:
+    raise ValueError("ERROR, multiple input_path_masks selected")
+else:
+    input_path_mask = input_path_masks[0]
+
+if len(mapping_file_tt_locations) > 1:
+    raise ValueError("ERROR, multiple mapping_file_locations selected")
+else:
+    mapping_file_tt_location = mapping_file_tt_locations[0]
+
+if len(mapping_file_gender_locations) > 1:
+    raise ValueError("ERROR, multiple mapping_file_gender_locations selected")
+else:
+    mapping_file_gender_location = mapping_file_gender_locations[0]
+
+if len(sequencers_info_locations) > 1:
+    raise ValueError("ERROR, multiple sequencers_info_locations selected")
+else:
+    sequencers_info_location = sequencers_info_locations[0]
+
+if len(ohnologs_locations) > 1:
+    raise ValueError("ERROR, multiple ohnologs_locations selected")
+else:
+    ohnologs_location = ohnologs_locations[0]
+
+if len(paralogs_locations) > 1:
+    raise ValueError("ERROR, multiple paralogs_locations selected")
+else:
+    paralogs_location = paralogs_locations[0]
+
+if len(haploinsufficiency_locations) > 1:
+    raise ValueError("ERROR, multiple haploinsufficiency_locations selected")
+else:
+    haploinsufficiency_location = haploinsufficiency_locations[0]
+
+if len(IntOGen_locations) > 1:
+    raise ValueError("ERROR, multiple IntOGen_locations selected")
+
+if len(DepMap_models_locations) > 1:
+    raise ValueError("ERROR, multiple DepMap_models_locations selected")
+
+if len(DepMap_probabilities_locations) > 1:
+    raise ValueError("ERROR, multiple DepMap_probabilities_locations selected")
+
+if len(DepMap_scores_locations) > 1:
+    raise ValueError("ERROR, multiple DepMap_scores_locations selected")
+
+if len(COSMIC_classification_locations) > 1:
+    raise ValueError("ERROR, multiple COSMIC_classification_locations selected")
+
+if len(COSMIC_samples_locations) > 1:
+    raise ValueError("ERROR, multiple COSMIC_samples_locations selected")
+
+if len(COSMIC_coding_locations) > 1:
+    raise ValueError("ERROR, multiple COSMIC_coding_locations selected")
+
+if len(COSMIC_noncoding_locations) > 1:
+    raise ValueError("ERROR, multiple COSMIC_noncoding_locations selected")
+
+if len(GDC_clinical_locations) > 1:
+    raise ValueError("ERROR, multiple GDC_clinical_locations selected")
+
+if len(GDC_sample_sheet_locations) > 1:
+    raise ValueError("ERROR, multiple GDC_sample_sheet_locations selected")
+
+if len(GDC_manifest_locations) > 1:
+    raise ValueError("ERROR, multiple GDC_manifest_locations selected")
+
+if len(GDC_CNA_files_locations) > 1:
+    raise ValueError("ERROR, multiple GDC_CNA_files_locations selected")
 
 if len(selected_samples_location_repliseqs) > 1:
     raise ValueError("ERROR, multiple selected_samples_location_repliseqs selected")
@@ -243,15 +368,15 @@ if len(samples_to_exclude_location_atacseqs) > 1:
 else:
     samples_to_exclude_location_atacseq = samples_to_exclude_location_atacseqs[0]
 
-if len(mapping_file_tt_locations) > 1:
-    raise ValueError("ERROR, multiple mapping_file_location selected")
+if len(selected_samples_location_hics) > 1:
+    raise ValueError("ERROR, multiple selected_samples_location_hics selected")
 else:
-    mapping_file_tt_location = mapping_file_tt_locations[0]
+    selected_samples_location_hic = selected_samples_location_hics[0]
 
-if len(mapping_file_gender_locations) > 1:
-    raise ValueError("ERROR, multiple mapping_file_gender_locations selected")
+if len(hic_qc_script_locations) > 1:
+    raise ValueError("ERROR, multiple hic_qc_script_locations selected")
 else:
-    mapping_file_gender_location = mapping_file_gender_locations[0]
+    hic_qc_script_location = hic_qc_script_locations[0]
 
 if len(assembly_codes) > 1:
     raise ValueError("ERROR, multiple assemblies selected")
@@ -307,49 +432,8 @@ if len(num_assays_cutoffs) > 1:
 else:
     num_assays_cutoff = num_assays_cutoffs[0]
 
-if len(IntOGen_locations) > 1:
-    raise ValueError("ERROR, multiple IntOGen_locations selected")
-
-if len(DepMap_models_locations) > 1:
-    raise ValueError("ERROR, multiple DepMap_models_locations selected")
-
-if len(DepMap_probabilities_locations) > 1:
-    raise ValueError("ERROR, multiple DepMap_probabilities_locations selected")
-
-if len(DepMap_scores_locations) > 1:
-    raise ValueError("ERROR, multiple DepMap_scores_locations selected")
-
-if len(COSMIC_classification_locations) > 1:
-    raise ValueError("ERROR, multiple COSMIC_classification_locations selected")
-
-if len(COSMIC_samples_locations) > 1:
-    raise ValueError("ERROR, multiple COSMIC_samples_locations selected")
-
-if len(COSMIC_coding_locations) > 1:
-    raise ValueError("ERROR, multiple COSMIC_coding_locations selected")
-
-if len(COSMIC_noncoding_locations) > 1:
-    raise ValueError("ERROR, multiple COSMIC_noncoding_locations selected")
-
 if len(COSMIC_sample_name_patterns) > 1:
     raise ValueError("ERROR, multiple COSMIC_sample_name_patterns selected")
-
-if len(GDC_clinical_locations) > 1:
-    raise ValueError("ERROR, multiple GDC_clinical_locations selected")
-
-if len(GDC_sample_sheet_locations) > 1:
-    raise ValueError("ERROR, multiple GDC_sample_sheet_locations selected")
-
-if len(GDC_manifest_locations) > 1:
-    raise ValueError("ERROR, multiple GDC_manifest_locations selected")
-
-if len(GDC_CNA_files_locations) > 1:
-    raise ValueError("ERROR, multiple GDC_CNA_files_locations selected")
-
-if len(sequencers_info_locations) > 1:
-    raise ValueError("ERROR, multiple sequencers_info_locations selected")
-else:
-    sequencers_info_location = sequencers_info_locations[0]
 
 if len(num_cores_repliseqs) > 1:
     raise ValueError("ERROR, multiple num_cores_repliseqs selected")
@@ -360,6 +444,11 @@ if len(num_cores_atacseqs) > 1:
     raise ValueError("ERROR, multiple num_cores_atacseqs selected")
 else:
     num_cores_atacseq = num_cores_atacseqs[0]
+
+if len(num_cores_hics) > 1:
+    raise ValueError("ERROR, multiple num_cores_hics selected")
+else:
+    num_cores_hic = num_cores_hics[0]
 
 if len(java_mem_size_repliseqs) > 1:
     raise ValueError("ERROR, multiple java_mem_size_repliseqs selected")
@@ -416,30 +505,10 @@ if len(q_val_thr_atacseqs) > 1:
 else:
     q_val_thr_atacseq = q_val_thr_atacseqs[0]
 
-if len(ohnologs_locations) > 1:
-    raise ValueError("ERROR, multiple ohnologs_locations selected")
-else:
-    ohnologs_location = ohnologs_locations[0]
-
-if len(paralogs_locations) > 1:
-    raise ValueError("ERROR, multiple paralogs_locations selected")
-else:
-    paralogs_location = paralogs_locations[0]
-
-if len(haploinsufficiency_locations) > 1:
-    raise ValueError("ERROR, multiple haploinsufficiency_locations selected")
-else:
-    haploinsufficiency_location = haploinsufficiency_locations[0]
-
 if len(num_cores_Rs) > 1:
     raise ValueError("ERROR, multiple num_cores_Rs selected")
 else:
     num_cores_R = num_cores_Rs[0]
-
-if len(input_path_masks) > 1:
-    raise ValueError("ERROR, multiple input_path_masks selected")
-else:
-    input_path_mask = input_path_masks[0]
 
 #####
 
@@ -448,10 +517,11 @@ gender_COSMIC, gender_DepMap, gender_GDC = map_gender(mapping_file_gender_locati
 
 SRA_ids_repliseq = get_SRA_ids(selected_samples_location_repliseq)
 SRA_ids_atacseq = get_SRA_ids(selected_samples_location_atacseq)
+SRA_ids_hic = get_SRA_ids(selected_samples_location_hic)
 
 SRA_tumor_ids_atacseq = get_SRA_condition_ids(selected_samples_location_atacseq, "tumor")
-
 SRA_normal_ids_atacseq = get_SRA_condition_ids(selected_samples_location_atacseq, "NAT")
+
 normal_paths_atacseq = [f"resources/atacseq/files/bam/{SRA_normal_id_atacseq}/{SRA_normal_id_atacseq}_{assembly_code}_{mapq_thr}.fixed.bam" for SRA_normal_id_atacseq in SRA_normal_ids_atacseq]
 
 is_patterned_repliseq = get_is_patterned(sequencers_info_location, "HiSeq_4000")
@@ -469,16 +539,28 @@ if is_patterned_atacseq:
 else:
     pass
 
+#####
+
 include: "snakefile_helpers/helpers.smk"
+
+####
 
 include: "rules/chrom_sizes/get_chrom_sizes.smk"
 include: "rules/chrom_sizes/clean_chrom_sizes.smk"
 
+####
+
 include: "rules/blacklisted_regions/get_blacklisted_regions.smk"
+
+####
 
 include: "rules/backbone/get_backbone_file.smk"
 include: "rules/backbone/filter_backbone.smk"
 include: "rules/backbone/sort_backbone.smk"
+include: "rules/backbone/annotate_backbone.smk"
+include: "rules/backbone/generate_genes_on_bins_obj.smk"
+
+####
 
 include: "rules/epigenomes/get_mapping_EID_tt.smk"
 include: "rules/epigenomes/get_epigenome_paths.smk"
@@ -486,10 +568,14 @@ include: "rules/epigenomes/get_epigenome_files.smk"
 include: "rules/epigenomes/process_epigenomes.smk"
 include: "rules/epigenomes/aggregate_epigenomes.smk"
 
+####
+
 include: "rules/gencode/get_gencode_annotation.smk"
 include: "rules/gencode/get_TSSs.smk"
 include: "rules/gencode/sort_TSSs.smk"
 include: "rules/gencode/split_gtf.smk"
+
+####
 
 include: "rules/IntOGen/process_IntOGen.smk"
 include: "rules/IntOGen/sort_cancer_genes.smk"
@@ -498,13 +584,19 @@ include: "rules/IntOGen/get_dist_closest_OG.smk"
 include: "rules/IntOGen/get_dist_closest_TSG.smk"
 include: "rules/IntOGen/process_dist_to_cancer_genes.smk"
 
+####
+
 include: "rules/genes/sort_gene_classes.smk"
 include: "rules/genes/get_dist_num_overlaps_genes.smk"
 include: "rules/genes/process_dist_to_genes.smk"
 include: "rules/genes/process_num_overlaps.smk"
 
+####
+
 include: "rules/GC/get_GC_content.smk"
 include: "rules/GC/process_GC_content.smk"
+
+####
 
 include: "rules/centromeres_and_telomeres/get_cytobands.smk"
 include: "rules/centromeres_and_telomeres/get_centromeres_coords.smk"
@@ -514,6 +606,8 @@ include: "rules/centromeres_and_telomeres/get_telomeres_proxy.smk"
 include: "rules/centromeres_and_telomeres/get_dist_to_telomeres.smk"
 include: "rules/centromeres_and_telomeres/process_dist_to_telomeres.smk"
 
+####
+
 include: "rules/DepMap/filter_CRISPR_models.smk"
 include: "rules/DepMap/filter_CRISPR_probabilities.smk"
 include: "rules/DepMap/get_essential_genes.smk"
@@ -521,6 +615,8 @@ include: "rules/DepMap/find_coords_essential_genes.smk"
 include: "rules/DepMap/sort_essential_genes.smk"
 include: "rules/DepMap/get_dist_to_essential_genes.smk"
 include: "rules/DepMap/process_dist_to_essential_genes.smk"
+
+####
 
 include: "rules/COSMIC/filter_classification_COSMIC.smk"
 include: "rules/COSMIC/filter_samples_COSMIC.smk"
@@ -533,6 +629,8 @@ include: "rules/COSMIC/sort_coding_mutations.smk"
 include: "rules/COSMIC/compute_coding_mutations_overlap.smk"
 include: "rules/COSMIC/compute_noncoding_mutations_overlap.smk"
 
+####
+
 include: "rules/GDC_CNA/get_samples_GDC.smk"
 include: "rules/GDC_CNA/filter_manifest.smk"
 include: "rules/GDC_CNA/get_GDC_CNA_data.smk"
@@ -544,16 +642,24 @@ include: "rules/GDC_CNA/compute_ampl_overlap.smk"
 include: "rules/GDC_CNA/compute_del_overlap.smk"
 include: "rules/GDC_CNA/process_GDC_CNA_overlap.smk"
 
+####
+
 include: "rules/fragile_sites/get_dist_num_overlaps_fragile_sites.smk"
 include: "rules/fragile_sites/process_dist_to_fragile_sites.smk"
 include: "rules/fragile_sites/process_num_overlaps_fragile_sites.smk"
 
+####
+
 include: "rules/ohnologs_and_paralogs/compute_and_process_ohnologs.smk"
 include: "rules/ohnologs_and_paralogs/compute_and_process_paralogs.smk"
+
+####
 
 include: "rules/genome/get_reference_genome.smk"
 include: "rules/genome/index_reference_genome_bwa.smk"
 include: "rules/genome/index_reference_genome_bowtie2.smk"
+
+####
 
 include: "rules/repliseq/prefetch_repliseq.smk"
 include: "rules/repliseq/fastq_dump_repliseq.smk"
@@ -574,6 +680,8 @@ include: "rules/repliseq/compute_coverage_repliseq.smk"
 include: "rules/repliseq/filter_coverage_repliseq.smk"
 include: "rules/repliseq/process_repliseq.smk"
 
+####
+
 include: "rules/atacseq/explore_cohort_atacseq.smk"
 include: "rules/atacseq/prefetch_atacseq.smk"
 include: "rules/atacseq/fastq_dump_atacseq.smk"
@@ -593,33 +701,78 @@ include: "rules/atacseq/index_noblacklist_bam_atacseq.smk"
 include: "rules/atacseq/fix_mate_information_atacseq.smk"
 include: "rules/atacseq/compute_insert_size_metrics_atacseq.smk"
 include: "rules/atacseq/compute_coverage_atacseq.smk"
-
-
 include: "rules/atacseq/run_CNVkit_atacseq.smk"
 include: "rules/atacseq/process_CNVkit_output_atacseq.smk"
 include: "rules/atacseq/get_CNVkit_scaling_factors_atacseq.smk"
-
 include: "rules/atacseq/get_counts_atacseq.smk"
-include: "rules/atacseq/DA_analysis.smk"
-
-
+include: "rules/atacseq/get_DARs.smk"
+include: "rules/atacseq/process_DARs.smk"
 # include: "rules/atacseq/name_sort_final_bam_atacseq.smk"
 # include: "rules/atacseq/call_peaks_bysample_atacseq.smk"
 # include: "rules/atacseq/process_peaks_atacseq.smk"
 
-# include: "rules/explore_datatypes.smk"
+####
 
+include: "rules/HiC/prefetch_hic.smk"
+include: "rules/HiC/fastq_dump_hic.smk"
+include: "rules/HiC/align_reads_hic.smk"
+include: "rules/HiC/sort_bam_hic.smk"
+include: "rules/HiC/index_bam_hic.smk"
+include: "rules/HiC/filter_bam_hic.smk"
+include: "rules/HiC/sort_filtered_bam_hic.smk"
+include: "rules/HiC/run_HiCQC.smk"
+include: "rules/HiC/compute_pairs_hic.smk"
+include: "rules/HiC/sort_pairs_hic.smk"
+include: "rules/HiC/deduplicate_pairs_hic.smk"
+include: "rules/HiC/filter_pairs_hic.smk"
+include: "rules/HiC/compute_pairs_stats_hic.smk"
+include: "rules/HiC/compute_multiqc_hic.smk"
+include: "rules/HiC/compute_matrices_hic.smk"
+include: "rules/HiC/merge_cooler.smk"
+include: "rules/HiC/balance_cooler.smk"
+include: "rules/HiC/normalize_matrix_hic.smk"
+# include: "rules/HiC/process_hic.smk"
+
+####
+
+# include: "rules/explore_datatypes.smk"
+# include: "rules/combine_dataset.smk"
+# include: "rules/smooth_dataset.smk"
+
+####
+
+# include: "rules/ML/train_models.smk"
+# include: "rules/ML/aggregate_and_visualize_models.smk"
+
+####
 
 rule all:
     input:
         expand(
-            "resources/atacseq/checks/{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}_scaling_factors",
+            "resources/hic/checks/{assembly_code}_hicqc",
+            assembly_code=assembly_code
+         ),
+         expand(
+            "resources/hic/checks/{assembly_code}_{mapq_thr}_multiqc",
+            assembly_code=assembly_code,
+            mapq_thr=mapq_thr
+         ),
+         expand(
+            "resources/hic/files/cooler/{assembly_code}_{mapq_thr}_{window_mode}_{window_size}_{step}.balanced.norm.mat",
             assembly_code=assembly_code,
             window_mode=window_mode,
             window_size=window_sizes,
             step=steps,
             mapq_thr=mapq_thr
-        )#,
+         )
+#        expand(
+#            "resources/atacseq/checks/{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}_scaling_factors",
+#            assembly_code=assembly_code,
+#            window_mode=window_mode,
+#            window_size=window_sizes,
+#            step=steps,
+#            mapq_thr=mapq_thr
+#        ),
 #        expand(
 #            "resources/atacseq/files/counts/{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}_{minSamples_atacseq}_{minCounts_atacseq}_{minCpm_atacseq}_{SVs}_sva"
 #        )

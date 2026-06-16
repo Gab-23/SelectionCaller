@@ -1,3 +1,75 @@
+input_path_masks:
+  - ""
+
+mapping_file_tt_locations:
+  - config/mapping_tissue_tumor_type
+
+mapping_file_gender_locations:
+  - config/mapping_gender
+
+sequencers_info_locations:
+  - config/sequencers_info
+
+ohnologs_locations:
+  - "resources/ohnologs_and_paralogs/origin/OhnologList.RData"
+
+paralogs_locations:
+  - "resources/ohnologs_and_paralogs/origin/ParalogList.RData"
+
+haploinsufficiency_locations:
+  - "resources/haploinsufficiency/haploinsufficiency.csv"
+
+IntOGen_locations:
+  - resources/IntOGen/IntOGen-Drivers-20240920/Compendium_Cancer_Genes.tsv
+
+DepMap_models_locations:
+  - "resources/DepMap/models/Model.csv"
+
+DepMap_probabilities_locations:
+  - "resources/DepMap/probabilities/CRISPRGeneEffect.csv"
+
+DepMap_scores_locations:
+  - "resources/DepMap/scores/CRISPRGeneDependency.csv"
+
+COSMIC_classification_locations:
+  - resources/COSMIC/classification/Cosmic_Classification_Tsv_v103_GRCh38/Cosmic_Classification_v103_GRCh38.tsv
+
+COSMIC_samples_locations:
+  - "resources/COSMIC/samples/Cosmic_Sample_Tsv_v103_GRCh38/Cosmic_Sample_v103_GRCh38.tsv"
+
+COSMIC_coding_locations:
+  - "resources/COSMIC/mutations/coding/Cosmic_GenomeScreensMutant_Tsv_v103_GRCh38/Cosmic_GenomeScreensMutant_v103_GRCh38.tsv"
+
+COSMIC_noncoding_locations:
+  - "resources/COSMIC/mutations/noncoding/Cosmic_NonCodingVariants_Tsv_v103_GRCh38/Cosmic_NonCodingVariants_v103_GRCh38.tsv"
+
+GDC_clinical_locations:
+  - "resources/GDC/CNAs/clinical.cohort.2026-01-28/clinical.tsv"
+
+GDC_sample_sheet_locations:
+  - "resources/GDC/CNAs/gdc_sample_sheet.2026-01-28.tsv"
+
+GDC_manifest_locations:
+  - "resources/GDC/CNAs/gdc_manifest.2026-01-28.170055.txt"
+
+GDC_CNA_files_locations:
+  - resources/GDC/CNAs/files/*/*.seg.v2.txt
+
+selected_samples_location_repliseqs:
+  - config/HMEC_selected_samples_repliseq
+
+selected_samples_location_atacseqs:
+  - config/BREAST_selected_samples_atacseq
+
+samples_to_exclude_location_atacseqs:
+  - config/BREAST_samples_to_exclude_atacseq
+
+selected_samples_location_hics:
+  - config/MCF10A_selected_samples_hic
+
+hic_qc_script_locations:
+  - "/hpcnfs/scratch/MS/ieo7429/hic_qc/hic_qc.py"
+
 assembly_codes:
  - hg38
 
@@ -25,56 +97,15 @@ sample_types:
 file_formats:
  - mnemonics
 
-mapping_file_gender_locations:
-  - config/mapping_gender
-
-mapping_file_tt_locations:
-  - config/mapping_tissue_tumor_type
-
-IntOGen_locations:
-  - resources/IntOGen/IntOGen-Drivers-20240920/Compendium_Cancer_Genes.tsv
-
-DepMap_models_locations:
-  - "resources/DepMap/models/Model.csv"
-
-DepMap_probabilities_locations:
-  - "resources/DepMap/probabilities/CRISPRGeneEffect.csv"
-
-DepMap_scores_locations:
-  - "resources/DepMap/scores/CRISPRGeneDependency.csv"
-
 essentiality_cutoffs:
   - 0.5
 
 num_assays_cutoffs:
   - 4
 
-COSMIC_classification_locations:
-  - resources/COSMIC/classification/Cosmic_Classification_Tsv_v103_GRCh38/Cosmic_Classification_v103_GRCh38.tsv
-
-COSMIC_samples_locations:
-  - "resources/COSMIC/samples/Cosmic_Sample_Tsv_v103_GRCh38/Cosmic_Sample_v103_GRCh38.tsv"
-
-COSMIC_coding_locations:
-  - "resources/COSMIC/mutations/coding/Cosmic_GenomeScreensMutant_Tsv_v103_GRCh38/Cosmic_GenomeScreensMutant_v103_GRCh38.tsv"
-
-COSMIC_noncoding_locations:
-  - "resources/COSMIC/mutations/noncoding/Cosmic_NonCodingVariants_Tsv_v103_GRCh38/Cosmic_NonCodingVariants_v103_GRCh38.tsv"
 
 COSMIC_sample_name_patterns:
   - "TCGA"
-
-GDC_clinical_locations:
-  - "resources/GDC/CNAs/clinical.cohort.2026-01-28/clinical.tsv"
-
-GDC_sample_sheet_locations:
-  - "resources/GDC/CNAs/gdc_sample_sheet.2026-01-28.tsv"
-
-GDC_manifest_locations:
-  - "resources/GDC/CNAs/gdc_manifest.2026-01-28.170055.txt"
-
-GDC_CNA_files_locations:
-  - resources/GDC/CNAs/files/*/*.seg.v2.txt
 
 min_Num_Probes:
   - 50
@@ -82,22 +113,13 @@ min_Num_Probes:
 min_abs_Segment_Means:
   - 0.2
 
-selected_samples_location_repliseqs:
-  - config/HMEC_selected_samples_repliseq
-
-selected_samples_location_atacseqs:
-  - config/BREAST_selected_samples_atacseq
-
-samples_to_exclude_location_atacseqs:
-  - config/BREAST_samples_to_exclude_atacseq
-
-sequencers_info_locations:
-  - config/sequencers_info
-
 num_cores_repliseqs:
   - 60
 
 num_cores_atacseqs:
+  - 60
+
+num_cores_hics:
   - 60
 
 java_mem_size_repliseqs:
@@ -136,17 +158,5 @@ min_length_atacseqs:
 q_val_thr_atacseqs:
   - 1
 
-ohnologs_locations:
-  - "resources/ohnologs_and_paralogs/origin/OhnologList.RData"
-
-paralogs_locations:
-  - "resources/ohnologs_and_paralogs/origin/ParalogList.RData"
-
-haploinsufficiency_locations:
-  - "resources/haploinsufficiency/haploinsufficiency.csv"
-
 num_cores_Rs:
   - 10
-
-input_path_masks:
-  - ""

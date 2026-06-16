@@ -330,7 +330,7 @@ rule all_fix_mate_information_atacseq:
         echo {input} >> {output}
         """
 
-rule all_get_is_metrics_atacseq:
+rule all_is_metrics_atacseq:
     input:
         get_is_metrics_outputs_atacseq
     output:
@@ -340,7 +340,7 @@ rule all_get_is_metrics_atacseq:
         echo {input} >> {output}
         """
 
-rule all_get_coverage_atacseq:
+rule all_coverage_atacseq:
     input:
         get_coverage_outputs_atacseq
     output:
@@ -350,7 +350,7 @@ rule all_get_coverage_atacseq:
         echo {input} >> {output}
         """
 
-rule all_get_CNVkit_outputs_atacseq:
+rule all_CNVkit_outputs_atacseq:
     input:
         get_CNVkit_outputs_atacseq
     output:
@@ -369,7 +369,7 @@ rule all_process_CNVkit_outputs_atacseq:
         echo {input} >> {output}
         """
 
-rule all_get_CNVkit_scaling_factors_atacseq:
+rule all_CNVkit_scaling_factors_atacseq:
     input:
         get_CNVkit_scaling_factors_atacseq
     output:
@@ -378,7 +378,6 @@ rule all_get_CNVkit_scaling_factors_atacseq:
         """
         echo {input} >> {output}
         """
-
 
 #rule all_name_sort_final_bams_atacseq:
 #    input:
@@ -409,3 +408,153 @@ rule all_get_CNVkit_scaling_factors_atacseq:
 #        """
 #        echo {input} >> {output}
 #        """
+
+rule all_prefetch_outputs_hic:
+    input:
+        get_prefetch_outputs_hic
+    output:
+        all_done="resources/hic/checks/prefetch"
+    shell:
+        """
+        echo {input} >> {output}
+        """
+
+rule all_fastqdump_hic:
+    input:
+        get_fastqdump_outputs_hic
+    output:
+        all_done="resources/hic/checks/fastq_dump"
+    shell:
+        """
+        echo {input} >> {output}
+        """
+
+rule all_alignment_hic:
+    input:
+        get_alignment_outputs_hic
+    output:
+        all_done="resources/hic/checks/{assembly_code}_alignment"
+    shell:
+        """
+        echo {input} >> {output}
+        """
+
+rule all_alignment_sorting_hic:
+    input:
+        get_alignment_sorting_outputs_hic
+    output:
+        all_done="resources/hic/checks/{assembly_code}_alignment_sorting"
+    shell:
+        """
+        echo {input} >> {output}
+        """
+
+rule all_alignment_indexing_hic:
+    input:
+        get_alignment_indexing_outputs_hic
+    output:
+        all_done="resources/hic/checks/{assembly_code}_alignment_indexing"
+    shell:
+        """
+        echo {input} >> {output}
+        """
+
+rule all_filtering_hic:
+    input:
+        get_filtering_outputs_hic
+    output:
+        all_done="resources/hic/checks/{assembly_code}_alignment_filtering"
+    shell:
+        """
+        echo {input} >> {output}
+        """
+
+rule all_sorting_filtered_alignment_hic:
+    input:
+        get_sorting_filtered_alignment_outputs_hic
+    output:
+        all_done="resources/hic/checks/{assembly_code}_filtered_alignment_sorting"
+    shell:
+        """
+        echo {input} >> {output}
+        """
+
+rule all_hicqc:
+    input:
+        get_hicqc_outputs
+    output:
+        all_done="resources/hic/checks/{assembly_code}_hicqc"
+    shell:
+        """
+        echo {input} >> {output}
+        """
+
+rule all_pairs_hic:
+    input:
+        get_pairs_outputs_hic
+    output:
+        all_done="resources/hic/checks/{assembly_code}_pairs"
+    shell:
+        """
+        echo {input} >> {output}
+        """
+
+rule all_sorting_pairs_hic:
+    input:
+        get_sorting_pairs_outputs_hic
+    output:
+        all_done="resources/hic/checks/{assembly_code}_sorting_pairs"
+    shell:
+        """
+        echo {input} >> {output}
+        """
+
+rule all_deduplicate_pairs_hic:
+    input:
+        get_deduplicated_pairs_outputs_hic
+    output:
+        all_done="resources/hic/checks/{assembly_code}_deduplicate_pairs"
+    shell:
+        """
+        echo {input} >> {output}
+        """
+
+rule all_filter_pairs_hic:
+    input:
+        get_filtered_pairs_outputs_hic
+    output:
+        all_done="resources/hic/checks/{assembly_code}_{mapq_thr}_filtered_pairs"
+    shell:
+        """
+        echo {input} >> {output}
+        """
+
+rule all_pairs_stat_hic:
+    input:
+        get_pairs_stats_outputs_hic
+    output:
+        all_done="resources/hic/checks/{assembly_code}_{mapq_thr}_stats_pairs"
+    shell:
+        """
+        echo {input} >> {output}
+        """
+
+rule all_multiqc_hic:
+    input:
+        get_pairs_multiqc_outputs_hic
+    output:
+        all_done="resources/hic/checks/{assembly_code}_{mapq_thr}_multiqc"
+    shell:
+        """
+        echo {input} >> {output}
+        """
+
+rule all_matrices_hic:
+    input:
+        get_matrices_outputs_hic
+    output:
+        all_done="resources/hic/checks/{assembly_code}_{mapq_thr}_{window_mode}_{window_size}_{step}_matrices"
+    shell:
+        """
+        echo {input} >> {output}
+        """

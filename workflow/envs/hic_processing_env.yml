@@ -1,0 +1,12 @@
+name: hic_processing_env
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - python
+  - numpy
+  - pandas
+  - pairtools
+  - multiqc
+  - cooler

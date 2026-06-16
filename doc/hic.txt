@@ -1,0 +1,30 @@
+This function takes Hi-C reads and performs several standard processing up to the production of .cool matrices.
+In order to do that, standard PhaseGenomics pipeline is performed to produce clean BAM files.
+
+Executing Pipeline according to PhaseGenomics
+For more details, look at: 
+https://phasegenomics.github.io/2019/09/19/hic-alignment-and-qc.html
+
+Pairtools basic commands are executed in order to extract, process and validate pairs,
+which are finally stored inside a .cool matrix, ready to be normalized.
+
+-5 was designed to help the aligner handle the statistical properties of Hi-C libraries better, 
+mainly by reducing the amount of secondary and alternate mappings the aligner makes
+as those cause Hi-C data to become ambiguous. 
+-S and -P options cause the aligner not to try to use assumptions 
+about the reads that might be true for shotgun or mate pair libraries in an effort to rescue more reads.
+
+extract pairs
+--drop-sam to remove SAM information --drop-seq to remove sequence information
+--flip flips pairs coordinates
+--add-columns mapq for further processing
+define policy for chimeric reads, in this case --walks-policy mask
+
+hicqc script is taken from https://github.com/phasegenomics/hic_qc
+took the env_minimal.yml and the script
+
+git clone https://github.com/phasegenomics/hic_qc.git
+cd hic_qc/
+conda env create -n hic_qc --file env.minimal.yml
+conda activate hic_qc
+pip install --no-deps -e .

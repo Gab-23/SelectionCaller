@@ -19,9 +19,8 @@ chr_to_plot                              <- 17
 `%>%` <- magrittr::`%>%`
 
 files <- list.files(input_path_dir, recursive = T, full.names = T, pattern = "filtered")
-
-# read backbone mask
 samples <- read.table(file = input_path_samples, header = T, sep = "\t")
+mask <- read.table(file = input_path_backbone_mask, header = F, sep = "\t")
 
 sample_types <- c("ES", "LS", "G1")
 
@@ -113,7 +112,7 @@ replication_timing$chr <- NULL
 replication_timing$pos <- NULL
 
 # add subsetting here using GenomicRanges
-# given replication timing, overlap with 
+# given replication timing, overlap with
 #
 #
 #
@@ -185,31 +184,11 @@ raw_smooth <- ggplot2::ggplot(
   ggplot2::labs(y = "log2(Early/Late)", 
                 title = paste0("Raw vs Smoothed signal [chr",chr_to_plot, "]"))
 
-ggplot2::ggsave(
-  filename = output_path_plot_distribution,
-  plot = hist,
-  width = 8,
-  height = 6,
-  dpi = 300
-)
+ggplot2::ggsave(filename = output_path_plot_distribution, plot = hist, width = 8, height = 6, dpi = 300)
+ggplot2::ggsave(filename = output_path_plot_landscape, plot = landscape, width = 24, height = 10, units = "in")
+ggplot2::ggsave(filename = output_path_plot_raw_smooth, plot = raw_smooth, width = 24, height = 10, units = "in")
 
-ggplot2::ggsave(
-  filename = output_path_plot_landscape,
-  plot = landscape,
-  width = 24,
-  height = 10,
-  units = "in"
-)
-
-ggplot2::ggsave(
-  filename = output_path_plot_raw_smooth,
-  plot = raw_smooth,
-  width = 24,
-  height = 10,
-  units = "in"
-)
-
-write.table(x = replication_timing[, c("binID", "replication.timing.smoothed")],                                                  # write output
+write.table(x = replication_timing[, c("binID", "replication.timing.smoothed")],
             file = output_path_data, 
             quote = F, 
             sep = "\t", 

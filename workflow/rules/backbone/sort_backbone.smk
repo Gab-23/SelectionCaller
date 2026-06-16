@@ -11,6 +11,6 @@ rule sort_backbone:
         "logs/sort_backbone/{assembly_code}_{window_mode}_{window_size}_{step}.log"
     shell:
         """
-	     bedtools sort -i {input.backbone_full} > {output.backbone_full} 2>> {log}
+         bedtools sort -i {input.backbone_full} > {output.backbone_full} 2>> {log}
          bedtools sort -i {input.backbone_mask} > {output.backbone_mask} 2>> {log}
         """

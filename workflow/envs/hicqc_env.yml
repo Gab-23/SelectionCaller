@@ -1,0 +1,13 @@
+name: hicqc_env
+channels:
+  - conda-forge
+  - bioconda
+  - nodefaults
+dependencies:
+  - markdown
+  - matplotlib
+  - numpy
+  - python-pdfkit
+  - pysam
+  - python=3.12
+  - scipy
