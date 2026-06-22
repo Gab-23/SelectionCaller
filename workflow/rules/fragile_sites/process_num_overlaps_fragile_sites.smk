@@ -6,7 +6,7 @@ rule process_num_overlaps_fragile_sites:
     log:
         "logs/process_num_overlaps_fragile_sites/{assembly_code}_{window_mode}_{window_size}_{step}.log"
     conda:
-        "../envs/r_roadmap.yml"
+        "../../envs/r_roadmap.yml"
     shell:
         """
         Rscript workflow/scripts/process_num_overlaps_fragile_sites.R \

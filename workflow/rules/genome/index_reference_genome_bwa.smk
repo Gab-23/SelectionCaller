@@ -6,7 +6,7 @@ rule index_reference_genome_bwa:
     log:
         "logs/index_reference_genome_bwa/{assembly_code}.log"
     conda:
-        "../envs/bwa_samtools.yml"
+        "../../envs/bwa_samtools.yml"
     shell:
         """
         bwa index {input} 2>{log}

@@ -4,7 +4,7 @@ rule get_GC_content:
     input:
         "resources/backbone/{assembly_code}_{window_mode}_{window_size}_{step}.mask.filtered.sorted.bed"
     conda:
-        "../envs/gc_content.yml"
+        "../../envs/gc_content.yml"
     log:
         "logs/get_gc_content/{assembly_code}_{window_mode}_{window_size}_{step}.log"
     shell:

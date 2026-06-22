@@ -7,7 +7,7 @@ rule process_IntOGen:
     params:
         cohort=cohort_IntOGen
     conda:
-        "../envs/r_roadmap.yml"
+        "../../envs/r_roadmap.yml"
     log:
         "logs/process_IntOGen/{assembly_code}_v{gencode_version}_{tumor_type_IntOGen}.log"
     shell:

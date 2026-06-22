@@ -13,7 +13,7 @@ rule explore_cohort_atacseq:
     log:
         "logs/explore_atacseq_cohort/{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}_{minSamples_atacseq}_{minCounts_atacseq}_{minCpm_atacseq}.log"
     conda:
-        "../envs/r_plotting.yml"
+        "../../envs/r_plotting.yml"
     shell:
         """
         Rscript workflow/scripts/explore_cohort_atacseq.R \

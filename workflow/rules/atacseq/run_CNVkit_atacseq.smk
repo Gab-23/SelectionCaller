@@ -13,7 +13,7 @@ rule run_CNVkit_atacseq:
         path_dir="resources/atacseq/files/cnvkit_T/",
         normal_paths_atacseq=" ".join(normal_paths_atacseq)
     conda:
-        "../envs/cnvkit_env.yml"
+        "../../envs/cnvkit_env.yml"
     shell:
         """
         touch {output}

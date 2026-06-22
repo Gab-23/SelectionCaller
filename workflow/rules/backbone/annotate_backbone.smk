@@ -7,7 +7,7 @@ rule annotate_backbone:
 		backbone_mask="resources/backbone/{assembly_code}_{window_mode}_{window_size}_{step}.mask.filtered.sorted.bed",
 		annotation="resources/reference_data/gencode/PC/v{gencode_version}_gene.sorted.bed"
 	conda:
-		"../envs/bedtools.yml"
+		"../../envs/bedtools.yml"
 	log:
 		"logs/annotate_backbone/{assembly_code}_{window_mode}_{window_size}_{step}.log"
 	shell:

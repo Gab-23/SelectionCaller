@@ -4,7 +4,7 @@ rule process_GC_content:
     input:
         "resources/GC/{assembly_code}_{window_mode}_{window_size}_{step}"
     conda:
-        "../envs/r_backbone.yml"
+        "../../envs/r_backbone.yml"
     log:
         "logs/process_GC_content/{assembly_code}_{window_mode}_{window_size}_{step}"
     shell:

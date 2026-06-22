@@ -8,7 +8,7 @@ rule get_dist_num_overlaps_fragile_sites:
     log:
         "logs/get_dist_num_overlaps_fragile_sites/{assembly_code}_{window_mode}_{window_size}_{step}.log"
     conda:
-        "../envs/bedtools.yml"
+        "../../envs/bedtools.yml"
     shell:
         """
         bedtools intersect -a {input.path_backbone} -b {input.path_fragile_sites} -c > {output.num_overlaps} 2>> {log}

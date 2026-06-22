@@ -6,7 +6,7 @@ rule index_reference_genome_bowtie2:
     log:
         "logs/index_reference_genome_bowtie2/{assembly_code}.log"
     conda:
-        "../envs/bowtie2_samtools.yml"
+        "../../envs/bowtie2_samtools.yml"
     shell:
         """
         bowtie2-build {input} resources/reference_data/genome/{wildcards.assembly_code} 2>{log}

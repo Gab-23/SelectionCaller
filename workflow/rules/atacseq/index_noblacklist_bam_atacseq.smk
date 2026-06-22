@@ -8,7 +8,7 @@ rule index_noblacklist_bam_atacseq:
     params:
         num_cores_atacseq=num_cores_atacseq
     conda:
-        "../envs/bwa_samtools.yml"
+        "../../envs/bwa_samtools.yml"
     shell:
         """
         samtools index -@ {params.num_cores_atacseq} {input} 2>{log}

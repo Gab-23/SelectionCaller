@@ -8,7 +8,7 @@ rule do_bamqc_atacseq:
     params:
         java_mem_size_atacseq=java_mem_size_atacseq
     conda:
-        "../envs/bamqc.yml"
+        "../../envs/bamqc.yml"
     shell:
         """
         qualimap bamqc \

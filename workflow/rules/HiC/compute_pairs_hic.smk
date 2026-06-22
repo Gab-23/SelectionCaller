@@ -10,7 +10,7 @@ rule compute_pairs_hic:
     params:
         num_cores_hic=num_cores_hic
     conda:
-        "../envs/hic_processing_env.yaml"
+        "../../envs/hic_processing_env.yaml"
     shell:
         """
         pairtools parse -o {output.pairs} -c {input.chrom_sizes} \

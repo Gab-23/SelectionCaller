@@ -5,7 +5,7 @@ rule get_coding_mutations_description:
         path_coords="resources/COSMIC/coordinates/coding/{gender_COSMIC}_{COSMIC_parameters}.sorted.bed",
         path_muts="resources/COSMIC/mutations/coding/{gender_COSMIC}_{COSMIC_parameters}.filtered.bed"
     conda:
-        "../envs/r_roadmap.yml"
+        "../../envs/r_roadmap.yml"
     log:
         "logs/get_coding_mutations_description/{gender_COSMIC}_{COSMIC_parameters}.log"
     shell:

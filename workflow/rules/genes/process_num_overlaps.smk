@@ -12,7 +12,7 @@ rule process_num_overlaps:
     log:
         "logs/process_num_overlaps/{assembly_code}_{window_mode}_{window_size}_{step}_v{gencode_version}.log"
     conda:
-        "../envs/r_roadmap.yml"
+        "../../envs/r_roadmap.yml"
     shell:
         """
         Rscript workflow/scripts/process_num_overlaps.R \

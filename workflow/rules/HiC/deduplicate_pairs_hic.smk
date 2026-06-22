@@ -9,7 +9,7 @@ rule deduplicate_pairs_hic:
 	params:
 		num_cores_hic=num_cores_hic
 	conda:
-		"../envs/hic_processing_env.yaml"
+		"../../envs/hic_processing_env.yaml"
 	shell:
 		"""
 		pairtools dedup \

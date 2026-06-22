@@ -23,7 +23,7 @@ rule get_DARs:
     log:
         "logs/get_DARs/{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}_{minSamples_atacseq}_{minCounts_atacseq}_{minCpm_atacseq}_{SVs}_{tumor_type_GDC}_{gender_GDC}_{min_Num_Probes}_{min_abs_Segment_Mean}.log"
     conda:
-        "../envs/r_limma.yml"
+        "../../envs/r_limma.yml"
     shell:
         """
         Rscript workflow/scripts/get_DARs.R \

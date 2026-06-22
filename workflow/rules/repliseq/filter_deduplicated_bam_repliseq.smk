@@ -8,7 +8,7 @@ rule filter_deduplicated_bam_repliseq:
     params:
         num_cores_repliseq=num_cores_repliseq
     conda:
-        "../envs/bwa_samtools.yml"
+        "../../envs/bwa_samtools.yml"
     shell:
         """
         samtools view -@ {params.num_cores_repliseq} -q {wildcards.mapq_thr} -b {input} > {output} 2>{log}

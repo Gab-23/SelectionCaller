@@ -7,7 +7,7 @@ rule compute_and_process_paralogs:
     log:
         "logs/compute_paralogs/{assembly_code}_{window_mode}_{window_size}_{step}.log"
     conda:
-        "../envs/r_limma.yml"
+        "../../envs/r_limma.yml"
     shell:
         """
         Rscript workflow/scripts/compute_and_process_paralogs.R \

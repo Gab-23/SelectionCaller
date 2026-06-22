@@ -9,7 +9,7 @@ rule filter_bam_repliseq:
     params:
         num_cores_repliseq=num_cores_repliseq
     conda:
-        "../envs/bwa_samtools.yml"
+        "../../envs/bwa_samtools.yml"
     shell:
         """
         samtools view -@ {params.num_cores_repliseq} -o {output} {input.bam} $(echo chr{{1..22}} chrX chrY) 2>{log}

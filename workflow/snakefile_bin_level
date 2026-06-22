@@ -194,6 +194,9 @@ def get_deduplicated_pairs_outputs_hic(wildcards):
 def get_filtered_pairs_outputs_hic(wildcards):
     return expand(rules.filter_pairs_hic.output, SRA_id=SRA_ids_hic, **wildcards)
 
+def get_clipped_pairs_outputs_hic(wildcards):
+    return expand(rules.clip_pairs_hic.output, SRA_id=SRA_ids_hic, **wildcards)
+
 def get_pairs_stats_outputs_hic(wildcards):
     return expand(rules.compute_pairs_stats_hic.output, SRA_id=SRA_ids_hic, **wildcards)
 
@@ -524,6 +527,7 @@ SRA_normal_ids_atacseq = get_SRA_condition_ids(selected_samples_location_atacseq
 
 normal_paths_atacseq = [f"resources/atacseq/files/bam/{SRA_normal_id_atacseq}/{SRA_normal_id_atacseq}_{assembly_code}_{mapq_thr}.fixed.bam" for SRA_normal_id_atacseq in SRA_normal_ids_atacseq]
 
+is_patterned_hic = get_is_patterned(sequencers_info_location, "HiSeq_3000")
 is_patterned_repliseq = get_is_patterned(sequencers_info_location, "HiSeq_4000")
 is_patterned_atacseq = get_is_patterned(sequencers_info_location, ["HiSeq_6000", "HiSeq_X_Ten"])
 
@@ -539,6 +543,11 @@ if is_patterned_atacseq:
 else:
     pass
 
+if is_patterned_hic:
+    pixel_distance_hic = 2500
+else:
+    pass
+
 #####
 
 include: "snakefile_helpers/helpers.smk"
@@ -547,6 +556,7 @@ include: "snakefile_helpers/helpers.smk"
 
 include: "rules/chrom_sizes/get_chrom_sizes.smk"
 include: "rules/chrom_sizes/clean_chrom_sizes.smk"
+include: "rules/chrom_sizes/get_actual_chromsizes_from_backbone.smk"
 
 ####
 
@@ -676,6 +686,7 @@ include: "rules/repliseq/filter_deduplicated_bam_repliseq.smk"
 include: "rules/repliseq/remove_blacklisted_from_bam_repliseq.smk"
 include: "rules/repliseq/sort_noblacklist_bam_repliseq.smk"
 include: "rules/repliseq/index_noblacklist_bam_repliseq.smk"
+include: "rules/repliseq/compute_library_size_repliseq.smk"
 include: "rules/repliseq/compute_coverage_repliseq.smk"
 include: "rules/repliseq/filter_coverage_repliseq.smk"
 include: "rules/repliseq/process_repliseq.smk"
@@ -725,6 +736,7 @@ include: "rules/HiC/compute_pairs_hic.smk"
 include: "rules/HiC/sort_pairs_hic.smk"
 include: "rules/HiC/deduplicate_pairs_hic.smk"
 include: "rules/HiC/filter_pairs_hic.smk"
+include: "rules/HiC/clip_pairs_hic.smk"
 include: "rules/HiC/compute_pairs_stats_hic.smk"
 include: "rules/HiC/compute_multiqc_hic.smk"
 include: "rules/HiC/compute_matrices_hic.smk"
@@ -753,8 +765,11 @@ rule all:
             assembly_code=assembly_code
          ),
          expand(
-            "resources/hic/checks/{assembly_code}_{mapq_thr}_multiqc",
+            "resources/hic/checks/{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}_multiqc",
             assembly_code=assembly_code,
+            window_mode=window_mode,
+            window_size=window_sizes,
+            step=steps,
             mapq_thr=mapq_thr
          ),
          expand(

@@ -15,7 +15,7 @@ rule train_models:
     log:
         "logs/"
     conda:
-        "../envs/py_ML.yml"
+        "../../envs/py_ML.yml"
     shell:
         """
         python3 workflow/scripts/train_models.py \

@@ -4,7 +4,7 @@ rule get_telomeres_proxy:
     input:
         "resources/reference_data/chrom_sizes/{assembly_code}.clean.chrom.sizes"
     conda:
-        "../envs/r_roadmap.yml"
+        "../../envs/r_roadmap.yml"
     log:
         "logs/get_telomeres_proxy/{assembly_code}.log"
     shell:

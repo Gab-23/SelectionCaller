@@ -8,7 +8,7 @@ rule sort_bam_repliseq:
     params:
         num_cores_repliseq=num_cores_repliseq
     conda:
-        "../envs/bwa_samtools.yml"
+        "../../envs/bwa_samtools.yml"
     shell:
         """
         samtools sort -@ {params.num_cores_repliseq} -o {output} {input} 2>{log}

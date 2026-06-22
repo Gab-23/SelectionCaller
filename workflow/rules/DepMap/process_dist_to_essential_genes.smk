@@ -6,7 +6,7 @@ rule process_dist_to_essential_genes:
     log:
         "logs/process_dist_to_essential_genes/{assembly_code}_{window_mode}_{window_size}_{step}_{oncotree_code_DepMap}_{gender_DepMap}_{essentiality_cutoff}_{num_assays_cutoff}_v{gencode_version}.log"
     conda:
-        "../envs/r_roadmap.yml"
+        "../../envs/r_roadmap.yml"
     shell:
         """
         Rscript workflow/scripts/process_dist_to_essential_genes.R \

@@ -4,7 +4,7 @@ rule sort_cancer_genes:
     input:
         "resources/IntOGen/processed/{assembly_code}_v{gencode_version}_{tumor_type_IntOGen}.bed"
     conda:
-        "../envs/bedtools.yml"
+        "../../envs/bedtools.yml"
     log:
         "logs/sort_cancer_genes/{assembly_code}_v{gencode_version}_{tumor_type_IntOGen}.log"
     shell:

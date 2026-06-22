@@ -7,7 +7,7 @@ rule fastq_dump_atacseq:
     log:
         "logs/fastq_dump_atacseq/{SRA_id}.log"
     conda:
-        "../envs/sra_toolkit.yml"
+        "../../envs/sra_toolkit.yml"
     shell:
         """
         fastq-dump --gzip \

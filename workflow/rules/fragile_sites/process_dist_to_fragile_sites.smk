@@ -6,7 +6,7 @@ rule process_dist_to_fragile_sites:
     log:
         "logs/process_dist_to_fragile_sites/{assembly_code}_{window_mode}_{window_size}_{step}.log"
     conda:
-        "../envs/r_roadmap.yml"
+        "../../envs/r_roadmap.yml"
     shell:
         """
         Rscript workflow/scripts/process_dist_to_fragile_sites.R \

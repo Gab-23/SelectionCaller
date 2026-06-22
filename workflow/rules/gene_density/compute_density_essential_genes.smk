@@ -7,7 +7,7 @@ rule compute_density_essential_genes:
     log:
         "logs/compute_density_essential_genes/{assembly_code}_{window_mode}_{window_size}_{step}_{oncotree_code_DepMap}_{gender_DepMap}_{essentiality_cutoff}_{num_assays_cutoff}_v{gencode_version}.log"
     conda:
-        "../envs/bedtools.yml"
+        "../../envs/bedtools.yml"
     shell:
         """
         bedtools intersect -a {input.backbone_annotated} -b {input.essential_genes} -wa -wb | cut -f 1,2,3,4,5,9 > {output}

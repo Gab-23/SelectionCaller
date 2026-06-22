@@ -6,7 +6,7 @@ rule get_GDC_CNA_data:
     log:
         "logs/get_GDC_CNA_data/{tumor_type_GDC}_{gender_GDC}.log"
     conda:
-        "../envs/gdc.yml"
+        "../../envs/gdc.yml"
     shell:
         """
         touch {output}

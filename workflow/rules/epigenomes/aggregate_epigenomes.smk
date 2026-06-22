@@ -4,7 +4,7 @@ rule aggregate_epigenomes:
     input:
         "resources/epigenomes/checks/processing/{tissue_type_Roadmap}_{sample_type}_{liftover_str}_{file_format}_{assembly_code}_{window_mode}_{window_size}_{step}"
     conda:
-        "../envs/r_roadmap.yml"
+        "../../envs/r_roadmap.yml"
     log:
         "logs/aggregate_epigenomes/{tissue_type_Roadmap}_{sample_type}_{liftover_str}_{file_format}_{assembly_code}_{window_mode}_{window_size}_{step}.log"
     shell:

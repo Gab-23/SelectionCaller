@@ -529,11 +529,21 @@ rule all_filter_pairs_hic:
         echo {input} >> {output}
         """
 
+rule all_clip_pairs_hic:
+    input:
+        get_clipped_pairs_outputs_hic
+    output:
+        all_done="resources/hic/checks/{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}_clipped_pairs"
+    shell:
+        """
+        echo {input} >> {output}
+        """
+
 rule all_pairs_stat_hic:
     input:
         get_pairs_stats_outputs_hic
     output:
-        all_done="resources/hic/checks/{assembly_code}_{mapq_thr}_stats_pairs"
+        all_done="resources/hic/checks/{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}_stats_pairs"
     shell:
         """
         echo {input} >> {output}
@@ -543,7 +553,7 @@ rule all_multiqc_hic:
     input:
         get_pairs_multiqc_outputs_hic
     output:
-        all_done="resources/hic/checks/{assembly_code}_{mapq_thr}_multiqc"
+        all_done="resources/hic/checks/{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}_multiqc"
     shell:
         """
         echo {input} >> {output}

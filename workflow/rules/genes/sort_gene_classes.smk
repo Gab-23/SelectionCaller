@@ -22,7 +22,7 @@ rule sort_gene_classes:
         path_rRNA_gene="resources/reference_data/gencode/rRNA/v{gencode_version}_gene.bed",
         path_rRNA_exon="resources/reference_data/gencode/rRNA/v{gencode_version}_exon.bed"
     conda:
-        "../envs/bedtools.yml"
+        "../../envs/bedtools.yml"
     log:
         "logs/sort_gene_classes/v{gencode_version}.log"
     shell:

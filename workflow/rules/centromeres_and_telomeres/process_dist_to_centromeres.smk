@@ -4,7 +4,7 @@ rule process_dist_to_centromeres:
     input:
         "resources/distances/centromeres/{assembly_code}_{window_mode}_{window_size}_{step}.bed"
     conda:
-        "../envs/r_roadmap.yml"
+        "../../envs/r_roadmap.yml"
     log:
         "logs/process_dist_to_centromeres/{assembly_code}_{window_mode}_{window_size}_{step}.log"
     shell:

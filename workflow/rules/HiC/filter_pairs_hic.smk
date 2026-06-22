@@ -8,7 +8,7 @@ rule filter_pairs_hic:
 	params:
 		num_cores_hic=num_cores_hic
 	conda:
-		"../envs/hic_processing_env.yaml"
+		"../../envs/hic_processing_env.yaml"
 	shell:
 		"""
 		pairtools select "mapq1>={wildcards.mapq_thr} and mapq2>={wildcards.mapq_thr}" \

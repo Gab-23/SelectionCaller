@@ -9,7 +9,7 @@ rule compute_density_cancer_genes:
     log:
         "logs/compute_density_cancer_genes/{assembly_code}_{window_mode}_{window_size}_{step}_v{gencode_version}_{tumor_type_IntOGen}.log"
     conda:
-        "../envs/bedtools.yml"
+        "../../envs/bedtools.yml"
     shell:
         """
         bedtools intersect -a {input.backbone_annotated} -b {input.OGs} -wa -wb | cut -f 1,2,3,4,5,10 > {output.OGs}

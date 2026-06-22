@@ -6,7 +6,7 @@ rule get_blacklisted_regions:
     log:
         "logs/get_blacklisted_regions/{assembly_code}.log"
     conda:
-        "../envs/filter_backbone.yml"
+        "../../envs/filter_backbone.yml"
     shell:
         """
 	    wget -qO- https://github.com/Boyle-Lab/Blacklist/raw/refs/heads/master/lists/{wildcards.assembly_code}-blacklist.v2.bed.gz | \

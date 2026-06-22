@@ -8,7 +8,7 @@ rule filter_GDC_CNA_data:
     log:
         "logs/filter_GDC_CNA_data/{tumor_type_GDC}_{gender_GDC}_{min_Num_Probes}_{min_abs_Segment_Mean}.log"
     conda:
-        "../envs/r_plotting.yml"
+        "../../envs/r_plotting.yml"
     shell:
         """
         Rscript workflow/scripts/filter_GDC_CNA_data.R \

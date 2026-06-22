@@ -5,7 +5,7 @@ rule compute_noncoding_mutations_overlap:
         path_mutation="resources/COSMIC/coordinates/noncoding/{gender_COSMIC}_{COSMIC_parameters}.sorted.bed",
         path_backbone="resources/backbone/{assembly_code}_{window_mode}_{window_size}_{step}.mask.filtered.sorted.bed"
     conda:
-        "../envs/r_roadmap.yml"
+        "../../envs/r_roadmap.yml"
     log:
         "logs/compute_noncoding_mutations_overlap/{assembly_code}_{window_mode}_{window_size}_{step}_{gender_COSMIC}_{COSMIC_parameters}.log"
     shell:

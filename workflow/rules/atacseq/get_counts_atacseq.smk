@@ -47,7 +47,7 @@ rule get_counts_atacseq:
     log:
         "logs/get_counts_atacseq/{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}_{minSamples_atacseq}_{minCounts_atacseq}_{minCpm_atacseq}_{SVs}.log"        
     conda:
-        "../envs/r_limma.yml"
+        "../../envs/r_limma.yml"
     shell:
         """
         Rscript workflow/scripts/get_counts_atacseq.R \

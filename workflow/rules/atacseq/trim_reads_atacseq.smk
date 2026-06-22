@@ -8,7 +8,7 @@ rule trim_reads_atacseq:
     log:
         "logs/trim_reads_atacseq/{SRA_id}.log"
     conda:
-        "../envs/trim_galore.yml"
+        "../../envs/trim_galore.yml"
     shell:
         """
         trim_galore --fastqc --gzip --paired \

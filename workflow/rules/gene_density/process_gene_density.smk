@@ -10,7 +10,7 @@ rule process_gene_density:
     log:
         "logs/process_gene_density/{assembly_code}_{window_mode}_{window_size}_{step}_{oncotree_code_DepMap}_{gender_DepMap}_{essentiality_cutoff}_{num_assays_cutoff}_v{gencode_version}_{tumor_type_IntOGen}.log"
     conda:
-        "../envs/r_spdep.yml"
+        "../../envs/r_spdep.yml"
     shell:
         """
         Rscript process_gene_density.R \

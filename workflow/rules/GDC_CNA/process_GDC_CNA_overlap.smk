@@ -11,7 +11,7 @@ rule process_GDC_CNA_overlap:
     log:
         "logs/process_GDC_CNA_overlap/{assembly_code}_{window_mode}_{window_size}_{step}_{tumor_type_GDC}_{gender_GDC}_{min_Num_Probes}_{min_abs_Segment_Mean}.log"
     conda:
-        "../envs/r_plotting.yml"
+        "../../envs/r_plotting.yml"
     shell:
         """
         NUM_PATIENTS=$(tail -n+2 {input.path_manifest} | wc -l)

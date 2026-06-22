@@ -8,7 +8,7 @@ rule name_sort_final_bam_atacseq:
     params:
         num_cores_atacseq=num_cores_atacseq
     conda:
-        "../envs/bowtie2_samtools.yml"
+        "../../envs/bowtie2_samtools.yml"
     shell:
         """
         samtools sort -@ {params.num_cores_atacseq} -n {input} -o {output} 2>{log}

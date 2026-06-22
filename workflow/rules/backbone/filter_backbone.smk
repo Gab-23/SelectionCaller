@@ -10,7 +10,7 @@ rule filter_backbone:
     log:
         "logs/filter_backbone/{assembly_code}_{window_mode}_{window_size}_{step}.log"
     conda:
-        "../envs/filter_backbone.yml"
+        "../../envs/filter_backbone.yml"
     shell:
         """
         bedtools intersect -a {input.backbone_full} -b {input.blacklist} -g {input.chrom_sizes} -sorted -v > {output.backbone_full} 2>>{log}

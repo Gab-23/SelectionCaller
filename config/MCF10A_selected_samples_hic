@@ -1,2 +1,3 @@
-SRA_id	sample_type	cell_line	library_size
-
+SRA_id	cell_line
+SRR13537353	MCF10A
+SRR13537354	MCF10A

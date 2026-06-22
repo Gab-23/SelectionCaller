@@ -5,7 +5,7 @@ rule get_dist_to_centromeres:
         backbone="resources/backbone/{assembly_code}_{window_mode}_{window_size}_{step}.mask.filtered.sorted.bed",
         centromeres="resources/reference_data/centromeres/{assembly_code}.bed"
     conda:
-        "../envs/bedtools.yml"
+        "../../envs/bedtools.yml"
     log:
         "logs/get_dist_to_centromeres/{assembly_code}_{window_mode}_{window_size}_{step}.log"
     shell:

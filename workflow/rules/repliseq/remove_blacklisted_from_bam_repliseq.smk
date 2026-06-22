@@ -7,7 +7,7 @@ rule remove_blacklisted_from_bam_repliseq:
     log:
         "logs/remove_blacklisted_from_bam_repliseq/{assembly_code}_{mapq_thr}_{SRA_id}.log"
     conda:
-        "../envs/bedtools.yml"
+        "../../envs/bedtools.yml"
     shell:
         """
         bedtools intersect -v -abam {input.bam} -b {input.blacklist} > {output}

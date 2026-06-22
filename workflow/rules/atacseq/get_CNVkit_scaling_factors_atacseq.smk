@@ -7,7 +7,7 @@ rule get_CNVkit_scaling_factors_atacseq:
     log:
         "logs/get_CNVkit_scaling_factors/{SRA_tumor_id}_{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}.log"
     conda:
-        "../envs/bedtools_env.yml"
+        "../../envs/bedtools_env.yml"
     shell:
         """
         bedtools closest -a {input.path_backbone} \

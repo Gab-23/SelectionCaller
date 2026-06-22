@@ -4,7 +4,7 @@ rule filter_classification_COSMIC:
     input:
         config["COSMIC_classification_locations"][0]
     conda:
-        "../envs/r_backbone.yml"
+        "../../envs/r_backbone.yml"
     log:
         "logs/filter_classification_COSMIC/{COSMIC_parameters}.log"
     shell:

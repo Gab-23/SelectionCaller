@@ -6,7 +6,7 @@ rule sort_GDC_CNA_data:
     log:
         "logs/sort_GDC_CNA_data/{tumor_type_GDC}_{gender_GDC}_{min_Num_Probes}_{min_abs_Segment_Mean}.log"
     conda:
-        "../envs/bedtools.yml"
+        "../../envs/bedtools.yml"
     shell:
         """
         bedtools sort -i {input} > {output} 2> {log}

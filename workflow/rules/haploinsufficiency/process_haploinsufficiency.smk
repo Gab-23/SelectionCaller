@@ -9,7 +9,7 @@ rule process_haploinsufficiency:
     params:
         C = num_cores_R
     conda:
-        "../envs/r_spdep.yml"
+        "../../envs/r_spdep.yml"
     shell:
         """
         Rscript workflow/scripts/process_haploinsufficiency.R \

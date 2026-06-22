@@ -6,7 +6,7 @@ rule sort_collapse_mutations:
         path_coding="resources/COSMIC/coordinates/coding/{gender_COSMIC}_{COSMIC_parameters}.bed",
         path_noncoding="resources/COSMIC/coordinates/noncoding/{gender_COSMIC}_{COSMIC_parameters}.bed"
     conda:
-        "../envs/bedtools.yml"
+        "../../envs/bedtools.yml"
     log:
         "logs/sort_collapse_mutations/{gender_COSMIC}_{COSMIC_parameters}.log"
     shell:

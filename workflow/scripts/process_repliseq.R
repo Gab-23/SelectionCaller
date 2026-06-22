@@ -7,12 +7,13 @@ args <- R.utils::commandArgs(trailingOnly = TRUE, asValues = TRUE)              
 
 input_path_dir                           <- args$input_path_dir
 input_path_samples                       <- args$input_path_samples
+input_path_library_size                  <- args$input_path_library_size
 input_path_backbone_mask                 <- args$input_path_backbone_mask
 output_path_data                         <- args$output_path_data
 output_path_plot_distribution            <- args$output_path_plot_distribution
 output_path_plot_landscape               <- args$output_path_plot_landscape
 output_path_plot_raw_smooth              <- args$output_path_plot_raw_smooth
-window_size                              <- args$window_size
+window_size                              <- as.numeric(args$window_size)
 smoothing_size                           <- as.numeric(args$smoothing_size)
 chr_to_plot                              <- 17
 
@@ -20,7 +21,10 @@ chr_to_plot                              <- 17
 
 files <- list.files(input_path_dir, recursive = T, full.names = T, pattern = "filtered")
 samples <- read.table(file = input_path_samples, header = T, sep = "\t")
+library_size_table <- read.table(file = input_path_library_size, header = T, sep = "\t")
 mask <- read.table(file = input_path_backbone_mask, header = F, sep = "\t")
+
+samples <- merge(samples, library_size_table, by = "SRA_id")
 
 sample_types <- c("ES", "LS", "G1")
 

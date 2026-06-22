@@ -7,7 +7,7 @@ rule get_dist_closest_TSG:
     log:
         "logs/get_dist_closest_TSG/{assembly_code}_{window_mode}_{window_size}_{step}_v{gencode_version}_{tumor_type_IntOGen}.log"
     conda:
-        "../envs/bedtools.yml"
+        "../../envs/bedtools.yml"
     shell:
         """
         bedtools closest -a {input.path_backbone} -b {input.path_TSG} -d | cut -f 1,2,3,4,9,10,11 > {output} 2>{log}

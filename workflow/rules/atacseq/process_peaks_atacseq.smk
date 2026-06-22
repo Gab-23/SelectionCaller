@@ -6,7 +6,7 @@ rule process_peaks_atacseq:
     log:
         "logs/process_peaks_atacseq/"
     conda:
-        "../envs/r_backbone.yml"
+        "../../envs/r_backbone.yml"
     shell:
         """
         """

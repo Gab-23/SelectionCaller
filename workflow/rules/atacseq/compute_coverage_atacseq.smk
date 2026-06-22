@@ -7,7 +7,7 @@ rule compute_coverage_atacseq:
     log:
         "logs/compute_coverage_atacseq/{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}_{SRA_id}.log"
     conda:
-        "../envs/bedtools.yml"
+        "../../envs/bedtools.yml"
     shell:
         """
         bedtools coverage -counts -a {input.backbone} -b {input.bam} > {output}

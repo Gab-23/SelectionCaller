@@ -5,7 +5,7 @@ rule compute_coding_mutations_overlap:
         path_mutation="resources/COSMIC/mutations/coding/{gender_COSMIC}_{COSMIC_parameters}_w_description.sorted.bed",
         path_backbone="resources/backbone/{assembly_code}_{window_mode}_{window_size}_{step}.mask.filtered.sorted.bed"
     conda:
-        "../envs/r_roadmap.yml"
+        "../../envs/r_roadmap.yml"
     log:
         "logs/compute_coding_mutations_overlap/{assembly_code}_{window_mode}_{window_size}_{step}_{gender_COSMIC}_{COSMIC_parameters}.log"
     shell:

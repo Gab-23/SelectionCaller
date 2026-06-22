@@ -9,7 +9,7 @@ rule filter_bam_atacseq:
     params:
         num_cores_atacseq=num_cores_atacseq
     conda:
-        "../envs/bowtie2_samtools.yml"
+        "../../envs/bowtie2_samtools.yml"
     shell:
         """
         samtools view -@ {params.num_cores_atacseq} -o {output} {input.bam} $(echo chr{{1..22}} chrX chrY) 2>{log}

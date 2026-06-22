@@ -4,7 +4,7 @@ rule filter_CRISPR_models:
     input:
         models=config["DepMap_models_locations"][0]
     conda:
-        "../envs/r_roadmap.yml"
+        "../../envs/r_roadmap.yml"
     log:
         "logs/filter_CRISPR_models/{oncotree_code_DepMap}_{gender_DepMap}"
     shell:

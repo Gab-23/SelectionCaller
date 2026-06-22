@@ -4,7 +4,7 @@ rule sort_TSSs:
     input:
         "resources/reference_data/gencode/v{gencode_version}.bed"
     conda:
-        "../envs/bedtools.yml"
+        "../../envs/bedtools.yml"
     log:
         "logs/sort_TSSs/v{gencode_version}.log"
     shell:

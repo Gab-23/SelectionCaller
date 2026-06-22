@@ -13,7 +13,7 @@ rule align_reads_atacseq:
         max_insert_size_atacseq=max_insert_size_atacseq,
         index_prefix="resources/reference_data/genome/{assembly_code}"
     conda:
-        "../envs/bowtie2_samtools.yml"
+        "../../envs/bowtie2_samtools.yml"
     shell:
         """
         bowtie2 -q \

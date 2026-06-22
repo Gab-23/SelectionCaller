@@ -9,7 +9,7 @@ rule get_samples_GDC:
     params:
         cohort_GDC=cohort_GDC
     conda:
-        "../envs/r_backbone.yml"
+        "../../envs/r_backbone.yml"
     log:
         "logs/get_samples_table/{tumor_type_GDC}_{gender_GDC}.log"
     shell:

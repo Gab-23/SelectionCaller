@@ -5,7 +5,7 @@ rule get_final_samples_COSMIC:
         path_phenotype_ids="resources/COSMIC/classification/{COSMIC_parameters}",
         path_samples="resources/COSMIC/samples/{gender_COSMIC}"
     conda:
-        "../envs/r_backbone.yml"
+        "../../envs/r_backbone.yml"
     log:
         "logs/get_final_samples_COSMIC/{gender_COSMIC}_{COSMIC_parameters}.log"
     shell:

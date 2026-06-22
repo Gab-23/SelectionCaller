@@ -11,7 +11,7 @@ rule align_reads_repliseq:
     params:
         num_cores_repliseq=num_cores_repliseq
     conda:
-        "../envs/bwa_samtools.yml"
+        "../../envs/bwa_samtools.yml"
     shell:
         """
         bwa mem \

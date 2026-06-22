@@ -10,7 +10,7 @@ rule call_peaks_conditionwise_atacseq:
     log:
         "logs/call_peaks_conditionwise_atacseq/{condition}_{assembly_code}_{mapq_thr}_{min_length_atacseq}_{q_val_thr_atacseq}.log"
     conda:
-        "../envs/call_peaks.yml"
+        "../../envs/call_peaks.yml"
     shell:
         """
         GENRICH_INPUT=$(awk -v condition="{wildcards.condition}" '$6 == condition {print $1}' {input.metadata} | \

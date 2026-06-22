@@ -7,7 +7,7 @@ rule compute_insert_size_metrics_atacseq:
     log:
         "logs/compute_insert_size_metrics_atacseq/{assembly_code}_{mapq_thr}_{SRA_id}.log"
     conda:
-        "../envs/picard.yml"
+        "../../envs/picard.yml"
     shell:
         """
         picard CollectInsertSizeMetrics \

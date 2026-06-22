@@ -8,7 +8,7 @@ rule index_noblacklist_bam_repliseq:
     params:
         num_cores_repliseq=num_cores_repliseq
     conda:
-        "../envs/bwa_samtools.yml"
+        "../../envs/bwa_samtools.yml"
     shell:
         """
         samtools index -@ {params.num_cores_repliseq} {input} 2>{log}

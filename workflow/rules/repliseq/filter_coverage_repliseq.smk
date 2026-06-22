@@ -7,7 +7,7 @@ rule filter_coverage_repliseq:
     log:
         "logs/get_distribution_counts_repliseq/{SRA_id}_{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}_{cov_thr}.log"
     conda:
-        "../envs/r_plotting.yml"
+        "../../envs/r_plotting.yml"
     shell:
         """
         Rscript workflow/scripts/filter_coverage_repliseq.R \

@@ -1,0 +1,2 @@
+Download hicqc folder from the github repo
+Follow instructions to create conda env

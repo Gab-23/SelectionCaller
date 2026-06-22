@@ -7,7 +7,7 @@ rule get_model_average_essentiality_score:
     log:
         "logs/get_model_average_essentiality_score/{oncotree_code_DepMap}_{gender_DepMap}_{essentiality_cutoff}_{num_assays_cutoff}_v{gencode_version}.log"
     conda:
-        "../envs/r_roadmap.yml"
+        "../../envs/r_roadmap.yml"
     shell:
         """
         Rscript workflow/scripts/get_model_average_essentiality_score.R \

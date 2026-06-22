@@ -6,7 +6,7 @@ rule filter_samples_COSMIC:
     params:
         sample_name_pattern=config["COSMIC_sample_name_patterns"][0]
     conda:
-        "../envs/r_backbone.yml"
+        "../../envs/r_backbone.yml"
     log:
         "logs/filter_samples_COSMIC/{gender_COSMIC}.log"
     shell:

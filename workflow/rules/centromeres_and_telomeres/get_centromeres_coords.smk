@@ -6,7 +6,7 @@ rule get_centromeres_coords:
     log:
         "logs/get_centromeres_coords/{assembly_code}.log"
     conda:
-        "../envs/bedtools.yml"
+        "../../envs/bedtools.yml"
     shell:
         """
         grep acen {input} | bedtools merge > {output} 2> {log}

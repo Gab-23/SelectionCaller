@@ -9,7 +9,7 @@ rule deduplicate_bam_atacseq:
     params:
         pixel_distance_atacseq=pixel_distance_atacseq
     conda:
-        "../envs/picard.yml"
+        "../../envs/picard.yml"
     shell:
         """
         picard MarkDuplicates \

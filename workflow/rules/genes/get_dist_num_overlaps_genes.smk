@@ -17,7 +17,7 @@ rule get_dist_num_overlaps_genes:
     log:
         "logs/get_dist_num_overlaps_genes/{assembly_code}_{window_mode}_{window_size}_{step}_v{gencode_version}.log"
     conda:
-        "../envs/bedtools.yml"
+        "../../envs/bedtools.yml"
     shell:
         """
         bedtools intersect -a {input.path_backbone} -b {input.path_protein_coding_gene} -c > {output.num_overlaps_protein_coding} 2>> {log}

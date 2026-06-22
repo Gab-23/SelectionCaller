@@ -4,7 +4,7 @@ rule get_TSSs:
     input:
         "resources/reference_data/gencode/gencode.v{gencode_version}.annotation.gff3.gz"
     conda:
-        "../envs/r_backbone.yml"
+        "../../envs/r_backbone.yml"
     log:
         "logs/get_TSSs/v{gencode_version}.log"
     shell:

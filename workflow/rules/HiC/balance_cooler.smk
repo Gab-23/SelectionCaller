@@ -8,7 +8,7 @@ rule balance_cooler:
     params:
         num_cores_hic=num_cores_hic
     conda:
-        "../envs/hic_processing_env.yaml"
+        "../../envs/hic_processing_env.yaml"
     shell:
         """
         cp {input} {output}

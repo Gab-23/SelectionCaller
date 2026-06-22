@@ -8,7 +8,7 @@ rule process_dist_to_cancer_genes:
     log:
         "logs/process_dist_to_cancer_genes/{assembly_code}_{window_mode}_{window_size}_{step}_v{gencode_version}_{tumor_type_IntOGen}.log"
     conda:
-        "../envs/r_roadmap.yml"
+        "../../envs/r_roadmap.yml"
     shell:
         """
         Rscript workflow/scripts/process_dist_to_cancer_genes.R \

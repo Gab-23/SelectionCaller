@@ -8,7 +8,7 @@ rule do_bamqc_repliseq:
     params:
         java_mem_size_repliseq=java_mem_size_repliseq
     conda:
-        "../envs/bamqc.yml"
+        "../../envs/bamqc.yml"
     shell:
         """
         qualimap bamqc \

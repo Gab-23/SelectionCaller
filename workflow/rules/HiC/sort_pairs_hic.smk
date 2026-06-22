@@ -8,7 +8,7 @@ rule sort_pairs_hic:
     params:
         num_cores_hic=num_cores_hic
     conda:
-        "../envs/hic_processing_env.yaml"
+        "../../envs/hic_processing_env.yaml"
     shell:
         """
         pairtools sort --nproc {params.num_cores_hic} -o {output} {input} 2>{log}

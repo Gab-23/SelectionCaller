@@ -6,7 +6,7 @@ rule fix_mate_information_atacseq:
     log:
         "logs/fix_mate_information_atacseq/{assembly_code}_{mapq_thr}_{SRA_id}.log"
     conda:
-        "../envs/picard.yml"
+        "../../envs/picard.yml"
     shell:
         """
         picard FixMateInformation \

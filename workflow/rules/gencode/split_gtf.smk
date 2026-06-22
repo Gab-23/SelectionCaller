@@ -14,7 +14,7 @@ rule split_gtf:
     input:
         "resources/reference_data/gencode/gencode.v{gencode_version}.annotation.gff3.gz"
     conda:
-        "../envs/r_roadmap.yml"
+        "../../envs/r_roadmap.yml"
     log:
         "logs/split_gtf/v{gencode_version}.log"
     shell:

@@ -5,7 +5,7 @@ rule process_epigenome:
         epigenomes_paths="resources/epigenomes/checks/downloads/{tissue_type_Roadmap}_{sample_type}_{liftover_str}_{file_format}",
         backbone_path="resources/backbone/{assembly_code}_{window_mode}_{window_size}_{step}.mask.filtered.sorted.bed"
     conda:
-        "../envs/r_roadmap.yml"
+        "../../envs/r_roadmap.yml"
     log:
         "logs/process_epigenome/{tissue_type_Roadmap}_{sample_type}_{liftover_str}_{file_format}_{assembly_code}_{window_mode}_{window_size}_{step}.log"
     shell:
