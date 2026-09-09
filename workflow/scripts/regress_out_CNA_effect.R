@@ -6,11 +6,11 @@ args <- R.utils::commandArgs(trailingOnly = TRUE, asValues = TRUE)              
 
 input_path_counts                     <- args$input_path_counts
 input_path_metadata                   <- args$input_path_metadata
-input_path_ampl			      <- args$input_path_ampl
+input_path_ampl			              <- args$input_path_ampl
 input_path_del                        <- args$input_path_del
 
-mode				      <- args$mode
-degree		                      <- as.integer(args$degree)
+mode				                  <- args$mode
+degree		                          <- as.integer(args$degree)
 
 output_path_corrected_counts          <- args$output_path_corrected_counts
 output_path_comparison_plot           <- args$output_path_comparison_plot

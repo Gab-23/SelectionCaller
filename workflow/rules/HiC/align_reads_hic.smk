@@ -11,7 +11,7 @@ rule align_reads_hic:
     params:
         num_cores_hic=num_cores_hic
     conda:
-        "../../envs/hic_env.yaml"
+        "../../envs/hic_env.yml"
     shell:
         """
         bwa mem -t {params.num_cores_hic} -5SP {input.fasta} {input.FWD} {input.REV} | \

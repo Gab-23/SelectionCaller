@@ -7,9 +7,13 @@ import argparse
 
 warnings.filterwarnings("ignore")
 
+parser = argparse.ArgumentParser()
+
 parser.add_argument('--input_path_cool', dest='input_path_cool', required=True, type=str, help='')
 parser.add_argument('--output_path_matrix', dest='output_path_matrix', required=True, type=str, help='')
 parser.add_argument('--output_path_bins', dest='output_path_bins', required=True, type=str, help='')
+
+args = parser.parse_args()
 
 COOL_PATH = args.input_path_cool
 OUTFILE_MATRIX_ZSCORE = args.output_path_matrix

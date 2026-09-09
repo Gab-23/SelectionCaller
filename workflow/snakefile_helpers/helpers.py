@@ -54,3 +54,10 @@ def map_gender(mapping_file_location, gender):
         return [gender_COSMIC, gender_DepMap, gender_GDC]
     except FileNotFoundError as err:
         print(f"{mapping_file_location} does not exist")
+
+def get_LOO_normal_bam_paths_atacseq(wildcards):
+    other_ids = [sid for sid in SRA_normal_ids_atacseq if sid != wildcards.SRA_normal_id]
+    return [
+        f"resources/atacseq/files/bam/{sid}/{sid}_{wildcards.assembly_code}_{wildcards.mapq_thr}.fixed.bam"
+        for sid in other_ids
+    ]

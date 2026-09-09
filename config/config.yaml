@@ -1,5 +1,5 @@
-input_path_masks:
-  - ""
+input_path_masks: 
+  - "config/non_existing_file"
 
 mapping_file_tt_locations:
   - config/mapping_tissue_tumor_type
@@ -26,10 +26,10 @@ DepMap_models_locations:
   - "resources/DepMap/models/Model.csv"
 
 DepMap_probabilities_locations:
-  - "resources/DepMap/probabilities/CRISPRGeneEffect.csv"
+  - "resources/DepMap/probabilities/CRISPRGeneDependency.csv"
 
 DepMap_scores_locations:
-  - "resources/DepMap/scores/CRISPRGeneDependency.csv"
+  - "resources/DepMap/scores/CRISPRGeneEffect.csv"
 
 COSMIC_classification_locations:
   - resources/COSMIC/classification/Cosmic_Classification_Tsv_v103_GRCh38/Cosmic_Classification_v103_GRCh38.tsv
@@ -102,7 +102,6 @@ essentiality_cutoffs:
 
 num_assays_cutoffs:
   - 4
-
 
 COSMIC_sample_name_patterns:
   - "TCGA"

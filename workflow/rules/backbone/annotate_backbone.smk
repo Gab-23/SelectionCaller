@@ -1,7 +1,7 @@
 rule annotate_backbone:
 	output:
-		backbone_full="resources/backbone/{assembly_code}_{window_mode}_{window_size}_{step}.filtered.sorted.annotated.bed",
-		backbone_mask="resources/backbone/{assembly_code}_{window_mode}_{window_size}_{step}.mask.filtered.sorted.annotated.bed"
+		backbone_full="resources/backbone/{assembly_code}_{window_mode}_{window_size}_{step}_v{gencode_version}.filtered.sorted.annotated.bed",
+		backbone_mask="resources/backbone/{assembly_code}_{window_mode}_{window_size}_{step}_v{gencode_version}.mask.filtered.sorted.annotated.bed"
 	input:
 		backbone_full="resources/backbone/{assembly_code}_{window_mode}_{window_size}_{step}.filtered.sorted.bed",
 		backbone_mask="resources/backbone/{assembly_code}_{window_mode}_{window_size}_{step}.mask.filtered.sorted.bed",
@@ -9,7 +9,7 @@ rule annotate_backbone:
 	conda:
 		"../../envs/bedtools.yml"
 	log:
-		"logs/annotate_backbone/{assembly_code}_{window_mode}_{window_size}_{step}.log"
+		"logs/annotate_backbone/{assembly_code}_{window_mode}_{window_size}_{step}_v{gencode_version}.log"
 	shell:
 		"""
 		bedtools intersect -a {input.backbone_full} -b {input.annotation} -wa -wb | \

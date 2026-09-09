@@ -1,0 +1,14 @@
+name: r_process_repliseq
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - r-base=4.3
+  - r-essentials
+  - r-r.utils
+  - r-dplyr
+  - r-tidyr
+  - r-ggplot2
+  - r-gridextra
+  - bioconductor-genomicranges

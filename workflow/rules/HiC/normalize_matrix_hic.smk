@@ -7,7 +7,7 @@ rule normalize_matrix_hic:
     log:
         "logs/normalize_matrix_hic/{assembly_code}_{mapq_thr}_{window_mode}_{window_size}_{step}.log"
     conda:
-        "../../envs/hic_processing_env.yaml"
+        "../../envs/hic_processing_env.yml"
     shell:
         """
         python workflow/scripts/normalize_matrix_hic.py \

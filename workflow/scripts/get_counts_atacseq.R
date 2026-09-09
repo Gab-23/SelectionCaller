@@ -94,7 +94,7 @@ samples_to_exclude <- readLines(input_path_samples_to_exclude)
 
 sample_names_coverage <- unlist(lapply(X = files_coverage, FUN = function(x){strsplit(x, split = "/")[[1]][[5]]}))
 sample_names_scaling_factors <- unlist(lapply(X = files_scaling_factors, FUN = function(x){strsplit(x, split = "/")[[1]][[5]]}))
-sample_names_scaling_factors <- gsub(x = sample_names_scaling_factors, pattern = "_hg38_20.scaling", replacement = "")
+sample_names_scaling_factors <- gsub(x = sample_names_scaling_factors, pattern = "_hg38_20.scaling", replacement = "")                     #### this is hardcoded and can be removed
 
 cov_list <- lapply(X = seq(length(files_coverage)), 
                    FUN = function(idx){
@@ -138,16 +138,16 @@ mm.woCNAs <- out.list.woCNAs$mm
 
 ############ FINAL STEPS
 
-#if (optional_analysis){
-#samples_to_keep_optional <- c("SRR24401466", "SRR24401465", "SRR27726641", "SRR27726640",
+# if (optional_analysis){
+# samples_to_keep_optional <- c("SRR24401466", "SRR24401465", "SRR27726641", "SRR27726640",
 #                               "SRR24401468", "SRR24401467", "SRR24401462", "SRR24401461",
 #                               "SRR27726632", "SRR27726631", "SRR27726628", "SRR27726627",
 #                               "SRR27726634", "SRR27726633", "SRR27726630", "SRR27726629")
 #
-#conditiontumor_new <- ifelse(rownames(mm) %in% samples_to_keep_optional, ifelse(mm[,"conditiontumor"] == 1, 1, -1), 0)
-#mm[,"conditiontumor"] <- conditiontumor_new
+# conditiontumor_new <- ifelse(rownames(mm) %in% samples_to_keep_optional, ifelse(mm[,"conditiontumor"] == 1, 1, -1), 0)
+# mm[,"conditiontumor"] <- conditiontumor_new
 #
-#}
+# }
 
 ############ SAVE OUTPUTS
 

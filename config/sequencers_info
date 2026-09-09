@@ -1,5 +1,5 @@
 sequencer_name	is_patterned
-HiSeq3000	True
+HiSeq_3000	True
 HiSeq_4000	True
 HiSeq_6000	True
 HiSeq_X_Ten	True

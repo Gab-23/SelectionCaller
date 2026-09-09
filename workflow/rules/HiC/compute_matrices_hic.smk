@@ -7,7 +7,7 @@ rule compute_matrices_hic:
 	log:
 		"logs/compute_matrices_hic/{assembly_code}_{mapq_thr}_{window_mode}_{window_size}_{step}_{SRA_id}.log"
 	conda:
-		"../../envs/hic_processing_env.yaml"
+		"../../envs/hic_processing_env.yml"
 	shell:
 		"""
 		cooler cload pairs -c1 2 -p1 3 -c2 4 -p2 5 \

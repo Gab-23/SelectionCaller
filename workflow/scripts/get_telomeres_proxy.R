@@ -7,7 +7,7 @@ output_path            <- args$output_path
 
 chrom_sizes_canon <- read.table(input_path)
 
-starts <- data.frame(chr = paste0("chr", 1:22), start = rep(0, 22), end = rep(1, 22))
+starts <- data.frame(chr = chrom_sizes_canon$V1, start = rep(0, nrow(chrom_sizes_canon)), end = rep(1, nrow(chrom_sizes_canon)))
 
 ends <- chrom_sizes_canon
 ends$V3 <- ends$V2

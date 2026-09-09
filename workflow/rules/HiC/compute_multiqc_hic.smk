@@ -6,7 +6,7 @@ rule compute_multiqc_hic:
     log:
         "logs/compute_multiqc_hic/{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}_{SRA_id}.log"
     conda:
-        "../../envs/hic_processing_env.yaml"
+        "../../envs/hic_processing_env.yml"
     shell:
         """
         multiqc --outdir {output} {input} 2>{log}

@@ -22,7 +22,9 @@ chr_to_plot                              <- 17
 files <- list.files(input_path_dir, recursive = T, full.names = T, pattern = "filtered")
 samples <- read.table(file = input_path_samples, header = T, sep = "\t")
 library_size_table <- read.table(file = input_path_library_size, header = T, sep = "\t")
+
 mask <- read.table(file = input_path_backbone_mask, header = F, sep = "\t")
+colnames(mask) <- c("chr", "start", "end", "binID")
 
 samples <- merge(samples, library_size_table, by = "SRA_id")
 
@@ -63,6 +65,9 @@ G1.f <- G1[G1$binID %in% common_binIDs, ]
 stopifnot(all(ES.f$binID == G1.f$binID))
 stopifnot(all(LS.f$binID == G1.f$binID))
 
+stopifnot(all(ES.f$chr == G1.f$chr) & all(ES.f$start == G1.f$start) & all(ES.f$end == G1.f$end))
+stopifnot(all(LS.f$chr == G1.f$chr) & all(LS.f$start == G1.f$start) & all(LS.f$end == G1.f$end))
+
 ES_G1_norm_coverage <- ES.f$CPM / G1.f$CPM
 LS_G1_norm_coverage <- LS.f$CPM / G1.f$CPM
 
@@ -70,11 +75,13 @@ EL_coverage <- ES_G1_norm_coverage / LS_G1_norm_coverage
 
 log2_EL_coverage <- log2(EL_coverage)
 
-replication_timing <- data.frame(binID = common_binIDs, 
+replication_timing <- data.frame(binID = common_binIDs,
+                                 start = G1.f$start,
+                                 end   = G1.f$end,
                                  replication.timing = log2_EL_coverage)
 
-replication_timing <- tidyr::separate_wider_delim(data = replication_timing, 
-                                                  cols = binID, 
+replication_timing <- tidyr::separate_wider_delim(data = replication_timing,
+                                                  cols = binID,
                                                   delim = "_", 
                                                   names = c("chr", "pos"))
 
@@ -111,15 +118,6 @@ for (chr in unique(replication_timing$chr)){
 }
 
 replication_timing$binID <- paste0(replication_timing$chr, "_", replication_timing$pos)
-
-replication_timing$chr <- NULL
-replication_timing$pos <- NULL
-
-# add subsetting here using GenomicRanges
-# given replication timing, overlap with
-#
-#
-#
 
 hist <- ggplot2::ggplot(replication_timing, ggplot2::aes(x = replication.timing)) +
   ggplot2::geom_histogram(
@@ -192,7 +190,43 @@ ggplot2::ggsave(filename = output_path_plot_distribution, plot = hist, width = 8
 ggplot2::ggsave(filename = output_path_plot_landscape, plot = landscape, width = 24, height = 10, units = "in")
 ggplot2::ggsave(filename = output_path_plot_raw_smooth, plot = raw_smooth, width = 24, height = 10, units = "in")
 
-write.table(x = replication_timing[, c("binID", "replication.timing.smoothed")],
+replication_timing_gr <- GenomicRanges::makeGRangesFromDataFrame(
+  replication_timing,
+  seqnames.field = "chr",
+  start.field = "start",
+  end.field = "end",
+  starts.in.df.are.0based = TRUE,
+  keep.extra.columns = TRUE
+)
+
+mask_gr <- GenomicRanges::makeGRangesFromDataFrame(
+  mask,
+  seqnames.field = "chr",
+  start.field = "start",
+  end.field = "end",
+  starts.in.df.are.0based = TRUE,
+  keep.extra.columns = TRUE
+)
+
+hits <- GenomicRanges::findOverlaps(query = mask_gr, subject = replication_timing_gr, type = "any")
+
+overlap_table <- data.frame(
+  mask_idx     = S4Vectors::queryHits(hits),
+  backbone_idx = S4Vectors::subjectHits(hits)
+)
+overlap_table$replication.timing.smoothed <- replication_timing_gr$replication.timing.smoothed[overlap_table$backbone_idx]
+
+averaged <- overlap_table %>%
+  dplyr::select(-backbone_idx) %>%
+  dplyr::group_by(mask_idx) %>%
+  dplyr::summarise(avg_RT = mean(replication.timing.smoothed))
+
+output_data <- data.frame(
+  binID                       = mask$binID[averaged$mask_idx],
+  replication.timing.smoothed = averaged$avg_RT
+)
+
+write.table(x = output_data,
             file = output_path_data, 
             quote = F, 
             sep = "\t", 

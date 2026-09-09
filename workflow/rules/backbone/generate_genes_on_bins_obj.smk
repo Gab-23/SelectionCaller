@@ -1,10 +1,10 @@
 rule generate_genes_on_bins_obj:
     output:
-        "resources/backbone/{assembly_code}_{window_mode}_{window_size}_{step}.genes_on_bins.RData"
+        "resources/backbone/{assembly_code}_{window_mode}_{window_size}_{step}_v{gencode_version}.genes_on_bins.RData"
     input:
-        "resources/backbone/{assembly_code}_{window_mode}_{window_size}_{step}.mask.filtered.sorted.annotated.bed"
+        "resources/backbone/{assembly_code}_{window_mode}_{window_size}_{step}_v{gencode_version}.mask.filtered.sorted.annotated.bed"
     log:
-        "logs/generate_genes_on_bins_obj/{assembly_code}_{window_mode}_{window_size}_{step}.log"
+        "logs/generate_genes_on_bins_obj/{assembly_code}_{window_mode}_{window_size}_{step}_v{gencode_version}.log"
     shell:
         """
         Rscript workflow/scripts/generate_genes_on_bins_obj.R \

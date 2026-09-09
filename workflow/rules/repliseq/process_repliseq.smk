@@ -13,7 +13,7 @@ rule process_repliseq:
     log:
         "logs/process_repliseq/{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}_{cov_thr}_{smoothing_size}.log"
     conda:
-        "../../envs/r_plotting.yml"
+        "../../envs/r_process_repliseq.yml"
     shell:
         """
         Rscript workflow/scripts/process_repliseq.R \

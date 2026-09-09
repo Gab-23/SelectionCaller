@@ -8,7 +8,7 @@ rule index_bam_hic:
     params:
         num_cores_hic=num_cores_hic
     conda:
-        "../../envs/hic_env.yaml"
+        "../../envs/hic_env.yml"
     shell:
         """
         samtools index -@ {params.num_cores_hic} {input} 2>{log}

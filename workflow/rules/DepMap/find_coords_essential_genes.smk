@@ -8,5 +8,6 @@ rule find_coord_essential_genes:
         "logs/find_coord_essential_genes/{oncotree_code_DepMap}_{gender_DepMap}_{essentiality_cutoff}_{num_assays_cutoff}_v{gencode_version}"
     shell:
         """
-        grep -Fw -f {input.essential_IDs} {input.protein_coding_genes} | cut -f 1,2,3,5 > {output} 2>{log}
+        awk -F'\t' 'NR==FNR{{ids[$1]; next}} ($5 in ids)' {input.essential_IDs} {input.protein_coding_genes} \
+        | cut -f 1,2,3,5 > {output} 2>{log}
         """

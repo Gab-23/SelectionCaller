@@ -61,6 +61,7 @@ for (idx in seq(length(output_paths))){
 
     output_path <- output_paths[[idx]]
     sub_gtf <- sub_gtfs[[idx]]
+    sub_gtf$start <- sub_gtf$start - 1
 
     write.table(x = sub_gtf[,c("seqnames","start","end", "ID", "gene_name", "gene_type","type")],                                                 # write output
             file = output_path, 

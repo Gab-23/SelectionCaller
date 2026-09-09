@@ -10,7 +10,7 @@ output_path             <- args$output_path
 bin_level_essentiality <- read.table(input_path, header = F, sep = "\t")
 colnames(bin_level_essentiality) <- c("binID", "ess_score")
 
-bin_level_essentiality %>% group_by(binID) %>% summarise(ess_score = mean(ess_score)) -> aggregated_bin_level_essentiality
+bin_level_essentiality %>% dplyr::group_by(binID) %>% dplyr::summarise(ess_score = mean(ess_score)) -> aggregated_bin_level_essentiality
 
 write.table(x = aggregated_bin_level_essentiality,
             file = output_path,

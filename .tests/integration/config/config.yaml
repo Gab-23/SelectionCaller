@@ -1,0 +1,108 @@
+input_path_masks:
+  - "config/non_existing_file"
+mapping_file_tt_locations:
+  - config/mapping_tissue_tumor_type
+mapping_file_gender_locations:
+  - config/mapping_gender
+sequencers_info_locations:
+  - config/sequencers_info
+ohnologs_locations:
+  - "resources/ohnologs_and_paralogs/origin/OhnologList.RData"
+paralogs_locations:
+  - "resources/ohnologs_and_paralogs/origin/ParalogList.RData"
+haploinsufficiency_locations:
+  - "resources/haploinsufficiency/haploinsufficiency.csv"
+IntOGen_locations:
+  - resources/IntOGen/dummy.tsv
+DepMap_models_locations:
+  - "resources/DepMap/models/Model.csv"
+DepMap_probabilities_locations:
+  - "resources/DepMap/probabilities/CRISPRGeneDependency.csv"
+DepMap_scores_locations:
+  - "resources/DepMap/scores/CRISPRGeneEffect.csv"
+COSMIC_classification_locations:
+  - resources/COSMIC/dummy.tsv
+COSMIC_samples_locations:
+  - "resources/COSMIC/dummy_samples.tsv"
+COSMIC_coding_locations:
+  - "resources/COSMIC/dummy_coding.tsv"
+COSMIC_noncoding_locations:
+  - "resources/COSMIC/dummy_noncoding.tsv"
+GDC_clinical_locations:
+  - "resources/GDC/dummy_clinical.tsv"
+GDC_sample_sheet_locations:
+  - "resources/GDC/dummy_sample_sheet.tsv"
+GDC_manifest_locations:
+  - "resources/GDC/dummy_manifest.txt"
+GDC_CNA_files_locations:
+  - resources/GDC/files/*/*.seg.v2.txt
+selected_samples_location_repliseqs:
+  - config/HMEC_selected_samples_repliseq
+selected_samples_location_atacseqs:
+  - config/BREAST_selected_samples_atacseq
+samples_to_exclude_location_atacseqs:
+  - config/BREAST_samples_to_exclude_atacseq
+selected_samples_location_hics:
+  - config/MCF10A_selected_samples_hic
+hic_qc_script_locations:
+  - "resources/hic_qc/hic_qc.py"
+assembly_codes:
+ - hg00
+gencode_versions:
+ - 1
+window_modes:
+  - binned
+window_sizes:
+ - 200
+steps:
+ - 0
+tumor_types:
+  - BRCA
+genders:
+  - F
+sample_types:
+ - PrimaryCulture
+file_formats:
+ - mnemonics
+essentiality_cutoffs:
+  - 0.5
+num_assays_cutoffs:
+  - 4
+COSMIC_sample_name_patterns:
+  - "TCGA"
+min_Num_Probes:
+  - 50
+min_abs_Segment_Means:
+  - 0.2
+num_cores_repliseqs:
+  - 2
+num_cores_atacseqs:
+  - 2
+num_cores_hics:
+  - 2
+java_mem_size_repliseqs:
+  - 2G
+java_mem_size_atacseqs:
+  - 2G
+mapq_thrs:
+  - 20
+cov_thrs:
+  - 50
+smoothing_sizes:
+  - 500000
+max_insert_size_atacseqs:
+  - 2000
+minSamples_atacseqs:
+  - 2
+minCounts_atacseqs:
+  - 200
+minCpm_atacseqs:
+  - 1
+SVs:
+  - 6
+min_length_atacseqs:
+  - 1
+q_val_thr_atacseqs:
+  - 1
+num_cores_Rs:
+  - 2

@@ -10,7 +10,7 @@ rule run_CNVkit_atacseq:
         "logs/run_CNVkit/{assembly_code}_{window_mode}_{window_size}_{step}_{SRA_tumor_id}_{mapq_thr}.log"
     params:
         num_cores_atacseq=num_cores_atacseq,
-        path_dir="resources/atacseq/files/cnvkit_T/",
+        path_dir="resources/atacseq/files/cnvkit/",
         normal_paths_atacseq=" ".join(normal_paths_atacseq)
     conda:
         "../../envs/cnvkit_env.yml"

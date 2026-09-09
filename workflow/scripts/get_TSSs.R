@@ -19,7 +19,7 @@ output_dataset <- cbind(as.data.frame(pc_transcripts_gr@seqnames),              
                         as.data.frame(pc_transcripts_gr@strand))[,c(1,2,3,5,6)]   # [,c(1:3,5)] here we need to enforce end = start  + 1
 
 colnames(output_dataset) <- c("chr", "start", "end", "names", "strand")
-output_dataset$start <- ifelse(output_dataset$strand == "-", (output_dataset$end - 1), output_dataset$start)
+output_dataset$start <- ifelse(output_dataset$strand == "-", (output_dataset$end - 1), (output_dataset$start - 1))
 output_dataset$end <- output_dataset$start + 1
 output_dataset$strand <- NULL
 

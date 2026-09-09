@@ -1,0 +1,9 @@
+UCSC ha cambiato l'hostname
+
+Da: 
+
+https://hgdownload.cse.ucsc.edu/
+
+A:
+
+https://hgdownload.soe.ucsc.edu/
