@@ -35,5 +35,5 @@ rule get_DARs:
         --input_path_model_matrix={input.path_model_matrix} \
         --input_path_model_matrix_woCNAs={input.path_model_matrix_woCNAs} \
         --input_path_ampl={input.path_ampl} \
-        --input_path_del={input.path_del} \
+        --input_path_del={input.path_del} 2> {log}
         """

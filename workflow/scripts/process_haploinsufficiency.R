@@ -14,16 +14,16 @@ C								     <- as.integer(args$C)
 haplo <- read.table(input_path_haplo, header = T, sep = ";")
 
 # questa contiene solo bins con almeno un gene
-backbone <- read.table(input_path_backbone, header = T, sep = "\t")
+backbone <- read.table(input_path_backbone, header = F, sep = "\t")
 colnames(backbone) <- c("chr", "start", "end", "binID", "annot")
 
 haplo.s <- haplo[, c("transcript","gene","pLI")]
 haplo.s.f <- haplo.s[haplo.s$pLI > haplo_thr,]
 
 haplo.s.f.avg <- haplo.s.f %>%
-                select(-transcript) %>%
-                group_by(gene) %>%
-                summarise(gene_avg_pLI = mean(pLI))
+                dplyr::select(-transcript) %>%
+                dplyr::group_by(gene) %>%
+                dplyr::summarise(gene_avg_pLI = mean(pLI))
 
 backbone_w_haplo <- do.call(rbind,
                             parallel::mclapply(mc.cores = C, 

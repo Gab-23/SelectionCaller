@@ -13,6 +13,6 @@ rule trim_reads_atacseq:
         """
         trim_galore --fastqc --gzip --paired \
                     -o resources/atacseq/files/fastq/{wildcards.SRA_id}/ \
-                    {input.FWD} {input.REV}
+                    {input.FWD} {input.REV} 2> {log}
         """
 

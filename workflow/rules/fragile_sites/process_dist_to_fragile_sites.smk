@@ -11,5 +11,5 @@ rule process_dist_to_fragile_sites:
         """
         Rscript workflow/scripts/process_dist_to_fragile_sites.R \
             --input_path_dist_fragile_sites={input} \
-            --output_path_dist_fragile_sites={output}
+            --output_path_dist_fragile_sites={output} 2> {log}
         """

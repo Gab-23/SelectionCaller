@@ -9,6 +9,6 @@ rule get_GDC_CNA_data:
         "../../envs/gdc.yml"
     shell:
         """
-        gdc-client download -m {input} -d resources/GDC/CNAs/files/
+        gdc-client download -m {input} -d resources/GDC/CNAs/files/ 2> {log}
         touch {output}
         """

@@ -25,5 +25,5 @@ rule explore_cohort_atacseq:
         --output_path_plot_grade_distribution={output.path_plot_grade_distribution} \
         --output_path_plot_samples_per_study_by_condition={output.path_plot_samples_per_study_by_condition} \
         --output_path_plot_age_distribution={output.path_plot_age_distribution} \
-        --output_path_plot_library_size_by_study={output.path_plot_library_size_by_study}
+        --output_path_plot_library_size_by_study={output.path_plot_library_size_by_study} 2> {log}
         """

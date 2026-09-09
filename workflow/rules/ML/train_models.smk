@@ -34,5 +34,5 @@ rule train_models:
         --output_path_warning={output.path_warning} \
         --output_path_hyperparams={output.path_hyperparams} \
         --output_path_selected_features={output.path_selected_features} \
-        --output_path_performances={output.path_performances}              
+        --output_path_performances={output.path_performances} 2> {log}              
         """

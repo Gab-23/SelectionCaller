@@ -12,7 +12,7 @@ table <- import_table(input_path_dist_fragile_sites, header = F)
 colnames(table) <- c("chr","start","end", "binID", "dist")
     
 processed_table <- process_dist_to_fragile_sites(table)
-colnames(processed_table) <- c("chr", "start", "end", "dist.to.closest.FGS")
+colnames(processed_table) <- c("chr", "start", "end", "binID", "dist.to.closest.FGS")
 
 write.table(x = processed_table[,c("binID", "dist.to.closest.FGS")],                                          # write output
             file = output_path_dist_fragile_sites, 

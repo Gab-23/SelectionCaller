@@ -10,5 +10,5 @@ rule generate_genes_on_bins_obj:
         Rscript workflow/scripts/generate_genes_on_bins_obj.R \
         --input_path={input} \
         --window_size={wildcards.window_size} \
-        --output_path={output}
+        --output_path={output} 2> {log}
         """

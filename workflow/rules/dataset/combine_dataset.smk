@@ -65,5 +65,5 @@ rule combine_dataset:
         --output_path_dataset={output.path_dataset} \
         --output_path_corr={output.path_corr_plot} \
         --output_path_NA_plot={output.path_NA_plot} \
-        --output_path_boxplots={output.path_boxplots}
+        --output_path_boxplots={output.path_boxplots} 2> {log}
         """

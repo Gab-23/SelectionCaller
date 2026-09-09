@@ -19,7 +19,7 @@ rule deduplicate_pairs_hic:
 		--mark-dups \
 		--output {output.pairs} \
 		--output-stats {output.stats} \
-		{input} &
+		{input} 2> {log} &
 
 		DEDUP_PID=$!
 		while kill -0 $DEDUP_PID ; do

@@ -15,5 +15,5 @@ rule fastq_dump_repliseq:
                    --split-files \
                    --skip-technical \
                    -O resources/repliseq/files/fastq/{wildcards.SRA_id}/ \
-                   {input}
+                   {input} 2> {log}
         """

@@ -19,6 +19,9 @@ paralogs_locations:
 haploinsufficiency_locations:
   - "resources/haploinsufficiency/haploinsufficiency.csv"
 
+haplo_thrs:
+  - 0.2
+
 IntOGen_locations:
   - resources/IntOGen/IntOGen-Drivers-20240920/Compendium_Cancer_Genes.tsv
 

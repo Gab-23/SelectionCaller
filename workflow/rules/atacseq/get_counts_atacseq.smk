@@ -95,5 +95,5 @@ rule get_counts_atacseq:
         --output_path_PCA_sva_subtype_woCNAs={output.path_PCA_sva_subtype_woCNAs} \
 	    --output_path_scree_plot_sva_woCNAs={output.path_scree_plot_sva_woCNAs} \
 	    --output_path_distance_plot_woCNAs={output.path_distance_plot_woCNAs} \
-        --output_path_CNVkit_lineplot={output.path_CNVkit_lineplot}
+        --output_path_CNVkit_lineplot={output.path_CNVkit_lineplot} 2> {log}
         """

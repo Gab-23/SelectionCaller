@@ -24,5 +24,5 @@ rule run_CNVkit_atacseq:
         --target-avg-size {wildcards.window_size} \
         --targets {input.backbone} \
         --processes {params.num_cores_atacseq} \
-        -d {params.path_dir}/{wildcards.SRA_tumor_id}
+        -d {params.path_dir}/{wildcards.SRA_tumor_id} 2> {log}
         """

@@ -15,5 +15,5 @@ rule fastq_dump_hic:
                    --split-files \
                    --skip-technical \
                    -O resources/hic/files/fastq/{wildcards.SRA_id}/ \
-                   {input}
+                   {input} 2> {log}
         """

@@ -15,7 +15,7 @@ colnames(essential) <- c("chr", "start", "end", "binID", "genes", "target_gene")
 OGs <- read.table(input_path_OGs, sep = "\t", header = F)
 colnames(OGs) <- c("chr", "start", "end", "binID", "genes", "target_gene")
 
-TSGs <- read.table(input_path_OGs, sep = "\t", header = F)
+TSGs <- read.table(input_path_TSGs, sep = "\t", header = F)
 colnames(TSGs) <- c("chr", "start", "end", "binID", "genes", "target_gene")
 
 data_list <- list(essential = essential, OGs = OGs, TSGs = TSGs)
@@ -30,6 +30,6 @@ for (data_type in names(data_list)){
     data$num_target_genes <- unlist(lapply(X = data$target_gene, FUN = function(x){length(strsplit(x, split=",")[[1]])}))
     data[, paste0("density_", data_type)] <- data$num_target_genes / data$num_genes
 
-    write.table(x = data, file = output_path, col.names = T, row.names = T, quote = F, sep = "\t")
+    write.table(x = data, file = output_path, col.names = T, row.names = F, quote = F, sep = "\t")
 
 }

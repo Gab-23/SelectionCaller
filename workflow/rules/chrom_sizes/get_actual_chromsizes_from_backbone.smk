@@ -11,5 +11,5 @@ rule get_actual_chromsizes_from_backbone:
         """
         Rscript workflow/scripts/get_actual_chromsizes_from_backbone.R \
         --input_path={input} \
-        --output_path={output}
+        --output_path={output} 2> {log}
         """

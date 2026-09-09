@@ -26,5 +26,5 @@ rule process_repliseq:
         --output_path_plot_landscape={output.path_plot_landscape} \
         --output_path_plot_raw_smooth={output.path_plot_raw_smooth} \
         --window_size={wildcards.window_size} \
-        --smoothing_size={wildcards.smoothing_size}
+        --smoothing_size={wildcards.smoothing_size} 2> {log}
         """

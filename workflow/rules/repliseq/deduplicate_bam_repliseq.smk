@@ -18,7 +18,7 @@ rule deduplicate_bam_repliseq:
             M={output.metrics} \
             REMOVE_DUPLICATES=true \
             OPTICAL_DUPLICATE_PIXEL_DISTANCE={params.pixel_distance_repliseq} \
-            ASSUME_SORTED=true
+            ASSUME_SORTED=true 2> {log}
         """
 
 

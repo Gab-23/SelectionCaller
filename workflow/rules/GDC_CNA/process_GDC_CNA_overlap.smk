@@ -22,5 +22,5 @@ rule process_GDC_CNA_overlap:
         --output_path_del={output.path_del} \
         --output_path_plot_ampl={output.path_plot_ampl} \
         --output_path_plot_del={output.path_plot_del} \
-        --num_patients=$NUM_PATIENTS
+        --num_patients=$NUM_PATIENTS 2> {log}
         """

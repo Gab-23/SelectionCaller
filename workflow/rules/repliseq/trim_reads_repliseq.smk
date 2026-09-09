@@ -13,6 +13,6 @@ rule trim_reads_repliseq:
         """
         trim_galore --fastqc --gzip --paired \
                     -o resources/repliseq/files/fastq/{wildcards.SRA_id}/ \
-                    {input.FWD} {input.REV}
+                    {input.FWD} {input.REV} 2> {log}
         """
 

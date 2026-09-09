@@ -19,5 +19,5 @@ rule call_peaks_bysample_atacseq:
 		-f {output.pq_vals_path} \
 		-k {output.pileups_path} \
 		-b {output.analized_reads_path} \
-		-o {output.peaks_path}
+		-o {output.peaks_path} 2> {log}
         """

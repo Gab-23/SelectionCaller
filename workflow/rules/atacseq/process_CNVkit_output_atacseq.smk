@@ -11,5 +11,5 @@ rule process_CNVkit_output_atacseq:
         awk -v OFS='\t' '{{print $1,$2,$3,$5,2^$5,$6,$7,$8}}' |
         tail -n+2 | \
         awk -v OFS='\t' '{{print $1,$2,$3,$4}}' \
-        > {output}
+        > {output} 2> {log}
         """

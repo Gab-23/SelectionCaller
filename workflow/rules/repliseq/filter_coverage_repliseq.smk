@@ -14,5 +14,5 @@ rule filter_coverage_repliseq:
         --input_path={input} \
         --output_path_plot={output.path_plot} \
         --output_path_filtered={output.path_filtered} \
-        --cov_thr={wildcards.cov_thr}
+        --cov_thr={wildcards.cov_thr} 2> {log}
         """

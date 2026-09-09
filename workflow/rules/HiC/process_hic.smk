@@ -13,5 +13,5 @@ rule process_hic:
         python workflow/scripts/process_hic.py \
         --input_path_matrix={input.path_matrix} \
         --input_path_bins={input.path_bins} \
-        --output_path_eigen={output.path_eigen}
+        --output_path_eigen={output.path_eigen} 2> {log}
         """

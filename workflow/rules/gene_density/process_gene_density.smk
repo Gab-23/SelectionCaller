@@ -13,11 +13,11 @@ rule process_gene_density:
         "../../envs/r_spdep.yml"
     shell:
         """
-        Rscript process_gene_density.R \
+        Rscript workflow/scripts/process_gene_density.R \
         --input_path_essential={input.essential} \
         --input_path_OGs={input.OGs} \
         --input_path_TSGs={input.TSGs} \
         --output_path_essential={output.essential} \
         --output_path_OGs={output.OGs} \
-        --output_path_TSGs={output.TSGs}
+        --output_path_TSGs={output.TSGs} 2> {log}
         """

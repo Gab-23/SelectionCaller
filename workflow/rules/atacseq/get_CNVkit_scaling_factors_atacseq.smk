@@ -14,5 +14,5 @@ rule get_CNVkit_scaling_factors_atacseq:
         -b <(bedtools sort -i {input.path_cnr}) \
         -wa -wb | \
         awk -v OFS='\t' '{{print $1,$2,$3,$4,$5"_"$6"_"$7,$8}}' \
-        > {output}
+        > {output} 2> {log}
         """

@@ -10,5 +10,5 @@ rule compute_coverage_atacseq:
         "../../envs/bedtools.yml"
     shell:
         """
-        bedtools coverage -counts -a {input.backbone} -b {input.bam} > {output}
+        bedtools coverage -counts -a {input.backbone} -b {input.bam} > {output} 2> {log}
         """

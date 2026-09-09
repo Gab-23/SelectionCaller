@@ -25,5 +25,5 @@ rule run_CNVkit_atacseq_normal:
         --target-avg-size {wildcards.window_size} \
         --targets {input.backbone} \
         --processes {params.num_cores_atacseq} \
-        -d {params.path_dir}/{wildcards.SRA_normal_id}
+        -d {params.path_dir}/{wildcards.SRA_normal_id} 2> {log}
         """

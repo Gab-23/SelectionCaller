@@ -18,6 +18,6 @@ rule compute_library_size:
         do
         SAMPLE_NAME=$(cut $file -d "/" -f 5)
         LIB_SIZE=$(samtools view -c $file)
-        printf "$SAMPLE_NAME\t$LIB_SIZE\n" >> {output}
+        printf "$SAMPLE_NAME\t$LIB_SIZE\n" >> {output} 2>> {log}
         done
         """

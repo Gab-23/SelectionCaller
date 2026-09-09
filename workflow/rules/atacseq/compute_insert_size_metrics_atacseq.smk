@@ -13,5 +13,5 @@ rule compute_insert_size_metrics_atacseq:
         picard CollectInsertSizeMetrics \
         I={input} \
         O={output.metrics} \
-        H={output.hist}
+        H={output.hist} 2> {log}
         """

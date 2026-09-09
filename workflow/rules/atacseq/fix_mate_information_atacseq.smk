@@ -12,5 +12,5 @@ rule fix_mate_information_atacseq:
         picard FixMateInformation \
         I={input} \
         O={output} \
-        ADD_MATE_CIGAR=true
+        ADD_MATE_CIGAR=true 2> {log}
         """
