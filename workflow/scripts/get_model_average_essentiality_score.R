@@ -25,7 +25,7 @@ if (length(missing_genes) > 0) {
 
 crispr.f <- crispr[, c("ModelID", intersect(ess_genes$gene, colnames(crispr))), drop = FALSE]
 
-mean_ess_score_across_models <- colMeans(crispr.f[,-1])
+mean_ess_score_across_models <- colMeans(crispr.f[, -1, drop = FALSE])
 
 mean_ess_score_table <- data.frame(gene = names(mean_ess_score_across_models),
                                     ess_score = mean_ess_score_across_models)
