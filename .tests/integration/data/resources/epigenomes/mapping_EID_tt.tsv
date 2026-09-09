@@ -1,0 +1,3 @@
+epigenome_id	group_description	epigenome_mnemonic	standard_name	tissue_type	sample_type
+E001	ESC	ESC.I3	ES-I3 Cells	ESC	PrimaryCulture
+E027	Breast	BRST.MYO	Breast Myoepithelial Primary Cells	BREAST	PrimaryCulture

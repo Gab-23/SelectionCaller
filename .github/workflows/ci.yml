@@ -41,13 +41,14 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends \
             r-base-core r-cran-dplyr r-cran-magrittr r-cran-r.utils \
-            r-bioc-genomicranges r-bioc-rtracklayer bedtools
+            r-bioc-genomicranges r-bioc-rtracklayer r-cran-tidyr bedtools
 
       - name: Unit-testing
         run: |
           bash .tests/unit/test_backbone_scripts.sh
           bash .tests/unit/test_depmap_scripts.sh
           bash .tests/unit/test_intogen_scripts.sh
+          bash .tests/unit/test_epigenomes_scripts.sh
 
   toy-integration-test:
     name: Integration testing (toy data, backbone/DepMap/IntOGen modules)
@@ -63,7 +64,7 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends \
             r-base-core r-cran-dplyr r-cran-magrittr r-cran-r.utils \
-            r-bioc-genomicranges r-bioc-rtracklayer bedtools
+            r-bioc-genomicranges r-bioc-rtracklayer r-cran-tidyr bedtools
 
       - name: Copy toy fixtures into the paths expected by the rules (bypasses real downloads)
         run: |
@@ -84,6 +85,16 @@ jobs:
           touch resources/reference_data/gencode/gencode.v1.annotation.gtf.gz
           sleep 1
           touch resources/blacklist/hg00.bed
+          # Same timestamp-ordering issue as above, but for the Roadmap epigenomes checkpoint
+          # chain: get_mapping_EID_tt (checkpoint, no input) -> get_epigenome_paths (input:
+          # the checkpoint's output) -> get_epigenome_files (input: the paths file). Order
+          # them oldest-to-newest so none of them is considered stale.
+          touch resources/epigenomes/mapping_EID_tt.tsv
+          sleep 1
+          touch resources/epigenomes/checks/paths/BREAST_PrimaryCulture_noliftover_mnemonics
+          sleep 1
+          touch resources/epigenomes/checks/downloads/BREAST_PrimaryCulture_noliftover_mnemonics
+          touch resources/epigenomes/roadmap/E027_12_coreMarks_mnemonics.bed
 
       - name: Execute pipeline on toy data (fake hg00 assembly)
         run: |
@@ -104,7 +115,8 @@ jobs:
             data/distances/essential/hg00_binned_200_0_BRCA_Female_0.5_1_v1 \
             data/num_overlaps/essential/BRCA_Female_0.5_1_v1_hg00_binned_200_0 \
             data/distances/TSG/hg00_binned_200_0_v1_BRCA \
-            data/distances/OG/hg00_binned_200_0_v1_BRCA
+            data/distances/OG/hg00_binned_200_0_v1_BRCA \
+            data/epigenomes/BREAST_PrimaryCulture_noliftover_mnemonics_hg00_binned_200_0
           # NOTE: data/GC/... is deliberately excluded from this test: get_GC_content.R
           # requires the Bioconductor BSgenome package specific to the real assembly
           # (e.g. BSgenome.Hsapiens.UCSC.hg38, ~800MB) and can therefore not be tested with a
@@ -123,7 +135,8 @@ jobs:
             data/distances/essential/hg00_binned_200_0_BRCA_Female_0.5_1_v1 \
             data/num_overlaps/essential/BRCA_Female_0.5_1_v1_hg00_binned_200_0 \
             data/distances/TSG/hg00_binned_200_0_v1_BRCA \
-            data/distances/OG/hg00_binned_200_0_v1_BRCA ; do
+            data/distances/OG/hg00_binned_200_0_v1_BRCA \
+            data/epigenomes/BREAST_PrimaryCulture_noliftover_mnemonics_hg00_binned_200_0 ; do
             test -s "$f" || { echo "Missing or empty file: $f"; exit 1; }
           done
           echo "OK: all expected outputs are present and non-empty"

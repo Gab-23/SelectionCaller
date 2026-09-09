@@ -586,11 +586,11 @@ include: "rules/backbone/generate_genes_on_bins_obj.smk"
 
 ####
 
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/epigenomes/get_mapping_EID_tt.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/epigenomes/get_epigenome_paths.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/epigenomes/get_epigenome_files.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/epigenomes/process_epigenomes.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/epigenomes/aggregate_epigenomes.smk"
+include: "rules/epigenomes/get_mapping_EID_tt.smk"
+include: "rules/epigenomes/get_epigenome_paths.smk"
+include: "rules/epigenomes/get_epigenome_files.smk"
+include: "rules/epigenomes/process_epigenomes.smk"
+include: "rules/epigenomes/aggregate_epigenomes.smk"
 
 ####
 
@@ -647,146 +647,146 @@ include: "rules/DepMap/process_bin_level_essentiality.smk"
 
 ####
 
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/gene_density/compute_density_cancer_genes.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/gene_density/compute_density_essential_genes.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/gene_density/process_gene_density.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/gene_density/compute_density_cancer_genes.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/gene_density/compute_density_essential_genes.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/gene_density/process_gene_density.smk"
 
 ####
 
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/haploinsufficiency/process_haploinsufficiency.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/haploinsufficiency/process_haploinsufficiency.smk"
 
 ####
 
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/COSMIC/filter_classification_COSMIC.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/COSMIC/filter_samples_COSMIC.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/COSMIC/get_final_samples_COSMIC.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/COSMIC/filter_mutations.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/COSMIC/get_COSMIC_mutations_coordinates.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/COSMIC/sort_collapse_mutations.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/COSMIC/get_coding_mutations_description.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/COSMIC/sort_coding_mutations.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/COSMIC/compute_coding_mutations_overlap.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/COSMIC/compute_noncoding_mutations_overlap.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/COSMIC/filter_classification_COSMIC.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/COSMIC/filter_samples_COSMIC.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/COSMIC/get_final_samples_COSMIC.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/COSMIC/filter_mutations.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/COSMIC/get_COSMIC_mutations_coordinates.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/COSMIC/sort_collapse_mutations.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/COSMIC/get_coding_mutations_description.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/COSMIC/sort_coding_mutations.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/COSMIC/compute_coding_mutations_overlap.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/COSMIC/compute_noncoding_mutations_overlap.smk"
 
 ####
 
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/GDC_CNA/get_samples_GDC.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/GDC_CNA/filter_manifest.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/GDC_CNA/get_GDC_CNA_data.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/GDC_CNA/aggregate_GDC_CNA_data.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/GDC_CNA/filter_GDC_CNA_data.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/GDC_CNA/sort_GDC_CNA_data.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/GDC_CNA/split_GDC_CNA_data.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/GDC_CNA/compute_ampl_overlap.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/GDC_CNA/compute_del_overlap.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/GDC_CNA/process_GDC_CNA_overlap.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/GDC_CNA/get_samples_GDC.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/GDC_CNA/filter_manifest.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/GDC_CNA/get_GDC_CNA_data.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/GDC_CNA/aggregate_GDC_CNA_data.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/GDC_CNA/filter_GDC_CNA_data.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/GDC_CNA/sort_GDC_CNA_data.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/GDC_CNA/split_GDC_CNA_data.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/GDC_CNA/compute_ampl_overlap.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/GDC_CNA/compute_del_overlap.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/GDC_CNA/process_GDC_CNA_overlap.smk"
 
 ####
 
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/fragile_sites/get_dist_num_overlaps_fragile_sites.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/fragile_sites/process_dist_to_fragile_sites.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/fragile_sites/process_num_overlaps_fragile_sites.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/fragile_sites/get_dist_num_overlaps_fragile_sites.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/fragile_sites/process_dist_to_fragile_sites.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/fragile_sites/process_num_overlaps_fragile_sites.smk"
 
 ####
 
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/ohnologs_and_paralogs/compute_and_process_ohnologs.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/ohnologs_and_paralogs/compute_and_process_paralogs.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/ohnologs_and_paralogs/compute_and_process_ohnologs.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/ohnologs_and_paralogs/compute_and_process_paralogs.smk"
 
 ####
 
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/genome/get_reference_genome.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/genome/index_reference_genome_bwa.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/genome/index_reference_genome_bowtie2.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/genome/get_reference_genome.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/genome/index_reference_genome_bwa.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/genome/index_reference_genome_bowtie2.smk"
 
 ####
 
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/repliseq/prefetch_repliseq.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/repliseq/fastq_dump_repliseq.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/repliseq/trim_reads_repliseq.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/repliseq/align_reads_repliseq.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/repliseq/sort_bam_repliseq.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/repliseq/index_bam_repliseq.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/repliseq/filter_bam_repliseq.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/repliseq/sort_filtered_bam_repliseq.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/repliseq/index_filtered_bam_repliseq.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/repliseq/do_bamqc_repliseq.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/repliseq/deduplicate_bam_repliseq.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/repliseq/filter_deduplicated_bam_repliseq.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/repliseq/remove_blacklisted_from_bam_repliseq.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/repliseq/sort_noblacklist_bam_repliseq.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/repliseq/index_noblacklist_bam_repliseq.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/repliseq/compute_library_size_repliseq.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/repliseq/compute_coverage_repliseq.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/repliseq/filter_coverage_repliseq.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/repliseq/process_repliseq.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/repliseq/prefetch_repliseq.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/repliseq/fastq_dump_repliseq.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/repliseq/trim_reads_repliseq.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/repliseq/align_reads_repliseq.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/repliseq/sort_bam_repliseq.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/repliseq/index_bam_repliseq.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/repliseq/filter_bam_repliseq.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/repliseq/sort_filtered_bam_repliseq.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/repliseq/index_filtered_bam_repliseq.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/repliseq/do_bamqc_repliseq.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/repliseq/deduplicate_bam_repliseq.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/repliseq/filter_deduplicated_bam_repliseq.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/repliseq/remove_blacklisted_from_bam_repliseq.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/repliseq/sort_noblacklist_bam_repliseq.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/repliseq/index_noblacklist_bam_repliseq.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/repliseq/compute_library_size_repliseq.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/repliseq/compute_coverage_repliseq.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/repliseq/filter_coverage_repliseq.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/repliseq/process_repliseq.smk"
 
 ####
 
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/atacseq/explore_cohort_atacseq.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/atacseq/prefetch_atacseq.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/atacseq/fastq_dump_atacseq.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/atacseq/trim_reads_atacseq.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/atacseq/align_reads_atacseq.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/atacseq/sort_bam_atacseq.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/atacseq/index_bam_atacseq.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/atacseq/filter_bam_atacseq.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/atacseq/sort_filtered_bam_atacseq.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/atacseq/index_filtered_bam_atacseq.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/atacseq/do_bamqc_atacseq.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/atacseq/deduplicate_bam_atacseq.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/atacseq/filter_deduplicated_bam_atacseq.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/atacseq/remove_blacklisted_from_bam_atacseq.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/atacseq/sort_noblacklist_bam_atacseq.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/atacseq/index_noblacklist_bam_atacseq.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/atacseq/fix_mate_information_atacseq.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/atacseq/compute_insert_size_metrics_atacseq.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/atacseq/compute_coverage_atacseq.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/atacseq/run_CNVkit_atacseq.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/atacseq/run_CNVkit_atacseq_normal.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/atacseq/process_CNVkit_output_atacseq.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/atacseq/get_CNVkit_scaling_factors_atacseq.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/atacseq/get_counts_atacseq.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/atacseq/get_DARs.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/atacseq/process_DARs.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/atacseq/explore_cohort_atacseq.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/atacseq/prefetch_atacseq.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/atacseq/fastq_dump_atacseq.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/atacseq/trim_reads_atacseq.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/atacseq/align_reads_atacseq.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/atacseq/sort_bam_atacseq.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/atacseq/index_bam_atacseq.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/atacseq/filter_bam_atacseq.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/atacseq/sort_filtered_bam_atacseq.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/atacseq/index_filtered_bam_atacseq.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/atacseq/do_bamqc_atacseq.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/atacseq/deduplicate_bam_atacseq.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/atacseq/filter_deduplicated_bam_atacseq.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/atacseq/remove_blacklisted_from_bam_atacseq.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/atacseq/sort_noblacklist_bam_atacseq.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/atacseq/index_noblacklist_bam_atacseq.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/atacseq/fix_mate_information_atacseq.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/atacseq/compute_insert_size_metrics_atacseq.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/atacseq/compute_coverage_atacseq.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/atacseq/run_CNVkit_atacseq.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/atacseq/run_CNVkit_atacseq_normal.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/atacseq/process_CNVkit_output_atacseq.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/atacseq/get_CNVkit_scaling_factors_atacseq.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/atacseq/get_counts_atacseq.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/atacseq/get_DARs.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/atacseq/process_DARs.smk"
 # include: "rules/atacseq/name_sort_final_bam_atacseq.smk"
 # include: "rules/atacseq/call_peaks_bysample_atacseq.smk"
 # include: "rules/atacseq/process_peaks_atacseq.smk"
 
 ####
 
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/HiC/prefetch_hic.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/HiC/fastq_dump_hic.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/HiC/align_reads_hic.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/HiC/sort_bam_hic.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/HiC/index_bam_hic.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/HiC/filter_bam_hic.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/HiC/sort_filtered_bam_hic.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/HiC/run_HiCQC.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/HiC/compute_pairs_hic.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/HiC/sort_pairs_hic.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/HiC/deduplicate_pairs_hic.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/HiC/filter_pairs_hic.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/HiC/clip_pairs_hic.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/HiC/compute_pairs_stats_hic.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/HiC/compute_multiqc_hic.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/HiC/compute_matrices_hic.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/HiC/merge_cooler.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/HiC/balance_cooler.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/HiC/normalize_matrix_hic.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/HiC/process_bins_hic.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/HiC/process_hic.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/HiC/prefetch_hic.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/HiC/fastq_dump_hic.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/HiC/align_reads_hic.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/HiC/sort_bam_hic.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/HiC/index_bam_hic.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/HiC/filter_bam_hic.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/HiC/sort_filtered_bam_hic.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/HiC/run_HiCQC.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/HiC/compute_pairs_hic.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/HiC/sort_pairs_hic.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/HiC/deduplicate_pairs_hic.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/HiC/filter_pairs_hic.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/HiC/clip_pairs_hic.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/HiC/compute_pairs_stats_hic.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/HiC/compute_multiqc_hic.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/HiC/compute_matrices_hic.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/HiC/merge_cooler.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/HiC/balance_cooler.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/HiC/normalize_matrix_hic.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/HiC/process_bins_hic.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/HiC/process_hic.smk"
 
 ####
 
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/dataset/explore_datatypes.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/dataset/combine_dataset.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/dataset/smooth_dataset.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/dataset/explore_datatypes.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/dataset/combine_dataset.smk"
+# TODO(phase>1 - not yet migrated/tested): include: "rules/dataset/smooth_dataset.smk"
 
 ####
 
 rule all:
     input:
-        # ---- Fase 1: modulo backbone/annotazioni di base ----
+        # ---- Phase 1: backbone/core annotations module ----
         # GC content
         expand(
             "data/GC/{assembly_code}_{window_mode}_{window_size}_{step}",
@@ -858,7 +858,7 @@ rule all:
             window_size=window_sizes, step=steps, gencode_version=gencode_version
         ),
 
-        # ---- Fase 2: modulo DepMap (essential genes) ----
+        # ---- Phase 2: DepMap module (essential genes) ----
         expand(
             "data/distances/essential/{assembly_code}_{window_mode}_{window_size}_{step}_{oncotree_code_DepMap}_{gender_DepMap}_{essentiality_cutoff}_{num_assays_cutoff}_v{gencode_version}",
             assembly_code=assembly_code, window_mode=window_mode, window_size=window_sizes, step=steps,
@@ -872,7 +872,7 @@ rule all:
             essentiality_cutoff=essentiality_cutoff, num_assays_cutoff=num_assays_cutoff, gencode_version=gencode_version
         ),
 
-        # ---- Fase 3: modulo IntOGen (cancer genes TSG/OG) ----
+        # ---- Phase 3: IntOGen module (cancer genes TSG/OG) ----
         expand(
             "data/distances/TSG/{assembly_code}_{window_mode}_{window_size}_{step}_v{gencode_version}_{tumor_type_IntOGen}",
             assembly_code=assembly_code, window_mode=window_mode, window_size=window_sizes, step=steps,
@@ -884,7 +884,15 @@ rule all:
             gencode_version=gencode_version, tumor_type_IntOGen=tumor_type_IntOGen
         ),
 
-        # ---- Fasi successive (DA RIATTIVARE quando i rispettivi moduli saranno migrati/testati) ----
+        # ---- Phase 4: epigenomes/Roadmap module ----
+        expand(
+            "data/epigenomes/{tissue_type_Roadmap}_{sample_type}_{liftover_str}_{file_format}_{assembly_code}_{window_mode}_{window_size}_{step}",
+            tissue_type_Roadmap=tissue_type_Roadmap, sample_type=sample_type, liftover_str=liftover_str,
+            file_format=file_format, assembly_code=assembly_code, window_mode=window_mode,
+            window_size=window_sizes, step=steps
+        ),
+
+        # ---- Next phases (RE-ACTIVATE once the respective modules are migrated/tested) ----
 
 wildcard_constraints:
     assembly_code = "hg\\d{2}",
