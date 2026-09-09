@@ -2,10 +2,10 @@
 *.Rhistory
 .snakemake
 github_token
-data*/
-resources*/
-results*/
-logs*/
+/data*/
+/resources*/
+/results*/
+/logs*/
 slurm_logs/
 temp_*/
 snakemake_*
