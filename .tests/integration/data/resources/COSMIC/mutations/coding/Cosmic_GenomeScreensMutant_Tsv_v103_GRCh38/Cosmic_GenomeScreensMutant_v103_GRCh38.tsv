@@ -1,0 +1,3 @@
+c1	c2	c3	c4	c5	c6	GENOMIC_MUTATION_ID	COSMIC_SAMPLE_ID	c9	c10	c11	c12	c13	c14	CHROMOSOME	GENOME_START	GENOME_STOP	MUTATION_DESCRIPTION
+x	x	x	x	x	x	COSM2001	CS001	x	x	x	x	x	x	1	100	100	Substitution - Missense
+x	x	x	x	x	x	COSM2002	CS002	x	x	x	x	x	x	1	250	250	Substitution - Missense

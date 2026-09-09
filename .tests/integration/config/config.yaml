@@ -21,13 +21,13 @@ DepMap_probabilities_locations:
 DepMap_scores_locations:
   - "resources/DepMap/scores/CRISPRGeneEffect.csv"
 COSMIC_classification_locations:
-  - resources/COSMIC/dummy.tsv
+  - resources/COSMIC/classification/Cosmic_Classification_Tsv_v103_GRCh38/Cosmic_Classification_v103_GRCh38.tsv
 COSMIC_samples_locations:
-  - "resources/COSMIC/dummy_samples.tsv"
+  - "resources/COSMIC/samples/Cosmic_Sample_Tsv_v103_GRCh38/Cosmic_Sample_v103_GRCh38.tsv"
 COSMIC_coding_locations:
-  - "resources/COSMIC/dummy_coding.tsv"
+  - "resources/COSMIC/mutations/coding/Cosmic_GenomeScreensMutant_Tsv_v103_GRCh38/Cosmic_GenomeScreensMutant_v103_GRCh38.tsv"
 COSMIC_noncoding_locations:
-  - "resources/COSMIC/dummy_noncoding.tsv"
+  - "resources/COSMIC/mutations/noncoding/Cosmic_NonCodingVariants_Tsv_v103_GRCh38/Cosmic_NonCodingVariants_v103_GRCh38.tsv"
 GDC_clinical_locations:
   - "resources/GDC/dummy_clinical.tsv"
 GDC_sample_sheet_locations:

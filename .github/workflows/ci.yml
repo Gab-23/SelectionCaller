@@ -25,6 +25,14 @@ jobs:
           touch resources/DepMap/scores/CRISPRGeneEffect.csv
           mkdir -p resources/IntOGen/IntOGen-Drivers-20240920
           touch resources/IntOGen/IntOGen-Drivers-20240920/Compendium_Cancer_Genes.tsv
+          mkdir -p resources/COSMIC/classification/Cosmic_Classification_Tsv_v103_GRCh38
+          mkdir -p resources/COSMIC/samples/Cosmic_Sample_Tsv_v103_GRCh38
+          mkdir -p resources/COSMIC/mutations/coding/Cosmic_GenomeScreensMutant_Tsv_v103_GRCh38
+          mkdir -p resources/COSMIC/mutations/noncoding/Cosmic_NonCodingVariants_Tsv_v103_GRCh38
+          touch resources/COSMIC/classification/Cosmic_Classification_Tsv_v103_GRCh38/Cosmic_Classification_v103_GRCh38.tsv
+          touch resources/COSMIC/samples/Cosmic_Sample_Tsv_v103_GRCh38/Cosmic_Sample_v103_GRCh38.tsv
+          touch resources/COSMIC/mutations/coding/Cosmic_GenomeScreensMutant_Tsv_v103_GRCh38/Cosmic_GenomeScreensMutant_v103_GRCh38.tsv
+          touch resources/COSMIC/mutations/noncoding/Cosmic_NonCodingVariants_Tsv_v103_GRCh38/Cosmic_NonCodingVariants_v103_GRCh38.tsv
 
       - name: Dry-run on the entire production DAG
         run: |
@@ -49,6 +57,7 @@ jobs:
           bash .tests/unit/test_depmap_scripts.sh
           bash .tests/unit/test_intogen_scripts.sh
           bash .tests/unit/test_epigenomes_scripts.sh
+          bash .tests/unit/test_cosmic_scripts.sh
 
   toy-integration-test:
     name: Integration testing (toy data, backbone/DepMap/IntOGen modules)
@@ -116,7 +125,9 @@ jobs:
             data/num_overlaps/essential/BRCA_Female_0.5_1_v1_hg00_binned_200_0 \
             data/distances/TSG/hg00_binned_200_0_v1_BRCA \
             data/distances/OG/hg00_binned_200_0_v1_BRCA \
-            data/epigenomes/BREAST_PrimaryCulture_noliftover_mnemonics_hg00_binned_200_0
+            data/epigenomes/BREAST_PrimaryCulture_noliftover_mnemonics_hg00_binned_200_0 \
+            data/num_overlaps/mutations/coding/hg00_binned_200_0_f_breast_carcinoma \
+            data/num_overlaps/mutations/noncoding/hg00_binned_200_0_f_breast_carcinoma
           # NOTE: data/GC/... is deliberately excluded from this test: get_GC_content.R
           # requires the Bioconductor BSgenome package specific to the real assembly
           # (e.g. BSgenome.Hsapiens.UCSC.hg38, ~800MB) and can therefore not be tested with a
@@ -136,7 +147,9 @@ jobs:
             data/num_overlaps/essential/BRCA_Female_0.5_1_v1_hg00_binned_200_0 \
             data/distances/TSG/hg00_binned_200_0_v1_BRCA \
             data/distances/OG/hg00_binned_200_0_v1_BRCA \
-            data/epigenomes/BREAST_PrimaryCulture_noliftover_mnemonics_hg00_binned_200_0 ; do
+            data/epigenomes/BREAST_PrimaryCulture_noliftover_mnemonics_hg00_binned_200_0 \
+            data/num_overlaps/mutations/coding/hg00_binned_200_0_f_breast_carcinoma \
+            data/num_overlaps/mutations/noncoding/hg00_binned_200_0_f_breast_carcinoma ; do
             test -s "$f" || { echo "Missing or empty file: $f"; exit 1; }
           done
           echo "OK: all expected outputs are present and non-empty"
