@@ -60,6 +60,18 @@ jobs:
           # copiare il CONTENUTO senza annidare resources/resources/...
           mkdir -p resources
           cp -r .tests/integration/data/resources/. ./resources/
+          # "cp -r" non garantisce l'ordine dei timestamp tra i file copiati nello stesso
+          # comando. get_blacklisted_regions ha un input (chrom_sizes) e Snakemake confronta
+          # i mtime: se per caso chrom_sizes risultasse piu' recente di blacklist.bed,
+          # Snakemake lo considererebbe obsoleto e tenterebbe comunque il download reale.
+          # Fissiamo esplicitamente l'ordine (chrom_sizes/cytobands/gencode prima, poi
+          # blacklist, che e' l'unico ad avere un input tra i file "mock-download").
+          touch resources/reference_data/chrom_sizes/hg00.chrom.sizes
+          touch resources/reference_data/cytobands/hg00_cytoBand.txt
+          touch resources/reference_data/gencode/gencode.v1.annotation.gff3.gz
+          touch resources/reference_data/gencode/gencode.v1.annotation.gtf.gz
+          sleep 1
+          touch resources/blacklist/hg00.bed
 
       - name: Esegui la pipeline sui dati toy (assembly fittizio hg00)
         run: |
