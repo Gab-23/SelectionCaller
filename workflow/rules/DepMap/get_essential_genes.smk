@@ -7,7 +7,7 @@ rule get_essential_genes:
     conda:
         "../../envs/r_roadmap.yml"
     log:
-        "logs/filter_CRISPR_probabilities/{oncotree_code_DepMap}_{gender_DepMap}_{essentiality_cutoff}_{num_assays_cutoff}.log"
+        "logs/get_essential_genes/{oncotree_code_DepMap}_{gender_DepMap}_{essentiality_cutoff}_{num_assays_cutoff}.log"
     shell:
         """
         Rscript workflow/scripts/get_essential_genes.R \

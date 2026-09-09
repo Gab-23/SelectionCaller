@@ -161,6 +161,15 @@ def get_CNVkit_scaling_factors_atacseq_normal(wildcards):
 def get_CNVkit_scaling_factors_atacseq(wildcards):
     return get_CNVkit_scaling_factors_atacseq_tumor(wildcards) + get_CNVkit_scaling_factors_atacseq_normal(wildcards)
 
+#def get_final_bam_name_sorted_outputs_atacseq(wildcards):
+#    return expand(rules.name_sort_final_bam_atacseq.output, SRA_id=SRA_ids_atacseq, **wildcards)
+
+#def get_peak_calling_outputs_atacseq(wildcards):
+#    return expand(rules.call_peaks_bysample_atacseq.output, SRA_id=SRA_ids_atacseq, **wildcards)
+
+#def get_peak_processing_outputs_atacseq(wildcards):
+#    return expand(rules.process_peaks_atacseq.output, SRA_id=SRA_ids_atacseq, **wildcards)
+
 ####
 
 def get_prefetch_outputs_hic(wildcards):
@@ -592,12 +601,12 @@ include: "rules/gencode/split_gtf.smk"
 
 ####
 
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/IntOGen/process_IntOGen.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/IntOGen/sort_cancer_genes.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/IntOGen/split_cancer_genes.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/IntOGen/get_dist_closest_OG.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/IntOGen/get_dist_closest_TSG.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/IntOGen/process_dist_to_cancer_genes.smk"
+include: "rules/IntOGen/process_IntOGen.smk"
+include: "rules/IntOGen/sort_cancer_genes.smk"
+include: "rules/IntOGen/split_cancer_genes.smk"
+include: "rules/IntOGen/get_dist_closest_OG.smk"
+include: "rules/IntOGen/get_dist_closest_TSG.smk"
+include: "rules/IntOGen/process_dist_to_cancer_genes.smk"
 
 ####
 
@@ -623,18 +632,18 @@ include: "rules/centromeres_and_telomeres/process_dist_to_telomeres.smk"
 
 ####
 
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/DepMap/filter_CRISPR_models.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/DepMap/filter_CRISPR_probabilities.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/DepMap/filter_CRISPR_scores.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/DepMap/get_essential_genes.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/DepMap/find_coords_essential_genes.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/DepMap/sort_essential_genes.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/DepMap/get_dist_to_essential_genes.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/DepMap/process_dist_to_essential_genes.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/DepMap/get_model_average_essentiality_score.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/DepMap/sort_model_average_essentiality_score.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/DepMap/get_bin_level_essentiality.smk"
-# TODO(phase>1 - non ancora migrato/testato): include: "rules/DepMap/process_bin_level_essentiality.smk"
+include: "rules/DepMap/filter_CRISPR_models.smk"
+include: "rules/DepMap/filter_CRISPR_probabilities.smk"
+include: "rules/DepMap/filter_CRISPR_scores.smk"
+include: "rules/DepMap/get_essential_genes.smk"
+include: "rules/DepMap/find_coords_essential_genes.smk"
+include: "rules/DepMap/sort_essential_genes.smk"
+include: "rules/DepMap/get_dist_to_essential_genes.smk"
+include: "rules/DepMap/process_dist_to_essential_genes.smk"
+include: "rules/DepMap/get_model_average_essentiality_score.smk"
+include: "rules/DepMap/sort_model_average_essentiality_score.smk"
+include: "rules/DepMap/get_bin_level_essentiality.smk"
+include: "rules/DepMap/process_bin_level_essentiality.smk"
 
 ####
 
@@ -739,6 +748,9 @@ include: "rules/centromeres_and_telomeres/process_dist_to_telomeres.smk"
 # TODO(phase>1 - non ancora migrato/testato): include: "rules/atacseq/get_counts_atacseq.smk"
 # TODO(phase>1 - non ancora migrato/testato): include: "rules/atacseq/get_DARs.smk"
 # TODO(phase>1 - non ancora migrato/testato): include: "rules/atacseq/process_DARs.smk"
+# include: "rules/atacseq/name_sort_final_bam_atacseq.smk"
+# include: "rules/atacseq/call_peaks_bysample_atacseq.smk"
+# include: "rules/atacseq/process_peaks_atacseq.smk"
 
 ####
 
@@ -774,6 +786,8 @@ include: "rules/centromeres_and_telomeres/process_dist_to_telomeres.smk"
 
 rule all:
     input:
+        # ---- Fase 1: modulo backbone/annotazioni di base ----
+        # GC content
         expand(
             "data/GC/{assembly_code}_{window_mode}_{window_size}_{step}",
             assembly_code=assembly_code,
@@ -781,6 +795,7 @@ rule all:
             window_size=window_sizes,
             step=steps
         ),
+        # distanza da centromeri/telomeri
         expand(
             "data/distances/centromeres/{assembly_code}_{window_mode}_{window_size}_{step}",
             assembly_code=assembly_code,
@@ -795,6 +810,7 @@ rule all:
             window_size=window_sizes,
             step=steps
         ),
+        # overlap/distanza dai geni (PC, lncRNA, miRNA, rRNA)
         expand(
             "data/num_overlaps/PC/{assembly_code}_{window_mode}_{window_size}_{step}_v{gencode_version}",
             assembly_code=assembly_code, window_mode=window_mode,
@@ -835,20 +851,40 @@ rule all:
             assembly_code=assembly_code, window_mode=window_mode,
             window_size=window_sizes, step=steps, gencode_version=gencode_version
         ),
+        # oggetto geni-per-bin (RData)
         expand(
             "resources/backbone/{assembly_code}_{window_mode}_{window_size}_{step}_v{gencode_version}.genes_on_bins.RData",
             assembly_code=assembly_code, window_mode=window_mode,
             window_size=window_sizes, step=steps, gencode_version=gencode_version
-        )
+        ),
+
+        # ---- Fase 2: modulo DepMap (essential genes) ----
+        expand(
+            "data/distances/essential/{assembly_code}_{window_mode}_{window_size}_{step}_{oncotree_code_DepMap}_{gender_DepMap}_{essentiality_cutoff}_{num_assays_cutoff}_v{gencode_version}",
+            assembly_code=assembly_code, window_mode=window_mode, window_size=window_sizes, step=steps,
+            oncotree_code_DepMap=oncotree_code_DepMap, gender_DepMap=gender_DepMap,
+            essentiality_cutoff=essentiality_cutoff, num_assays_cutoff=num_assays_cutoff, gencode_version=gencode_version
+        ),
+        expand(
+            "data/num_overlaps/essential/{oncotree_code_DepMap}_{gender_DepMap}_{essentiality_cutoff}_{num_assays_cutoff}_v{gencode_version}_{assembly_code}_{window_mode}_{window_size}_{step}",
+            assembly_code=assembly_code, window_mode=window_mode, window_size=window_sizes, step=steps,
+            oncotree_code_DepMap=oncotree_code_DepMap, gender_DepMap=gender_DepMap,
+            essentiality_cutoff=essentiality_cutoff, num_assays_cutoff=num_assays_cutoff, gencode_version=gencode_version
+        ),
+
+        # ---- Fase 3: modulo IntOGen (cancer genes TSG/OG) ----
+        expand(
+            "data/distances/TSG/{assembly_code}_{window_mode}_{window_size}_{step}_v{gencode_version}_{tumor_type_IntOGen}",
+            assembly_code=assembly_code, window_mode=window_mode, window_size=window_sizes, step=steps,
+            gencode_version=gencode_version, tumor_type_IntOGen=tumor_type_IntOGen
+        ),
+        expand(
+            "data/distances/OG/{assembly_code}_{window_mode}_{window_size}_{step}_v{gencode_version}_{tumor_type_IntOGen}",
+            assembly_code=assembly_code, window_mode=window_mode, window_size=window_sizes, step=steps,
+            gencode_version=gencode_version, tumor_type_IntOGen=tumor_type_IntOGen
+        ),
 
         # ---- Fasi successive (DA RIATTIVARE quando i rispettivi moduli saranno migrati/testati) ----
-        # essential genes (richiede modulo DepMap):
-        # expand(
-        #     "data/distances/essential/{assembly_code}_{window_mode}_{window_size}_{step}_{oncotree_code_DepMap}_{gender_DepMap}_{essentiality_cutoff}_{num_assays_cutoff}_v{gencode_version}",
-        #     assembly_code=assembly_code, window_mode=window_mode, window_size=window_sizes, step=steps,
-        #     oncotree_code_DepMap=oncotree_code_DepMap, gender_DepMap=gender_DepMap,
-        #     essentiality_cutoff=essentiality_cutoff, num_assays_cutoff=num_assays_cutoff, gencode_version=gencode_version
-        # )
 
 wildcard_constraints:
     assembly_code = "hg\\d{2}",

@@ -13,7 +13,7 @@ paralogs_locations:
 haploinsufficiency_locations:
   - "resources/haploinsufficiency/haploinsufficiency.csv"
 IntOGen_locations:
-  - resources/IntOGen/dummy.tsv
+  - resources/IntOGen/IntOGen-Drivers-20240920/Compendium_Cancer_Genes.tsv
 DepMap_models_locations:
   - "resources/DepMap/models/Model.csv"
 DepMap_probabilities_locations:
@@ -67,7 +67,7 @@ file_formats:
 essentiality_cutoffs:
   - 0.5
 num_assays_cutoffs:
-  - 4
+  - 1
 COSMIC_sample_name_patterns:
   - "TCGA"
 min_Num_Probes:

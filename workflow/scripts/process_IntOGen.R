@@ -19,17 +19,14 @@ protein_coding_transcript <- protein_coding_transcript[,c("chr","start","end", "
 IntOGen <- import_table(input_path_IntOGen)
 IntOGen <- IntOGen[,c("SYMBOL", "TRANSCRIPT", "COHORT", "CANCER_TYPE", "ROLE", "IS_DRIVER")]
 
-roles <- IntOGen$ROLE
-roles_IntOGen <- sort(unique(IntOGen$ROLE)) # Act, ambiguous, LoF
-roles_readable <- c("OG", "ambiguous", "TSG")
+role_map <- c(Act = "OG", LoF = "TSG", ambiguous = "ambiguous")
 
-for (idx in seq(length(roles_IntOGen))){
-    role_IntOGen <- roles_IntOGen[idx]
-    role_readable <- roles_readable[idx]
-    roles <- replace(roles, roles == role_IntOGen, role_readable)
+unknown_roles <- setdiff(unique(IntOGen$ROLE), names(role_map))
+if (length(unknown_roles) > 0){
+    stop(sprintf("process_IntOGen.R: unexpected ROLE value(s) not present in the mapping: %s",
+                 paste(unknown_roles, collapse = ", ")))
 }
-
-IntOGen$ROLE <- roles
+IntOGen$ROLE <- unname(role_map[IntOGen$ROLE])
 IntOGen$IS_DRIVER <- ifelse(IntOGen$IS_DRIVER == "True", TRUE, FALSE)
 
 IntOGen.f <- IntOGen[(IntOGen$CANCER_TYPE == tumor_type_IntOGen) & (IntOGen$COHORT == cohort) & (IntOGen$IS_DRIVER == TRUE),]

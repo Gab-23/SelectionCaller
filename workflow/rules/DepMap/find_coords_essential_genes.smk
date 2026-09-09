@@ -1,4 +1,4 @@
-rule find_coord_essential_genes:
+rule find_coords_essential_genes:
     output:
         "resources/DepMap/essential/{oncotree_code_DepMap}_{gender_DepMap}_{essentiality_cutoff}_{num_assays_cutoff}_v{gencode_version}.bed"
     input:

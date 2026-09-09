@@ -17,6 +17,15 @@ jobs:
       - name: Install Snakemake
         run: pip install snakemake pandas
 
+      - name: Create empty placeholders for external source files (needed only for the dry-run - --dry-run still checks that source files not produced by any rule actually exist, even though it never reads their content)
+        run: |
+          mkdir -p resources/DepMap/models resources/DepMap/probabilities resources/DepMap/scores
+          touch resources/DepMap/models/Model.csv
+          touch resources/DepMap/probabilities/CRISPRGeneDependency.csv
+          touch resources/DepMap/scores/CRISPRGeneEffect.csv
+          mkdir -p resources/IntOGen/IntOGen-Drivers-20240920
+          touch resources/IntOGen/IntOGen-Drivers-20240920/Compendium_Cancer_Genes.tsv
+
       - name: Dry-run on the entire production DAG
         run: |
           snakemake -n -s workflow/snakefile_bin_level --configfile config/config.yaml
@@ -35,10 +44,13 @@ jobs:
             r-bioc-genomicranges r-bioc-rtracklayer bedtools
 
       - name: Unit-testing
-        run: bash .tests/unit/test_backbone_scripts.sh
+        run: |
+          bash .tests/unit/test_backbone_scripts.sh
+          bash .tests/unit/test_depmap_scripts.sh
+          bash .tests/unit/test_intogen_scripts.sh
 
   toy-integration-test:
-    name: Integration testing (Toy data, backbone module/annotations)
+    name: Integration testing (toy data, backbone/DepMap/IntOGen modules)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -53,11 +65,19 @@ jobs:
             r-base-core r-cran-dplyr r-cran-magrittr r-cran-r.utils \
             r-bioc-genomicranges r-bioc-rtracklayer bedtools
 
-      - name: Copy fixture toy in paths expected by rules (bypasses real downloads)
+      - name: Copy toy fixtures into the paths expected by the rules (bypasses real downloads)
         run: |
-          
+          # Note: the Snakefile already creates an empty directory skeleton under resources/
+          # at parse time (side-effect of the mkdir calls at the top of the file), so we use
+          # "src/." to copy the CONTENT without nesting resources/resources/...
           mkdir -p resources
           cp -r .tests/integration/data/resources/. ./resources/
+          # "cp -r" does not guarantee timestamp ordering between files copied in the same
+          # command. get_blacklisted_regions has an input (chrom_sizes), and Snakemake compares
+          # mtimes: if chrom_sizes happened to end up newer than blacklist.bed, Snakemake would
+          # consider it stale and attempt the real download anyway. We explicitly fix the order
+          # (chrom_sizes/cytobands/gencode first, then blacklist, the only "mock-download" file
+          # with an input of its own).
           touch resources/reference_data/chrom_sizes/hg00.chrom.sizes
           touch resources/reference_data/cytobands/hg00_cytoBand.txt
           touch resources/reference_data/gencode/gencode.v1.annotation.gff3.gz
@@ -80,7 +100,16 @@ jobs:
             data/distances/lncRNA/hg00_binned_200_0_v1 \
             data/distances/miRNA/hg00_binned_200_0_v1 \
             data/distances/rRNA/hg00_binned_200_0_v1 \
-            resources/backbone/hg00_binned_200_0_v1.genes_on_bins.RData
+            resources/backbone/hg00_binned_200_0_v1.genes_on_bins.RData \
+            data/distances/essential/hg00_binned_200_0_BRCA_Female_0.5_1_v1 \
+            data/num_overlaps/essential/BRCA_Female_0.5_1_v1_hg00_binned_200_0 \
+            data/distances/TSG/hg00_binned_200_0_v1_BRCA \
+            data/distances/OG/hg00_binned_200_0_v1_BRCA
+          # NOTE: data/GC/... is deliberately excluded from this test: get_GC_content.R
+          # requires the Bioconductor BSgenome package specific to the real assembly
+          # (e.g. BSgenome.Hsapiens.UCSC.hg38, ~800MB) and can therefore not be tested with a
+          # fake assembly. It is validated separately (syntax check + process_GC_content.R
+          # tested with toy data, see .tests/unit).
 
       - name: Verify outputs are not empty
         run: |
@@ -90,12 +119,16 @@ jobs:
             data/distances/telomeres/hg00_binned_200_0 \
             data/num_overlaps/PC/hg00_binned_200_0_v1 \
             data/distances/PC/hg00_binned_200_0_v1 \
-            resources/backbone/hg00_binned_200_0_v1.genes_on_bins.RData ; do
-            test -s "$f" || { echo "File vuoto o mancante: $f"; exit 1; }
+            resources/backbone/hg00_binned_200_0_v1.genes_on_bins.RData \
+            data/distances/essential/hg00_binned_200_0_BRCA_Female_0.5_1_v1 \
+            data/num_overlaps/essential/BRCA_Female_0.5_1_v1_hg00_binned_200_0 \
+            data/distances/TSG/hg00_binned_200_0_v1_BRCA \
+            data/distances/OG/hg00_binned_200_0_v1_BRCA ; do
+            test -s "$f" || { echo "Missing or empty file: $f"; exit 1; }
           done
-          echo "OK: tutti gli output attesi sono presenti e non vuoti"
+          echo "OK: all expected outputs are present and non-empty"
 
-      - name: Upload log in case of failure
+      - name: Upload logs on failure
         if: failure()
         uses: actions/upload-artifact@v4
         with:
