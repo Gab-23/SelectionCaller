@@ -670,16 +670,16 @@ include: "rules/COSMIC/compute_noncoding_mutations_overlap.smk"
 
 ####
 
-# TODO(phase>1 - not yet migrated/tested): include: "rules/GDC_CNA/get_samples_GDC.smk"
-# TODO(phase>1 - not yet migrated/tested): include: "rules/GDC_CNA/filter_manifest.smk"
-# TODO(phase>1 - not yet migrated/tested): include: "rules/GDC_CNA/get_GDC_CNA_data.smk"
-# TODO(phase>1 - not yet migrated/tested): include: "rules/GDC_CNA/aggregate_GDC_CNA_data.smk"
-# TODO(phase>1 - not yet migrated/tested): include: "rules/GDC_CNA/filter_GDC_CNA_data.smk"
-# TODO(phase>1 - not yet migrated/tested): include: "rules/GDC_CNA/sort_GDC_CNA_data.smk"
-# TODO(phase>1 - not yet migrated/tested): include: "rules/GDC_CNA/split_GDC_CNA_data.smk"
-# TODO(phase>1 - not yet migrated/tested): include: "rules/GDC_CNA/compute_ampl_overlap.smk"
-# TODO(phase>1 - not yet migrated/tested): include: "rules/GDC_CNA/compute_del_overlap.smk"
-# TODO(phase>1 - not yet migrated/tested): include: "rules/GDC_CNA/process_GDC_CNA_overlap.smk"
+include: "rules/GDC_CNA/get_samples_GDC.smk"
+include: "rules/GDC_CNA/filter_manifest.smk"
+include: "rules/GDC_CNA/get_GDC_CNA_data.smk"
+include: "rules/GDC_CNA/aggregate_GDC_CNA_data.smk"
+include: "rules/GDC_CNA/filter_GDC_CNA_data.smk"
+include: "rules/GDC_CNA/sort_GDC_CNA_data.smk"
+include: "rules/GDC_CNA/split_GDC_CNA_data.smk"
+include: "rules/GDC_CNA/compute_ampl_overlap.smk"
+include: "rules/GDC_CNA/compute_del_overlap.smk"
+include: "rules/GDC_CNA/process_GDC_CNA_overlap.smk"
 
 ####
 
@@ -902,6 +902,20 @@ rule all:
             "data/num_overlaps/mutations/noncoding/{assembly_code}_{window_mode}_{window_size}_{step}_{gender_COSMIC}_{COSMIC_parameters}",
             assembly_code=assembly_code, window_mode=window_mode, window_size=window_sizes, step=steps,
             gender_COSMIC=gender_COSMIC, COSMIC_parameters=COSMIC_parameters
+        ),
+
+        # ---- Phase 6: GDC_CNA module (amplification/deletion frequency) ----
+        expand(
+            "data/num_overlaps/CNAs/ampl/{assembly_code}_{window_mode}_{window_size}_{step}_{tumor_type_GDC}_{gender_GDC}_{min_Num_Probes}_{min_abs_Segment_Mean}",
+            assembly_code=assembly_code, window_mode=window_mode, window_size=window_sizes, step=steps,
+            tumor_type_GDC=tumor_type_GDC, gender_GDC=gender_GDC,
+            min_Num_Probes=min_Num_Probes, min_abs_Segment_Mean=min_abs_Segment_Means
+        ),
+        expand(
+            "data/num_overlaps/CNAs/del/{assembly_code}_{window_mode}_{window_size}_{step}_{tumor_type_GDC}_{gender_GDC}_{min_Num_Probes}_{min_abs_Segment_Mean}",
+            assembly_code=assembly_code, window_mode=window_mode, window_size=window_sizes, step=steps,
+            tumor_type_GDC=tumor_type_GDC, gender_GDC=gender_GDC,
+            min_Num_Probes=min_Num_Probes, min_abs_Segment_Mean=min_abs_Segment_Means
         ),
 
         # ---- Next phases (RE-ACTIVATE once the respective modules are migrated/tested) ----

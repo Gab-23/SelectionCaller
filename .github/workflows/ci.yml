@@ -33,6 +33,12 @@ jobs:
           touch resources/COSMIC/samples/Cosmic_Sample_Tsv_v103_GRCh38/Cosmic_Sample_v103_GRCh38.tsv
           touch resources/COSMIC/mutations/coding/Cosmic_GenomeScreensMutant_Tsv_v103_GRCh38/Cosmic_GenomeScreensMutant_v103_GRCh38.tsv
           touch resources/COSMIC/mutations/noncoding/Cosmic_NonCodingVariants_Tsv_v103_GRCh38/Cosmic_NonCodingVariants_v103_GRCh38.tsv
+          mkdir -p resources/GDC/CNAs/clinical.cohort.2026-01-28
+          touch resources/GDC/CNAs/clinical.cohort.2026-01-28/clinical.tsv
+          touch resources/GDC/CNAs/gdc_sample_sheet.2026-01-28.tsv
+          touch resources/GDC/CNAs/gdc_manifest.2026-01-28.170055.txt
+          mkdir -p resources/GDC/CNAs/files/dummy
+          touch resources/GDC/CNAs/files/dummy/dummy.seg.v2.txt
 
       - name: Dry-run on the entire production DAG
         run: |
@@ -49,7 +55,7 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends \
             r-base-core r-cran-dplyr r-cran-magrittr r-cran-r.utils \
-            r-bioc-genomicranges r-bioc-rtracklayer r-cran-tidyr bedtools
+            r-bioc-genomicranges r-bioc-rtracklayer r-cran-tidyr r-cran-ggplot2 r-cran-gridextra bedtools
 
       - name: Unit-testing
         run: |
@@ -58,6 +64,7 @@ jobs:
           bash .tests/unit/test_intogen_scripts.sh
           bash .tests/unit/test_epigenomes_scripts.sh
           bash .tests/unit/test_cosmic_scripts.sh
+          bash .tests/unit/test_gdc_scripts.sh
 
   toy-integration-test:
     name: Integration testing (toy data, backbone/DepMap/IntOGen modules)
@@ -73,7 +80,7 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends \
             r-base-core r-cran-dplyr r-cran-magrittr r-cran-r.utils \
-            r-bioc-genomicranges r-bioc-rtracklayer r-cran-tidyr bedtools
+            r-bioc-genomicranges r-bioc-rtracklayer r-cran-tidyr r-cran-ggplot2 r-cran-gridextra bedtools
 
       - name: Copy toy fixtures into the paths expected by the rules (bypasses real downloads)
         run: |
@@ -105,7 +112,23 @@ jobs:
           touch resources/epigenomes/checks/downloads/BREAST_PrimaryCulture_noliftover_mnemonics
           touch resources/epigenomes/roadmap/E027_12_coreMarks_mnemonics.bed
 
-      - name: Execute pipeline on toy data (fake hg00 assembly)
+      - name: Execute pipeline on toy data (fake hg00 assembly) - part 1 (up to the GDC
+              manifest, so gdc-client's real download can be bypassed with a fresh-enough
+              timestamp afterwards)
+        run: |
+          snakemake -s workflow/snakefile_bin_level \
+            --configfile .tests/integration/config/config.yaml \
+            --cores 2 -p \
+            resources/GDC/CNAs/BRCA_female_manifest
+
+      - name: Mark the gdc-client download step as already done (no network access to the
+              real GDC servers in CI; toy CNA segment files are pre-placed under
+              .tests/integration/data/resources/GDC/CNAs/files/)
+        run: |
+          mkdir -p resources/GDC/CNAs/checks
+          touch resources/GDC/CNAs/checks/BRCA_female
+
+      - name: Execute pipeline on toy data (fake hg00 assembly) - part 2
         run: |
           snakemake -s workflow/snakefile_bin_level \
             --configfile .tests/integration/config/config.yaml \
@@ -127,7 +150,9 @@ jobs:
             data/distances/OG/hg00_binned_200_0_v1_BRCA \
             data/epigenomes/BREAST_PrimaryCulture_noliftover_mnemonics_hg00_binned_200_0 \
             data/num_overlaps/mutations/coding/hg00_binned_200_0_f_breast_carcinoma \
-            data/num_overlaps/mutations/noncoding/hg00_binned_200_0_f_breast_carcinoma
+            data/num_overlaps/mutations/noncoding/hg00_binned_200_0_f_breast_carcinoma \
+            data/num_overlaps/CNAs/ampl/hg00_binned_200_0_BRCA_female_50_0.2 \
+            data/num_overlaps/CNAs/del/hg00_binned_200_0_BRCA_female_50_0.2
           # NOTE: data/GC/... is deliberately excluded from this test: get_GC_content.R
           # requires the Bioconductor BSgenome package specific to the real assembly
           # (e.g. BSgenome.Hsapiens.UCSC.hg38, ~800MB) and can therefore not be tested with a
@@ -149,7 +174,9 @@ jobs:
             data/distances/OG/hg00_binned_200_0_v1_BRCA \
             data/epigenomes/BREAST_PrimaryCulture_noliftover_mnemonics_hg00_binned_200_0 \
             data/num_overlaps/mutations/coding/hg00_binned_200_0_f_breast_carcinoma \
-            data/num_overlaps/mutations/noncoding/hg00_binned_200_0_f_breast_carcinoma ; do
+            data/num_overlaps/mutations/noncoding/hg00_binned_200_0_f_breast_carcinoma \
+            data/num_overlaps/CNAs/ampl/hg00_binned_200_0_BRCA_female_50_0.2 \
+            data/num_overlaps/CNAs/del/hg00_binned_200_0_BRCA_female_50_0.2 ; do
             test -s "$f" || { echo "Missing or empty file: $f"; exit 1; }
           done
           echo "OK: all expected outputs are present and non-empty"

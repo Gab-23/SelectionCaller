@@ -5,7 +5,7 @@ rule compute_ampl_overlap:
         path_CNA="resources/GDC/CNAs/ampl/{tumor_type_GDC}_{gender_GDC}_{min_Num_Probes}_{min_abs_Segment_Mean}.bed",
         path_backbone="resources/backbone/{assembly_code}_{window_mode}_{window_size}_{step}.mask.filtered.sorted.bed"
     log:
-        "logs/compute_GDcompute_ampl_overlapC_CNA_overlap/{assembly_code}_{window_mode}_{window_size}_{step}_{tumor_type_GDC}_{gender_GDC}_{min_Num_Probes}_{min_abs_Segment_Mean}.log"
+        "logs/compute_ampl_overlap/{assembly_code}_{window_mode}_{window_size}_{step}_{tumor_type_GDC}_{gender_GDC}_{min_Num_Probes}_{min_abs_Segment_Mean}.log"
     conda:
         "../../envs/bedtools.yml"
     shell:
