@@ -9,7 +9,7 @@ on:
 jobs:
 
   dry-run-lint:
-    name: Dry-run (config di produzione)
+    name: Dry-run (production config)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -17,12 +17,12 @@ jobs:
       - name: Install Snakemake
         run: pip install snakemake pandas
 
-      - name: Dry-run sull'intera DAG di produzione
+      - name: Dry-run on the entire production DAG
         run: |
           snakemake -n -s workflow/snakefile_bin_level --configfile config/config.yaml
 
   unit-tests:
-    name: Unit test sugli script R (dati toy, senza Snakemake)
+    name: Unit test on R scripts (toy data, no snakemake)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -34,11 +34,11 @@ jobs:
             r-base-core r-cran-dplyr r-cran-magrittr r-cran-r.utils \
             r-bioc-genomicranges r-bioc-rtracklayer bedtools
 
-      - name: Esegui gli unit test
+      - name: Unit-testing
         run: bash .tests/unit/test_backbone_scripts.sh
 
   toy-integration-test:
-    name: Test di integrazione (dati toy, modulo backbone/annotazioni)
+    name: Integration testing (Toy data, backbone module/annotations)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -46,26 +46,18 @@ jobs:
       - name: Install Snakemake
         run: pip install snakemake pandas
 
-      - name: Install R + bedtools (via apt, per un test rapido senza conda)
+      - name: Install R + bedtools
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends \
             r-base-core r-cran-dplyr r-cran-magrittr r-cran-r.utils \
             r-bioc-genomicranges r-bioc-rtracklayer bedtools
 
-      - name: Copia le fixture toy nei percorsi attesi dalle regole (bypassa i download reali)
+      - name: Copy fixture toy in paths expected by rules (bypasses real downloads)
         run: |
-          # Nota: lo Snakefile crea gia' uno scheletro di cartelle vuote in resources/ al
-          # parsing (side-effect dei mkdir in testa al file), quindi usiamo "src/." per
-          # copiare il CONTENUTO senza annidare resources/resources/...
+          
           mkdir -p resources
           cp -r .tests/integration/data/resources/. ./resources/
-          # "cp -r" non garantisce l'ordine dei timestamp tra i file copiati nello stesso
-          # comando. get_blacklisted_regions ha un input (chrom_sizes) e Snakemake confronta
-          # i mtime: se per caso chrom_sizes risultasse piu' recente di blacklist.bed,
-          # Snakemake lo considererebbe obsoleto e tenterebbe comunque il download reale.
-          # Fissiamo esplicitamente l'ordine (chrom_sizes/cytobands/gencode prima, poi
-          # blacklist, che e' l'unico ad avere un input tra i file "mock-download").
           touch resources/reference_data/chrom_sizes/hg00.chrom.sizes
           touch resources/reference_data/cytobands/hg00_cytoBand.txt
           touch resources/reference_data/gencode/gencode.v1.annotation.gff3.gz
@@ -73,7 +65,7 @@ jobs:
           sleep 1
           touch resources/blacklist/hg00.bed
 
-      - name: Esegui la pipeline sui dati toy (assembly fittizio hg00)
+      - name: Execute pipeline on toy data (fake hg00 assembly)
         run: |
           snakemake -s workflow/snakefile_bin_level \
             --configfile .tests/integration/config/config.yaml \
@@ -89,13 +81,8 @@ jobs:
             data/distances/miRNA/hg00_binned_200_0_v1 \
             data/distances/rRNA/hg00_binned_200_0_v1 \
             resources/backbone/hg00_binned_200_0_v1.genes_on_bins.RData
-          # NOTA: data/GC/... e' escluso di proposito da questo test: get_GC_content.R
-          # richiede il pacchetto Bioconductor BSgenome specifico dell'assembly reale
-          # (es. BSgenome.Hsapiens.UCSC.hg38, ~800MB) e non e' quindi testabile con un
-          # assembly fittizio. E' validato separatamente (sintassi + process_GC_content.R
-          # con dati toy, si veda .tests/unit).
 
-      - name: Verifica che gli output non siano vuoti
+      - name: Verify outputs are not empty
         run: |
           set -e
           for f in \
@@ -108,7 +95,7 @@ jobs:
           done
           echo "OK: tutti gli output attesi sono presenti e non vuoti"
 
-      - name: Upload log in caso di fallimento
+      - name: Upload log in case of failure
         if: failure()
         uses: actions/upload-artifact@v4
         with:
