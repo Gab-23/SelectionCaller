@@ -44,7 +44,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install Snakemake
-        run: pip install snakemake
+        run: pip install snakemake pandas
 
       - name: Install R + bedtools (via apt, per un test rapido senza conda)
         run: |
