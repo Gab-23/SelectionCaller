@@ -29,13 +29,13 @@ COSMIC_coding_locations:
 COSMIC_noncoding_locations:
   - "resources/COSMIC/mutations/noncoding/Cosmic_NonCodingVariants_Tsv_v103_GRCh38/Cosmic_NonCodingVariants_v103_GRCh38.tsv"
 GDC_clinical_locations:
-  - "resources/GDC/dummy_clinical.tsv"
+  - "resources/GDC/CNAs/clinical.tsv"
 GDC_sample_sheet_locations:
-  - "resources/GDC/dummy_sample_sheet.tsv"
+  - "resources/GDC/CNAs/gdc_sample_sheet.tsv"
 GDC_manifest_locations:
-  - "resources/GDC/dummy_manifest.txt"
+  - "resources/GDC/CNAs/gdc_manifest.txt"
 GDC_CNA_files_locations:
-  - resources/GDC/files/*/*.seg.v2.txt
+  - resources/GDC/CNAs/files/*/*.seg.v2.txt
 selected_samples_location_repliseqs:
   - config/HMEC_selected_samples_repliseq
 selected_samples_location_atacseqs:

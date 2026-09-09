@@ -1,0 +1,3 @@
+id	filename	md5	size	state
+GFILE1	gfile1.seg.v2.txt	abc	100	live
+GFILE2	gfile2.seg.v2.txt	abc	100	live

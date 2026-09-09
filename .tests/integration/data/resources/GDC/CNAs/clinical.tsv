@@ -1,0 +1,3 @@
+project.project_id	cases.case_id	cases.submitter_id	demographic.gender
+TCGA-BRCA	cid1	TCGA-G1	female
+TCGA-BRCA	cid2	TCGA-G2	female
