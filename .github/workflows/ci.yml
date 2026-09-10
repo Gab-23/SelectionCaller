@@ -54,6 +54,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install Python packages (numpy/pandas needed directly by test_hic_scripts.sh,
+              which exercises process_hic.py's Python logic via a subprocess)
+        run: pip install numpy pandas --break-system-packages
+
       - name: Install R + bedtools + bwa + bowtie2
         run: |
           sudo apt-get update -qq
