@@ -83,7 +83,7 @@ window_modes:
   - binned
 
 window_sizes:
- - 20000
+ - 100000
 
 steps:
  - 0

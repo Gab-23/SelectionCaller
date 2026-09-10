@@ -4,106 +4,131 @@
 #SBATCH --output=/hpcnfs/scratch/MS/ieo7429/SelectionCaller/snakemake_%j.out
 #SBATCH --time=120:00:00
 #SBATCH --cpus-per-task=50
-#SBATCH --mem=500G
+#SBATCH --mem=200G
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=ieo7429@ieo.it
 
-SNAKEFILE=$1
-CONFIGFILE=$2
-CORES=$3
+set -uo pipefail
+# NOTE: deliberately NOT using `set -e` here - several steps below check $? explicitly
+# (dry-run, then the main run), and `set -e` would abort the script the instant any of
+# them fails, before we get a chance to inspect/report the exit code ourselves.
 
-SOURCE="ieo7429@146.247.19.84"
-LOCAL="ieo7429@login.ieo.it"
-
-SOURCE_BASE="/home/ieo7429/Desktop/SelectionCaller"
-SOURCE_RESOURCES="$SOURCE_BASE/resources"
-SOURCE_DATA="$SOURCE_BASE/data"
-SOURCE_RESULTS="$SOURCE_BASE/results"
-SOURCE_LOGS="$SOURCE_BASE/logs"
+# ---------------------------------------------------------------------------
+# Arguments
+# ---------------------------------------------------------------------------
+SNAKEFILE=${1:?"Usage: sbatch $0 <snakefile> <configfile> <cores>"}
+CONFIGFILE=${2:?"Usage: sbatch $0 <snakefile> <configfile> <cores>"}
+CORES=${3:?"Usage: sbatch $0 <snakefile> <configfile> <cores>"}
 
 LOCAL_BASE="/hpcnfs/scratch/MS/ieo7429/SelectionCaller"
-LOCAL_RESOURCES="$LOCAL_BASE/resources"
-LOCAL_DATA="$LOCAL_BASE/data"
-LOCAL_RESULTS="$LOCAL_BASE/results"
-LOCAL_LOGS="$LOCAL_BASE/logs"
 
-echo "=================================================="
-echo "Job ID: $SLURM_JOB_ID"
-echo "Node: $SLURM_NODELIST"
-echo "Start time: $(date)"
-echo "=================================================="
+# ---------------------------------------------------------------------------
+# Logging helpers
+# ---------------------------------------------------------------------------
+SECONDS=0   # bash builtin, used for elapsed-time reporting at the end
 
-echo "[$(date)] Pulling input data from $SOURCE..."
+log()      { printf '[%s] %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*"; }
+section()  { printf '\n=== %s ===\n' "$*"; }
+hr()       { printf '%s\n' "--------------------------------------------------------------------"; }
 
-rsync -avz --progress \
-  "$SOURCE:$SOURCE_RESOURCES" \
-  "$LOCAL_BASE/" \
-  || { echo "ERROR: rsync of resources failed"; exit 1; }
+elapsed_human() {
+    local s=$SECONDS
+    printf '%02dh:%02dm:%02ds' $((s/3600)) $(((s%3600)/60)) $((s%60))
+}
 
-echo "[$(date)] Data transfer complete."
+# Always print a closing summary, however the script exits (success, failure, or
+# cancellation) - makes the .out log easy to skim without hunting for the exit code.
+FINAL_STATUS=1
+finish() {
+    hr
+    log "Job finished (exit status: $FINAL_STATUS, elapsed: $(elapsed_human))"
+    hr
+    exit "$FINAL_STATUS"
+}
+trap finish EXIT
+
+# ---------------------------------------------------------------------------
+# Header
+# ---------------------------------------------------------------------------
+hr
+log "Job ID:        ${SLURM_JOB_ID:-N/A}"
+log "Job name:      ${SLURM_JOB_NAME:-N/A}"
+log "Node:          ${SLURM_NODELIST:-N/A}"
+log "CPUs assigned: ${SLURM_CPUS_PER_TASK:-N/A} (--cores requested: $CORES)"
+log "Memory:        ${SLURM_MEM_PER_NODE:-N/A} MB"
+log "Working dir:   $LOCAL_BASE"
+log "Snakefile:     $SNAKEFILE"
+log "Configfile:    $CONFIGFILE"
+hr
+
+cd "$LOCAL_BASE" || { log "ERROR: cannot cd into $LOCAL_BASE"; FINAL_STATUS=1; exit; }
+
+# ---------------------------------------------------------------------------
+# Environment
+# ---------------------------------------------------------------------------
+section "Activating environment"
 
 source ~/miniforge3/etc/profile.d/conda.sh
 conda activate snakemake-env
 
-echo "[$(date)] Executing Dry-run..."
+if ! command -v snakemake > /dev/null 2>&1; then
+    log "ERROR: 'snakemake' not found on PATH after activating snakemake-env"
+    FINAL_STATUS=1
+    exit
+fi
+log "snakemake: $(snakemake --version)"
 
-snakemake --snakefile $SNAKEFILE --configfile $CONFIGFILE --unlock
-snakemake --snakefile $SNAKEFILE --configfile $CONFIGFILE --dry-run
+if [ ! -f "$SNAKEFILE" ]; then
+    log "ERROR: Snakefile not found: $SNAKEFILE"
+    FINAL_STATUS=1
+    exit
+fi
+if [ ! -f "$CONFIGFILE" ]; then
+    log "ERROR: config file not found: $CONFIGFILE"
+    FINAL_STATUS=1
+    exit
+fi
+
+# ---------------------------------------------------------------------------
+# Unlock (in case a previous run left a stale lock) + dry-run
+# ---------------------------------------------------------------------------
+section "Dry-run"
+
+snakemake --snakefile "$SNAKEFILE" --configfile "$CONFIGFILE" --unlock
+
+log "Checking the DAG before committing any compute..."
+snakemake --snakefile "$SNAKEFILE" --configfile "$CONFIGFILE" --dry-run
 EXIT_STATUS_DRY_RUN=$?
 
-if [ $EXIT_STATUS_DRY_RUN -eq 0 ]; then
-  echo "[$(date) Dry-run finished successfully. Executing main pipeline...]"
+if [ "$EXIT_STATUS_DRY_RUN" -ne 0 ]; then
+    log "ERROR: dry-run failed (exit status $EXIT_STATUS_DRY_RUN) - not starting the real run."
+    FINAL_STATUS=$EXIT_STATUS_DRY_RUN
+    exit
+fi
+log "Dry-run OK."
 
-  snakemake --snakefile $SNAKEFILE --configfile $CONFIGFILE --unlock
-  snakemake --snakefile $SNAKEFILE --configfile $CONFIGFILE --cores $CORES --use-conda
-  EXIT_STATUS_FINAL_RUN=$?
+# ---------------------------------------------------------------------------
+# Main run
+# ---------------------------------------------------------------------------
+section "Main pipeline run"
 
+snakemake --snakefile "$SNAKEFILE" --configfile "$CONFIGFILE" --unlock
+
+log "Launching Snakemake with $CORES cores..."
+snakemake \
+    --snakefile "$SNAKEFILE" \
+    --configfile "$CONFIGFILE" \
+    --cores "$CORES" \
+    --use-conda \
+    --rerun-incomplete \
+    --keep-going \
+    --printshellcmds
+EXIT_STATUS_FINAL_RUN=$?
+
+if [ "$EXIT_STATUS_FINAL_RUN" -eq 0 ]; then
+    log "Pipeline completed successfully."
 else
-  echo "ERROR: Dry-run failed."
-  
-  echo "=================================================="
-  echo "End time: $(date)"
-  echo "Exit status: $EXIT_STATUS_DRY_RUN"
-  echo "=================================================="
-
-  exit $EXIT_STATUS_DRY_RUN
-
+    log "ERROR: pipeline exited with status $EXIT_STATUS_FINAL_RUN."
 fi
 
-if [ $EXIT_STATUS_FINAL_RUN -eq 0 ]; then
-  echo "[$(date)] Pipeline finished successfully. Sending results to $SOURCE...]"
-
-  ssh "$SOURCE" "mkdir -p $SOURCE_DATA $SOURCE_RESULTS $SOURCE_LOGS"
-
-  rsync -avz --progress \
-    "$LOCAL_DATA/" \
-    "$SOURCE:$SOURCE_DATA" \
-    && echo "[$(date)] Data/ transferred successfully." \
-    || { echo "ERROR: rsync of Data/ failed. NOT deleting local copy."; exit 1; }
-
-  rsync -avz --progress \
-    "$LOCAL_RESULTS/" \
-    "$SOURCE:$SOURCE_RESULTS" \
-    && echo "[$(date)] Results/ transferred successfully." \
-    || { echo "ERROR: rsync of Results/ failed. NOT deleting local copy."; exit 1; }
-
-  rsync -avz --progress \
-    "$LOCAL_LOGS/" \
-    "$SOURCE:$SOURCE_LOGS" \
-    && echo "[$(date)] Logs/ transferred successfully." \
-    || { echo "ERROR: rsync of Logs/ failed. NOT deleting local copy."; exit 1; }
-
-  #echo "[$(date)] Cleaning up local data and results..."
-  #rm -rf "$LOCAL_DATA" "$LOCAL_RESULTS" "$LOCAL_LOGS"
-  #echo "[$(date)] Cleanup done."
-
-else
-  echo "ERROR: Main pipeline failed. Skipping result transfer and cleanup."
-fi
-
-echo "=================================================="
-echo "End time: $(date)"
-echo "Exit status: $EXIT_STATUS_FINAL_RUN"
-echo "=================================================="
-
-exit $EXIT_STATUS_FINAL_RUN
+FINAL_STATUS=$EXIT_STATUS_FINAL_RUN
