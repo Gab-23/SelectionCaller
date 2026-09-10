@@ -66,6 +66,20 @@ jobs:
           echo -e '#!/bin/bash\nexec PicardCommandLine "$@"' | sudo tee /usr/local/bin/picard > /dev/null
           sudo chmod +x /usr/local/bin/picard
 
+      - name: Sanity-check that all required command-line tools are actually on PATH
+        run: |
+          for tool in Rscript bedtools bwa bowtie2 bowtie2-build trim_galore fastq-dump prefetch picard samtools; do
+            if ! command -v "$tool" > /dev/null 2>&1; then
+              echo "ERROR: '$tool' is not on PATH after installation - the apt-get install step"
+              echo "above may have silently failed to install it (e.g. a dependency conflict) or"
+              echo "the package providing it may no longer be named/available as expected on this"
+              echo "runner image. Check the 'Install R + bedtools + bwa + bowtie2' step's full"
+              echo "output above for warnings/errors about this specific package."
+              exit 1
+            fi
+          done
+          echo "OK: all required tools are on PATH ($(bwa 2>&1 | head -3 | tail -1))"
+
       - name: Unit-testing
         run: |
           bash .tests/unit/test_backbone_scripts.sh
@@ -102,6 +116,20 @@ jobs:
           # expect). Shim it so the rules work unmodified.
           echo -e '#!/bin/bash\nexec PicardCommandLine "$@"' | sudo tee /usr/local/bin/picard > /dev/null
           sudo chmod +x /usr/local/bin/picard
+
+      - name: Sanity-check that all required command-line tools are actually on PATH
+        run: |
+          for tool in Rscript bedtools bwa bowtie2 bowtie2-build trim_galore fastq-dump prefetch picard samtools; do
+            if ! command -v "$tool" > /dev/null 2>&1; then
+              echo "ERROR: '$tool' is not on PATH after installation - the apt-get install step"
+              echo "above may have silently failed to install it (e.g. a dependency conflict) or"
+              echo "the package providing it may no longer be named/available as expected on this"
+              echo "runner image. Check the 'Install R + bedtools + bwa + bowtie2' step's full"
+              echo "output above for warnings/errors about this specific package."
+              exit 1
+            fi
+          done
+          echo "OK: all required tools are on PATH ($(bwa 2>&1 | head -3 | tail -1))"
 
       - name: Copy toy fixtures into the paths expected by the rules (bypasses real downloads)
         run: |
