@@ -11,6 +11,7 @@ temp_*/
 snakemake_*
 *.pdf
 *.png
+!SelectionCaller.png
 TODO.txt
 train*
 *Regressor
