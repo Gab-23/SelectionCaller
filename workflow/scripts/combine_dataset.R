@@ -44,7 +44,7 @@ output_path_boxplots_scaled                   <- args$output_path_boxplots_scale
 output_path_boxplots_0s_non0s_muts            <- args$output_path_boxplots_0s_non0s_muts
 output_path_boxplots_0s_non0s_chromstates     <- args$output_path_boxplots_0s_non0s_chromstates
 #output_path_PCA_plot                         <- args$output_path_PCA_plot
-#output_path_bool_multicollinearity           <- args$output_path_bool_multicollinearity
+output_path_bool_multicollinearity            <- args$output_path_bool_multicollinearity
 
 FDR_thr                                       <- 0.05
 
@@ -140,5 +140,5 @@ ggplot2::ggsave(output_path_zero_frac_plot, zero_frac_plot, width = 12, height =
 ggplot2::ggsave(output_path_boxplots, boxplots, width = 12, height = 7)
 ggplot2::ggsave(output_path_boxplots_scaled, boxplots.scaled, width = 12, height = 7)
 ggplot2::ggsave(output_path_boxplots_0s_non0s_muts, boxplots_0s_non0s_muts, width = 12, height = 7)
-ggplot2::ggsave(output_path_boxplots_0s_non0s_chromstates, output_path_boxplots_0s_non0s_chromstates, width = 12, height = 7)
-ggplot2::ggsave(output_path_corr, heatmap, width = 12, height = 12)
+ggplot2::ggsave(output_path_boxplots_0s_non0s_chromstates, boxplots_0s_chromstates, width = 12, height = 7)
+ggplot2::ggsave(output_path_corr_plot, heatmap, width = 12, height = 12)

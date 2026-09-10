@@ -40,9 +40,15 @@ for (idx in seq(length(sample_types))){
     pattern <- samples[samples$sample_type == sample_type, "SRA_id"]
     library_size <- samples[samples$sample_type == sample_type, "library_size"]
 
-    file <- grep(pattern = pattern, x = files, value = T)
+    file <- grep(pattern = paste(pattern, collapse = "|"), x = files, value = T)   # fix: pattern can have >1 SRA_id (multiple replicates per sample_type) - grep() previously silently used only the first element of a vector pattern, dropping all other replicate files with just a warning, no error
+    if (length(file) != 1){                                                       # fail loudly instead of guessing how to merge multiple replicate coverage
+        stop(sprintf(                                                            # files (sum? average CPM?) - that is a scientific design decision this
+            "process_repliseq.R: expected exactly 1 coverage file for sample_type '%s', found %d: %s",
+            sample_type, length(file), paste(file, collapse = ", ")
+        ))
+    }
     
-    coverage <- read.table(file, header = T, sep = "\t")
+    coverage <- read.table(file, header = F, sep = "\t")
     colnames(coverage) <- c("chr", "start", "end", "binID", "coverage")
 
     norm_coverage <- CPM(coverage, library_size)
@@ -84,6 +90,15 @@ replication_timing <- tidyr::separate_wider_delim(data = replication_timing,
                                                   cols = binID,
                                                   delim = "_", 
                                                   names = c("chr", "pos"))
+
+replication_timing$chr <- paste0("chr", replication_timing$chr)                    # fix: binID's chr-part has the "chr" prefix stripped (see
+                                                                                    # generate_backbone.R: binID <- paste0(gsub("chr","",chr), ...)),
+                                                                                    # but the backbone MASK file (read a few lines above) uses real
+                                                                                    # chromosome names ("chr1", not "1"). Without re-adding the
+                                                                                    # prefix here, the GRanges built from replication_timing below
+                                                                                    # would have seqnames "1".."22" while mask_gr has "chr1".."chr22" -
+                                                                                    # findOverlaps() would then ALWAYS return zero hits (confirmed with
+                                                                                    # a toy test: the final output was silently empty, header only).
 
 replication_timing$replication.timing.smoothed <- NA
 

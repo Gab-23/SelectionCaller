@@ -5,7 +5,7 @@ options(scipen=999)                                                             
 
 args <- R.utils::commandArgs(trailingOnly = TRUE, asValues = TRUE)                # read args
 
-input_path_GC                                 <- args$input_path_ampl
+input_path_GC                                 <- args$input_path_GC
 input_path_models_DepMap                      <- args$input_path_models_DepMap
 input_path_manifest_GDC                       <- args$input_path_manifest_GDC
 input_path_samples_COSMIC                     <- args$input_path_samples_COSMIC
@@ -18,7 +18,7 @@ output_path_GC_landscape                      <- args$output_path_GC_landscape
 output_path_GC_distribution                   <- args$output_path_GC_distribution
 output_path_samples_barplot                   <- args$output_path_samples_barplot
 output_path_genes_barplot                     <- args$output_path_genes_barplot
-output_path_num_mutations_barplot             <- args$output_path_mutations_barplot
+output_path_num_mutations_barplot             <- args$output_path_num_mutations_barplot
 output_path_coding_mut_descriptions_barplot   <- args$output_path_coding_mut_descriptions_barplot
 
 `%>%` <- magrittr::`%>%`

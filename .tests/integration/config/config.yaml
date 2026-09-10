@@ -39,7 +39,7 @@ GDC_manifest_locations:
 GDC_CNA_files_locations:
   - resources/GDC/CNAs/files/*/*.seg.v2.txt
 selected_samples_location_repliseqs:
-  - config/HMEC_selected_samples_repliseq
+  - resources/repliseq_selected_samples.tsv
 selected_samples_location_atacseqs:
   - config/BREAST_selected_samples_atacseq
 samples_to_exclude_location_atacseqs:
@@ -89,7 +89,7 @@ java_mem_size_atacseqs:
 mapq_thrs:
   - 20
 cov_thrs:
-  - 50
+  - 0
 smoothing_sizes:
   - 500000
 max_insert_size_atacseqs:

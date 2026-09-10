@@ -54,12 +54,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install R + bedtools
+      - name: Install R + bedtools + bwa + bowtie2
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends \
             r-base-core r-cran-dplyr r-cran-magrittr r-cran-r.utils \
-            r-bioc-genomicranges r-bioc-rtracklayer r-cran-tidyr r-cran-ggplot2 r-cran-gridextra bedtools
+            r-bioc-genomicranges r-bioc-rtracklayer r-cran-tidyr r-cran-ggplot2 r-cran-gridextra bedtools bwa bowtie2 trim-galore picard-tools sra-toolkit
+          # Ubuntu's picard-tools package ships "PicardCommandLine", not "picard" (the
+          # command name the real conda "picard" package - and this pipeline's rules -
+          # expect). Shim it so the rules work unmodified.
+          echo -e '#!/bin/bash\nexec PicardCommandLine "$@"' | sudo tee /usr/local/bin/picard > /dev/null
+          sudo chmod +x /usr/local/bin/picard
 
       - name: Unit-testing
         run: |
@@ -72,6 +77,10 @@ jobs:
           bash .tests/unit/test_fragile_sites_scripts.sh
           bash .tests/unit/test_ohnologs_paralogs_scripts.sh
           bash .tests/unit/test_gene_density_haploinsufficiency_scripts.sh
+          bash .tests/unit/test_genome_scripts.sh
+          bash .tests/unit/test_explore_datatypes_scripts.sh
+          bash .tests/unit/test_combine_dataset_scripts.sh
+          bash .tests/unit/test_repliseq_scripts.sh
 
   toy-integration-test:
     name: Integration testing (toy data, backbone/DepMap/IntOGen modules)
@@ -82,12 +91,17 @@ jobs:
       - name: Install Snakemake
         run: pip install snakemake pandas
 
-      - name: Install R + bedtools
+      - name: Install R + bedtools + bwa + bowtie2
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends \
             r-base-core r-cran-dplyr r-cran-magrittr r-cran-r.utils \
-            r-bioc-genomicranges r-bioc-rtracklayer r-cran-tidyr r-cran-ggplot2 r-cran-gridextra bedtools
+            r-bioc-genomicranges r-bioc-rtracklayer r-cran-tidyr r-cran-ggplot2 r-cran-gridextra bedtools bwa bowtie2 trim-galore picard-tools sra-toolkit
+          # Ubuntu's picard-tools package ships "PicardCommandLine", not "picard" (the
+          # command name the real conda "picard" package - and this pipeline's rules -
+          # expect). Shim it so the rules work unmodified.
+          echo -e '#!/bin/bash\nexec PicardCommandLine "$@"' | sudo tee /usr/local/bin/picard > /dev/null
+          sudo chmod +x /usr/local/bin/picard
 
       - name: Copy toy fixtures into the paths expected by the rules (bypasses real downloads)
         run: |
@@ -118,6 +132,18 @@ jobs:
           sleep 1
           touch resources/epigenomes/checks/downloads/BREAST_PrimaryCulture_noliftover_mnemonics
           touch resources/epigenomes/roadmap/E027_12_coreMarks_mnemonics.bed
+          # get_reference_genome has no input, so no ordering issue - just make sure it's
+          # already present so the (real, network-dependent) download is skipped.
+          touch resources/reference_data/genome/hg00.fa
+          # Same timestamp-ordering issue as above, for the RepliSeq prefetch->fastq_dump
+          # chain: pre-seed the (fake) .sra files older than the (fake) FASTQ files they
+          # would "produce", so fastq_dump_repliseq isn't considered stale and doesn't try
+          # a real prefetch_repliseq download.
+          find resources/repliseq -type f -exec touch -d '2020-01-01' {} \;
+          sleep 1
+          touch resources/repliseq/files/fastq/SRR9001/SRR9001_1.fastq.gz resources/repliseq/files/fastq/SRR9001/SRR9001_2.fastq.gz
+          touch resources/repliseq/files/fastq/SRR9002/SRR9002_1.fastq.gz resources/repliseq/files/fastq/SRR9002/SRR9002_2.fastq.gz
+          touch resources/repliseq/files/fastq/SRR9003/SRR9003_1.fastq.gz resources/repliseq/files/fastq/SRR9003/SRR9003_2.fastq.gz
 
       - name: Execute pipeline on toy data (fake hg00 assembly) - part 1 (up to the GDC
               manifest, so gdc-client's real download can be bypassed with a fresh-enough
@@ -167,7 +193,10 @@ jobs:
             resources/num_overlaps/density/essential/hg00_binned_200_0_BRCA_Female_0.5_1_v1_BRCA \
             resources/num_overlaps/density/OG/hg00_binned_200_0_BRCA_Female_0.5_1_v1_BRCA \
             resources/num_overlaps/density/TSG/hg00_binned_200_0_BRCA_Female_0.5_1_v1_BRCA \
-            data/haploinsufficiency/hg00_binned_200_0_v1_0.9
+            data/haploinsufficiency/hg00_binned_200_0_v1_0.9 \
+            resources/reference_data/genome/hg00.fa.bwt \
+            resources/reference_data/genome/hg00.1.bt2 \
+            data/repliseq/hg00_binned_200_0_20_0_500000
           # NOTE: data/GC/... is deliberately excluded from this test: get_GC_content.R
           # requires the Bioconductor BSgenome package specific to the real assembly
           # (e.g. BSgenome.Hsapiens.UCSC.hg38, ~800MB) and can therefore not be tested with a
@@ -199,7 +228,10 @@ jobs:
             resources/num_overlaps/density/essential/hg00_binned_200_0_BRCA_Female_0.5_1_v1_BRCA \
             resources/num_overlaps/density/OG/hg00_binned_200_0_BRCA_Female_0.5_1_v1_BRCA \
             resources/num_overlaps/density/TSG/hg00_binned_200_0_BRCA_Female_0.5_1_v1_BRCA \
-            data/haploinsufficiency/hg00_binned_200_0_v1_0.9 ; do
+            data/haploinsufficiency/hg00_binned_200_0_v1_0.9 \
+            resources/reference_data/genome/hg00.fa.bwt \
+            resources/reference_data/genome/hg00.1.bt2 \
+            data/repliseq/hg00_binned_200_0_20_0_500000 ; do
             test -s "$f" || { echo "Missing or empty file: $f"; exit 1; }
           done
           echo "OK: all expected outputs are present and non-empty"

@@ -700,31 +700,31 @@ include: "rules/ohnologs_and_paralogs/compute_and_process_paralogs.smk"
 
 ####
 
-# TODO(phase>1 - not yet migrated/tested): include: "rules/genome/get_reference_genome.smk"
-# TODO(phase>1 - not yet migrated/tested): include: "rules/genome/index_reference_genome_bwa.smk"
-# TODO(phase>1 - not yet migrated/tested): include: "rules/genome/index_reference_genome_bowtie2.smk"
+include: "rules/genome/get_reference_genome.smk"
+include: "rules/genome/index_reference_genome_bwa.smk"
+include: "rules/genome/index_reference_genome_bowtie2.smk"
 
 ####
 
-# TODO(phase>1 - not yet migrated/tested): include: "rules/repliseq/prefetch_repliseq.smk"
-# TODO(phase>1 - not yet migrated/tested): include: "rules/repliseq/fastq_dump_repliseq.smk"
-# TODO(phase>1 - not yet migrated/tested): include: "rules/repliseq/trim_reads_repliseq.smk"
-# TODO(phase>1 - not yet migrated/tested): include: "rules/repliseq/align_reads_repliseq.smk"
-# TODO(phase>1 - not yet migrated/tested): include: "rules/repliseq/sort_bam_repliseq.smk"
-# TODO(phase>1 - not yet migrated/tested): include: "rules/repliseq/index_bam_repliseq.smk"
-# TODO(phase>1 - not yet migrated/tested): include: "rules/repliseq/filter_bam_repliseq.smk"
-# TODO(phase>1 - not yet migrated/tested): include: "rules/repliseq/sort_filtered_bam_repliseq.smk"
-# TODO(phase>1 - not yet migrated/tested): include: "rules/repliseq/index_filtered_bam_repliseq.smk"
-# TODO(phase>1 - not yet migrated/tested): include: "rules/repliseq/do_bamqc_repliseq.smk"
-# TODO(phase>1 - not yet migrated/tested): include: "rules/repliseq/deduplicate_bam_repliseq.smk"
-# TODO(phase>1 - not yet migrated/tested): include: "rules/repliseq/filter_deduplicated_bam_repliseq.smk"
-# TODO(phase>1 - not yet migrated/tested): include: "rules/repliseq/remove_blacklisted_from_bam_repliseq.smk"
-# TODO(phase>1 - not yet migrated/tested): include: "rules/repliseq/sort_noblacklist_bam_repliseq.smk"
-# TODO(phase>1 - not yet migrated/tested): include: "rules/repliseq/index_noblacklist_bam_repliseq.smk"
-# TODO(phase>1 - not yet migrated/tested): include: "rules/repliseq/compute_library_size_repliseq.smk"
-# TODO(phase>1 - not yet migrated/tested): include: "rules/repliseq/compute_coverage_repliseq.smk"
-# TODO(phase>1 - not yet migrated/tested): include: "rules/repliseq/filter_coverage_repliseq.smk"
-# TODO(phase>1 - not yet migrated/tested): include: "rules/repliseq/process_repliseq.smk"
+include: "rules/repliseq/prefetch_repliseq.smk"
+include: "rules/repliseq/fastq_dump_repliseq.smk"
+include: "rules/repliseq/trim_reads_repliseq.smk"
+include: "rules/repliseq/align_reads_repliseq.smk"
+include: "rules/repliseq/sort_bam_repliseq.smk"
+include: "rules/repliseq/index_bam_repliseq.smk"
+include: "rules/repliseq/filter_bam_repliseq.smk"
+include: "rules/repliseq/sort_filtered_bam_repliseq.smk"
+include: "rules/repliseq/index_filtered_bam_repliseq.smk"
+include: "rules/repliseq/do_bamqc_repliseq.smk"
+include: "rules/repliseq/deduplicate_bam_repliseq.smk"
+include: "rules/repliseq/filter_deduplicated_bam_repliseq.smk"
+include: "rules/repliseq/remove_blacklisted_from_bam_repliseq.smk"
+include: "rules/repliseq/sort_noblacklist_bam_repliseq.smk"
+include: "rules/repliseq/index_noblacklist_bam_repliseq.smk"
+include: "rules/repliseq/compute_library_size_repliseq.smk"
+include: "rules/repliseq/compute_coverage_repliseq.smk"
+include: "rules/repliseq/filter_coverage_repliseq.smk"
+include: "rules/repliseq/process_repliseq.smk"
 
 ####
 
@@ -784,9 +784,16 @@ include: "rules/ohnologs_and_paralogs/compute_and_process_paralogs.smk"
 
 ####
 
-# TODO(phase>1 - not yet migrated/tested): include: "rules/dataset/explore_datatypes.smk"
-# TODO(phase>1 - not yet migrated/tested): include: "rules/dataset/combine_dataset.smk"
-# TODO(phase>1 - not yet migrated/tested): include: "rules/dataset/smooth_dataset.smk"
+include: "rules/dataset/explore_datatypes.smk"
+# BLOCKED (reviewed and fixed, not just "not yet migrated"): include: "rules/dataset/combine_dataset.smk"
+#   combine_dataset.R and the rule have been fully reviewed, fixed (5 confirmed bugs, see
+#   README) and unit-tested with toy data covering every input/output. It cannot be wired
+#   into rule_all yet because it requires "data/atacseq/..." (ATAC-seq DARs) and
+#   "data/repliseq/..." (RepliSeq), neither of which is migrated yet. Activate once both are.
+# NOT IMPLEMENTED (confirmed, not just untested): include: "rules/dataset/smooth_dataset.smk"
+#   smooth_dataset.smk has no input/output/shell at all (an empty stub) even though
+#   workflow/scripts/smooth_dataset.R exists with real logic - the rule was simply never
+#   written. Deprioritized per explicit instruction (smoothing not currently needed).
 
 ####
 
@@ -968,6 +975,35 @@ rule all:
             "data/haploinsufficiency/{assembly_code}_{window_mode}_{window_size}_{step}_v{gencode_version}_{haplo_thr}",
             assembly_code=assembly_code, window_mode=window_mode, window_size=window_sizes, step=steps,
             gencode_version=gencode_version, haplo_thr=haplo_thr
+        ),
+
+        # ---- Phase 8: genome module (reference genome + aligner indexes) ----
+        expand(
+            "resources/reference_data/genome/{assembly_code}.fa.bwt",
+            assembly_code=assembly_code
+        ),
+        expand(
+            "resources/reference_data/genome/{assembly_code}.1.bt2",
+            assembly_code=assembly_code
+        ),
+
+        # ---- Phase 10: RepliSeq module ----
+        expand(
+            "data/repliseq/{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}_{cov_thr}_{smoothing_size}",
+            assembly_code=assembly_code, window_mode=window_mode, window_size=window_sizes, step=steps,
+            mapq_thr=mapq_thr, cov_thr=cov_thr, smoothing_size=smoothing_size
+        ),
+
+        # ---- Phase 9: dataset module (explore_datatypes only - combine_dataset blocked on
+        #      ATAC-seq/RepliSeq, smooth_dataset not implemented, see comments above) ----
+        expand(
+            "results/plots/datatypes/GC_landscape/{assembly_code}_{window_mode}_{window_size}_{step}_{oncotree_code_DepMap}_{gender_DepMap}_{tumor_type_GDC}_{gender_GDC}_{gender_COSMIC}_{COSMIC_parameters}_v{gencode_version}_{tumor_type_IntOGen}_{essentiality_cutoff}_{num_assays_cutoff}.pdf",
+            assembly_code=assembly_code, window_mode=window_mode, window_size=window_sizes, step=steps,
+            oncotree_code_DepMap=oncotree_code_DepMap, gender_DepMap=gender_DepMap,
+            tumor_type_GDC=tumor_type_GDC, gender_GDC=gender_GDC,
+            gender_COSMIC=gender_COSMIC, COSMIC_parameters=COSMIC_parameters,
+            gencode_version=gencode_version, tumor_type_IntOGen=tumor_type_IntOGen,
+            essentiality_cutoff=essentiality_cutoff, num_assays_cutoff=num_assays_cutoff
         ),
 
         # ---- Next phases (RE-ACTIVATE once the respective modules are migrated/tested) ----

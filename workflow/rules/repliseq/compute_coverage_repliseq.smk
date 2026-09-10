@@ -10,5 +10,5 @@ rule compute_coverage_repliseq:
         "../../envs/bedtools.yml"
     shell:
         """
-        bedtools coverage -counts -a {input.backbone} -b {input.bam} > {output} 2> {log}
+        bedtools coverage -counts -a {input.backbone} -b {input.bam} > {output}
         """
