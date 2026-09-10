@@ -17,13 +17,13 @@ rule run_CNVkit_atacseq_normal:
         "../../envs/cnvkit_env.yml"
     shell:
         """
-        touch {output}
-
         cnvkit.py batch {input.normal_bam} -n {params.loo_paths} \
         --fasta {input.genome} \
         --method wgs \
         --target-avg-size {wildcards.window_size} \
         --targets {input.backbone} \
         --processes {params.num_cores_atacseq} \
-        -d {params.path_dir}/{wildcards.SRA_normal_id} 2> {log}
+        -d {params.path_dir}/{wildcards.SRA_normal_id} 2>{log}
+
+        touch {output}
         """

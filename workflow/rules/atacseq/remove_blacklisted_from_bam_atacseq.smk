@@ -10,5 +10,5 @@ rule remove_blacklisted_from_bam_atacseq:
         "../../envs/bedtools.yml"
     shell:
         """
-        bedtools intersect -v -abam {input.bam} -b {input.blacklist} > {output} 2> {log}
+        bedtools intersect -v -abam {input.bam} -b {input.blacklist} > {output}
         """

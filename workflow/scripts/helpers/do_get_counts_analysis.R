@@ -1,7 +1,10 @@
 do_get_counts_analysis <- function(counts, scaling_factors, correct_for_CNAs){
 
 if (correct_for_CNAs){
-    all(counts$binID == scaling_factors$binID)
+    stopifnot(                                                                   # fix: was a bare `all(...)` expression with the result never checked -
+        "counts and scaling_factors are not aligned by binID" =                  # merge()/dplyr::summarise() sort by binID by default, so this likely
+        all(counts$binID == scaling_factors$binID)                               # already held in practice, but nothing was actually enforcing it -
+    )                                                                            # a defensive, zero-cost safety net in case that default ever changes.
     all(colnames(counts[,colnames(scaling_factors)]) == colnames(scaling_factors))
     counts[,colnames(scaling_factors[,-1])] <- round(counts[,colnames(scaling_factors[,-1])] / scaling_factors[,-1])
 
@@ -57,7 +60,12 @@ condition <- metadata$condition
 mm1 <- model.matrix(~condition + study)
 mm0 <- model.matrix(~study)
 
-n.sv <- num.sv(count.f.norm[,-1], mm1, method="leek")
+# NOTE (fix): removed a dead `n.sv <- num.sv(count.f.norm[,-1], mm1, method="leek")` call -
+# its result was never referenced anywhere below (sva() is always called with the explicit,
+# user-provided `SVs` count, not this estimate). Confirmed unused by inspection. Also purely
+# incidentally, this specific call is numerically fragile with few features/samples (fails
+# with "infinite or missing values" on small toy data) - removing the dead computation removes
+# that fragility too, with no change in behavior since its result was never used.
 
 sv <- sva(as.matrix(count.f.norm[,-1]),mm1,mm0, SVs)$sv
 

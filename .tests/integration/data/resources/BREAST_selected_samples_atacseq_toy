@@ -1,0 +1,9 @@
+SRA_id	sample_id	donor_id	age	sex	condition	subtype	grade	study_id
+SRR1001	T1	D1	55	F	tumor	luminal	2	studyA
+SRR1002	T2	D2	62	F	tumor	basal	3	studyA
+SRR1003	T3	D3	48	M	tumor	luminal	1	studyB
+SRR1004	T4	D5	58	F	tumor	basal	2	studyB
+SRR2001	N1	D1	55	F	NAT	NA	NA	studyA
+SRR2002	N2	D4	70	M	NAT	NA	NA	studyB
+SRR2003	N3	D3	48	M	NAT	NA	NA	studyB
+SRR2004	N4	D5	58	F	NAT	NA	NA	studyA

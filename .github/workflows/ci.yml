@@ -59,7 +59,7 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends \
             r-base-core r-cran-dplyr r-cran-magrittr r-cran-r.utils \
-            r-bioc-genomicranges r-bioc-rtracklayer r-cran-tidyr r-cran-ggplot2 r-cran-gridextra bedtools bwa bowtie2 samtools trim-galore picard-tools sra-toolkit
+            r-bioc-genomicranges r-bioc-rtracklayer r-cran-tidyr r-cran-ggplot2 r-cran-gridextra r-bioc-edger r-bioc-sva r-bioc-dnacopy bedtools bwa bowtie2 samtools trim-galore picard-tools sra-toolkit
           # Ubuntu's picard-tools package ships "PicardCommandLine", not "picard" (the
           # command name the real conda "picard" package - and this pipeline's rules -
           # expect). Shim it so the rules work unmodified.
@@ -95,6 +95,7 @@ jobs:
           bash .tests/unit/test_explore_datatypes_scripts.sh
           bash .tests/unit/test_combine_dataset_scripts.sh
           bash .tests/unit/test_repliseq_scripts.sh
+          bash .tests/unit/test_atacseq_scripts.sh
 
   toy-integration-test:
     name: Integration testing (toy data, backbone/DepMap/IntOGen modules)
@@ -105,12 +106,15 @@ jobs:
       - name: Install Snakemake
         run: pip install snakemake pandas
 
+      - name: Install CNVkit (needed for the ATAC-seq module's copy-number scaling step)
+        run: pip install cnvkit --break-system-packages
+
       - name: Install R + bedtools + bwa + bowtie2
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends \
             r-base-core r-cran-dplyr r-cran-magrittr r-cran-r.utils \
-            r-bioc-genomicranges r-bioc-rtracklayer r-cran-tidyr r-cran-ggplot2 r-cran-gridextra bedtools bwa bowtie2 samtools trim-galore picard-tools sra-toolkit
+            r-bioc-genomicranges r-bioc-rtracklayer r-cran-tidyr r-cran-ggplot2 r-cran-gridextra r-bioc-edger r-bioc-sva r-bioc-dnacopy bedtools bwa bowtie2 samtools trim-galore picard-tools sra-toolkit
           # Ubuntu's picard-tools package ships "PicardCommandLine", not "picard" (the
           # command name the real conda "picard" package - and this pipeline's rules -
           # expect). Shim it so the rules work unmodified.
@@ -119,7 +123,7 @@ jobs:
 
       - name: Sanity-check that all required command-line tools are actually on PATH
         run: |
-          for tool in Rscript bedtools bwa bowtie2 bowtie2-build trim_galore fastq-dump prefetch picard samtools; do
+          for tool in Rscript bedtools bwa bowtie2 bowtie2-build trim_galore fastq-dump prefetch picard samtools cnvkit.py; do
             if ! command -v "$tool" > /dev/null 2>&1; then
               echo "ERROR: '$tool' is not on PATH after installation - the apt-get install step"
               echo "above may have silently failed to install it (e.g. a dependency conflict) or"
@@ -168,10 +172,14 @@ jobs:
           # would "produce", so fastq_dump_repliseq isn't considered stale and doesn't try
           # a real prefetch_repliseq download.
           find resources/repliseq -type f -exec touch -d '2020-01-01' {} \;
+          find resources/atacseq -type f -exec touch -d '2020-01-01' {} \;
           sleep 1
           touch resources/repliseq/files/fastq/SRR9001/SRR9001_1.fastq.gz resources/repliseq/files/fastq/SRR9001/SRR9001_2.fastq.gz
           touch resources/repliseq/files/fastq/SRR9002/SRR9002_1.fastq.gz resources/repliseq/files/fastq/SRR9002/SRR9002_2.fastq.gz
           touch resources/repliseq/files/fastq/SRR9003/SRR9003_1.fastq.gz resources/repliseq/files/fastq/SRR9003/SRR9003_2.fastq.gz
+          for sid in SRR1001 SRR1002 SRR1003 SRR1004 SRR2001 SRR2002 SRR2003 SRR2004; do
+            touch resources/atacseq/files/fastq/$sid/${sid}_1.fastq.gz resources/atacseq/files/fastq/$sid/${sid}_2.fastq.gz
+          done
 
       - name: Execute pipeline on toy data (fake hg00 assembly) - part 1 (up to the GDC
               manifest, so gdc-client's real download can be bypassed with a fresh-enough
@@ -224,7 +232,9 @@ jobs:
             data/haploinsufficiency/hg00_binned_200_0_v1_0.9 \
             resources/reference_data/genome/hg00.fa.bwt \
             resources/reference_data/genome/hg00.1.bt2 \
-            data/repliseq/hg00_binned_200_0_20_0_500000
+            data/repliseq/hg00_binned_200_0_20_0_500000 \
+            "results/plots/atacseq/exploratory/samples_per_study/hg00_binned_200_0_20_2_1_1_1.pdf" \
+            "data/atacseq/hg00_binned_200_0_20_2_1_1_1_BRCA_female_50_0.2"
           # NOTE: data/GC/... is deliberately excluded from this test: get_GC_content.R
           # requires the Bioconductor BSgenome package specific to the real assembly
           # (e.g. BSgenome.Hsapiens.UCSC.hg38, ~800MB) and can therefore not be tested with a
@@ -259,7 +269,9 @@ jobs:
             data/haploinsufficiency/hg00_binned_200_0_v1_0.9 \
             resources/reference_data/genome/hg00.fa.bwt \
             resources/reference_data/genome/hg00.1.bt2 \
-            data/repliseq/hg00_binned_200_0_20_0_500000 ; do
+            data/repliseq/hg00_binned_200_0_20_0_500000 \
+            "results/plots/atacseq/exploratory/samples_per_study/hg00_binned_200_0_20_2_1_1_1.pdf" \
+            "data/atacseq/hg00_binned_200_0_20_2_1_1_1_BRCA_female_50_0.2" ; do
             test -s "$f" || { echo "Missing or empty file: $f"; exit 1; }
           done
           echo "OK: all expected outputs are present and non-empty"

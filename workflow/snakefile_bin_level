@@ -291,6 +291,7 @@ max_insert_size_atacseqs = config["max_insert_size_atacseqs"]
 minSamples_atacseqs = config["minSamples_atacseqs"]
 minCounts_atacseqs = config["minCounts_atacseqs"]
 minCpm_atacseqs = config["minCpm_atacseqs"]
+SVs_list = config["SVs"]
 
 min_length_atacseqs = config["min_length_atacseqs"]
 q_val_thr_atacseqs = config["q_val_thr_atacseqs"]
@@ -518,6 +519,11 @@ if len(minCpm_atacseqs) > 1:
 else:
     minCpm_atacseq = minCpm_atacseqs[0]
 
+if len(SVs_list) > 1:
+    raise ValueError("ERROR, multiple SVs selected")
+else:
+    SVs = SVs_list[0]
+
 if len(min_length_atacseqs) > 1:
     raise ValueError("ERROR, multiple min_length_atacseqs selected")
 else:
@@ -544,6 +550,18 @@ SRA_ids_hic = get_SRA_ids(selected_samples_location_hic)
 
 SRA_tumor_ids_atacseq = get_SRA_condition_ids(selected_samples_location_atacseq, "tumor")
 SRA_normal_ids_atacseq = get_SRA_condition_ids(selected_samples_location_atacseq, "NAT")
+
+# fix: helpers.py is imported as a real Python module ("from snakefile_helpers.helpers import
+# *"), which gives it its OWN separate global namespace - functions defined there (like
+# get_LOO_normal_bam_paths_atacseq, already present before this phase, and the new
+# get_CNVkit_check_atacseq) cannot see variables defined here in the main Snakefile just
+# because they're computed later. Without this, both raise a NameError the moment Snakemake
+# actually calls them as input functions - confirmed with a real dry-run for the new function;
+# get_LOO_normal_bam_paths_atacseq has silently had the same latent bug all along, since
+# nothing in this codebase had ever actually invoked it before ATAC-seq was activated.
+import snakefile_helpers.helpers as _helpers_module
+_helpers_module.SRA_tumor_ids_atacseq = SRA_tumor_ids_atacseq
+_helpers_module.SRA_normal_ids_atacseq = SRA_normal_ids_atacseq
 
 normal_paths_atacseq = [f"resources/atacseq/files/bam/{SRA_normal_id_atacseq}/{SRA_normal_id_atacseq}_{assembly_code}_{mapq_thr}.fixed.bam" for SRA_normal_id_atacseq in SRA_normal_ids_atacseq]
 
@@ -728,32 +746,32 @@ include: "rules/repliseq/process_repliseq.smk"
 
 ####
 
-# TODO(phase>1 - not yet migrated/tested): include: "rules/atacseq/explore_cohort_atacseq.smk"
-# TODO(phase>1 - not yet migrated/tested): include: "rules/atacseq/prefetch_atacseq.smk"
-# TODO(phase>1 - not yet migrated/tested): include: "rules/atacseq/fastq_dump_atacseq.smk"
-# TODO(phase>1 - not yet migrated/tested): include: "rules/atacseq/trim_reads_atacseq.smk"
-# TODO(phase>1 - not yet migrated/tested): include: "rules/atacseq/align_reads_atacseq.smk"
-# TODO(phase>1 - not yet migrated/tested): include: "rules/atacseq/sort_bam_atacseq.smk"
-# TODO(phase>1 - not yet migrated/tested): include: "rules/atacseq/index_bam_atacseq.smk"
-# TODO(phase>1 - not yet migrated/tested): include: "rules/atacseq/filter_bam_atacseq.smk"
-# TODO(phase>1 - not yet migrated/tested): include: "rules/atacseq/sort_filtered_bam_atacseq.smk"
-# TODO(phase>1 - not yet migrated/tested): include: "rules/atacseq/index_filtered_bam_atacseq.smk"
-# TODO(phase>1 - not yet migrated/tested): include: "rules/atacseq/do_bamqc_atacseq.smk"
-# TODO(phase>1 - not yet migrated/tested): include: "rules/atacseq/deduplicate_bam_atacseq.smk"
-# TODO(phase>1 - not yet migrated/tested): include: "rules/atacseq/filter_deduplicated_bam_atacseq.smk"
-# TODO(phase>1 - not yet migrated/tested): include: "rules/atacseq/remove_blacklisted_from_bam_atacseq.smk"
-# TODO(phase>1 - not yet migrated/tested): include: "rules/atacseq/sort_noblacklist_bam_atacseq.smk"
-# TODO(phase>1 - not yet migrated/tested): include: "rules/atacseq/index_noblacklist_bam_atacseq.smk"
-# TODO(phase>1 - not yet migrated/tested): include: "rules/atacseq/fix_mate_information_atacseq.smk"
-# TODO(phase>1 - not yet migrated/tested): include: "rules/atacseq/compute_insert_size_metrics_atacseq.smk"
-# TODO(phase>1 - not yet migrated/tested): include: "rules/atacseq/compute_coverage_atacseq.smk"
-# TODO(phase>1 - not yet migrated/tested): include: "rules/atacseq/run_CNVkit_atacseq.smk"
-# TODO(phase>1 - not yet migrated/tested): include: "rules/atacseq/run_CNVkit_atacseq_normal.smk"
-# TODO(phase>1 - not yet migrated/tested): include: "rules/atacseq/process_CNVkit_output_atacseq.smk"
-# TODO(phase>1 - not yet migrated/tested): include: "rules/atacseq/get_CNVkit_scaling_factors_atacseq.smk"
-# TODO(phase>1 - not yet migrated/tested): include: "rules/atacseq/get_counts_atacseq.smk"
-# TODO(phase>1 - not yet migrated/tested): include: "rules/atacseq/get_DARs.smk"
-# TODO(phase>1 - not yet migrated/tested): include: "rules/atacseq/process_DARs.smk"
+include: "rules/atacseq/explore_cohort_atacseq.smk"
+include: "rules/atacseq/prefetch_atacseq.smk"
+include: "rules/atacseq/fastq_dump_atacseq.smk"
+include: "rules/atacseq/trim_reads_atacseq.smk"
+include: "rules/atacseq/align_reads_atacseq.smk"
+include: "rules/atacseq/sort_bam_atacseq.smk"
+include: "rules/atacseq/index_bam_atacseq.smk"
+include: "rules/atacseq/filter_bam_atacseq.smk"
+include: "rules/atacseq/sort_filtered_bam_atacseq.smk"
+include: "rules/atacseq/index_filtered_bam_atacseq.smk"
+include: "rules/atacseq/do_bamqc_atacseq.smk"
+include: "rules/atacseq/deduplicate_bam_atacseq.smk"
+include: "rules/atacseq/filter_deduplicated_bam_atacseq.smk"
+include: "rules/atacseq/remove_blacklisted_from_bam_atacseq.smk"
+include: "rules/atacseq/sort_noblacklist_bam_atacseq.smk"
+include: "rules/atacseq/index_noblacklist_bam_atacseq.smk"
+include: "rules/atacseq/fix_mate_information_atacseq.smk"
+include: "rules/atacseq/compute_insert_size_metrics_atacseq.smk"
+include: "rules/atacseq/compute_coverage_atacseq.smk"
+include: "rules/atacseq/run_CNVkit_atacseq.smk"
+include: "rules/atacseq/run_CNVkit_atacseq_normal.smk"
+include: "rules/atacseq/process_CNVkit_output_atacseq.smk"
+include: "rules/atacseq/get_CNVkit_scaling_factors_atacseq.smk"
+include: "rules/atacseq/get_counts_atacseq.smk"
+include: "rules/atacseq/get_DARs.smk"
+include: "rules/atacseq/process_DARs.smk"
 # include: "rules/atacseq/name_sort_final_bam_atacseq.smk"
 # include: "rules/atacseq/call_peaks_bysample_atacseq.smk"
 # include: "rules/atacseq/process_peaks_atacseq.smk"
@@ -994,8 +1012,26 @@ rule all:
             mapq_thr=mapq_thr, cov_thr=cov_thr, smoothing_size=smoothing_size
         ),
 
+        # ---- Phase 11: ATAC-seq module (alignment through CNVkit-scaled counts, cohort
+        #      exploration, and bin-level DARs; peak-calling/Genrich chain not active per
+        #      explicit confirmation - see README) ----
+        expand(
+            "results/plots/atacseq/exploratory/samples_per_study/{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}_{minSamples_atacseq}_{minCounts_atacseq}_{minCpm_atacseq}_{SVs}.pdf",
+            assembly_code=assembly_code, window_mode=window_mode, window_size=window_sizes, step=steps,
+            mapq_thr=mapq_thr, minSamples_atacseq=minSamples_atacseq, minCounts_atacseq=minCounts_atacseq,
+            minCpm_atacseq=minCpm_atacseq, SVs=SVs
+        ),
+        expand(
+            "data/atacseq/{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}_{minSamples_atacseq}_{minCounts_atacseq}_{minCpm_atacseq}_{SVs}_{tumor_type_GDC}_{gender_GDC}_{min_Num_Probes}_{min_abs_Segment_Mean}",
+            assembly_code=assembly_code, window_mode=window_mode, window_size=window_sizes, step=steps,
+            mapq_thr=mapq_thr, minSamples_atacseq=minSamples_atacseq, minCounts_atacseq=minCounts_atacseq,
+            minCpm_atacseq=minCpm_atacseq, SVs=SVs, tumor_type_GDC=tumor_type_GDC, gender_GDC=gender_GDC,
+            min_Num_Probes=min_Num_Probes, min_abs_Segment_Mean=min_abs_Segment_Means
+        ),
+
         # ---- Phase 9: dataset module (explore_datatypes only - combine_dataset blocked on
-        #      ATAC-seq/RepliSeq, smooth_dataset not implemented, see comments above) ----
+        #      Hi-C, smooth_dataset not implemented, see comments above; ATAC-seq's own
+        #      DARs are now ready as of Phase 11) ----
         expand(
             "results/plots/datatypes/GC_landscape/{assembly_code}_{window_mode}_{window_size}_{step}_{oncotree_code_DepMap}_{gender_DepMap}_{tumor_type_GDC}_{gender_GDC}_{gender_COSMIC}_{COSMIC_parameters}_v{gencode_version}_{tumor_type_IntOGen}_{essentiality_cutoff}_{num_assays_cutoff}.pdf",
             assembly_code=assembly_code, window_mode=window_mode, window_size=window_sizes, step=steps,

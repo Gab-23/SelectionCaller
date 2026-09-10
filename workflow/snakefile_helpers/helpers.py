@@ -61,3 +61,21 @@ def get_LOO_normal_bam_paths_atacseq(wildcards):
         f"resources/atacseq/files/bam/{sid}/{sid}_{wildcards.assembly_code}_{wildcards.mapq_thr}.fixed.bam"
         for sid in other_ids
     ]
+
+def get_CNVkit_check_atacseq(wildcards):
+    # NOTE (fix): process_CNVkit_output_atacseq's input .cns file is a real side effect of
+    # `cnvkit.py batch` (run by run_CNVkit_atacseq for tumor samples, run_CNVkit_atacseq_normal
+    # for normal/NAT samples), but nothing declared it as a Snakemake output anywhere -
+    # Snakemake's real dry-run failed with MissingInputException since it had no rule to
+    # connect the two. This input function picks whichever of the two "check" marker files
+    # actually applies to the given SRA_id, giving Snakemake a real dependency edge to build
+    # the DAG on, without having to declare the .cns file itself as a formal Snakemake output
+    # (which would need window_mode/window_size/step wildcards that CNVkit's own output
+    # filename doesn't have room for, conflicting with Snakemake's requirement that every
+    # output of a rule share the same wildcard set).
+    if wildcards.SRA_id in SRA_tumor_ids_atacseq:
+        return f"resources/atacseq/files/cnvkit/checks/{wildcards.SRA_id}_{wildcards.assembly_code}_{wildcards.window_mode}_{wildcards.window_size}_{wildcards.step}_{wildcards.mapq_thr}"
+    elif wildcards.SRA_id in SRA_normal_ids_atacseq:
+        return f"resources/atacseq/files/cnvkit/checks/{wildcards.SRA_id}_{wildcards.assembly_code}_{wildcards.window_mode}_{wildcards.window_size}_{wildcards.step}_{wildcards.mapq_thr}_normal"
+    else:
+        raise ValueError(f"SRA_id {wildcards.SRA_id} is neither a known tumor nor a known NAT/normal sample")

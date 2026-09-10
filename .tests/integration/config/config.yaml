@@ -41,9 +41,9 @@ GDC_CNA_files_locations:
 selected_samples_location_repliseqs:
   - resources/repliseq_selected_samples.tsv
 selected_samples_location_atacseqs:
-  - config/BREAST_selected_samples_atacseq
+  - resources/BREAST_selected_samples_atacseq_toy
 samples_to_exclude_location_atacseqs:
-  - config/BREAST_samples_to_exclude_atacseq
+  - resources/BREAST_samples_to_exclude_atacseq_toy
 selected_samples_location_hics:
   - config/MCF10A_selected_samples_hic
 hic_qc_script_locations:
@@ -97,11 +97,11 @@ max_insert_size_atacseqs:
 minSamples_atacseqs:
   - 2
 minCounts_atacseqs:
-  - 200
+  - 1
 minCpm_atacseqs:
   - 1
 SVs:
-  - 6
+  - 1
 min_length_atacseqs:
   - 1
 q_val_thr_atacseqs:

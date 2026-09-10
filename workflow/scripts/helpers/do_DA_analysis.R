@@ -9,7 +9,11 @@ counts$binID <- NULL
 libsize <- library_sizes$library_size
 names(libsize) <- library_sizes$SRA_id
 
-names(libsize) == colnames(counts)
+stopifnot(                                                                      # fix: was a bare `==` comparison with the result never checked - both
+    "library_sizes and counts are not aligned by sample" =                      # ultimately derive their sample order from list.files() on the same
+    all(names(libsize) == colnames(counts))                                    # coverage directory, so this likely already held in practice, but
+)                                                                               # nothing was actually enforcing it (same class of issue as the
+                                                                                 # binID-alignment check in do_get_counts_analysis.R).
 
 topTags <- edg2ATAC(counts, mm, libsize, "conditiontumor")
 topTags$binID <- rownames(topTags)

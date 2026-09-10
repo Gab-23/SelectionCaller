@@ -15,5 +15,5 @@ rule fastq_dump_atacseq:
                    --split-files \
                    --skip-technical \
                    -O resources/atacseq/files/fastq/{wildcards.SRA_id}/ \
-                   {input} 2> {log}
+                   {input}
         """

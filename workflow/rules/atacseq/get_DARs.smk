@@ -35,5 +35,15 @@ rule get_DARs:
         --input_path_model_matrix={input.path_model_matrix} \
         --input_path_model_matrix_woCNAs={input.path_model_matrix_woCNAs} \
         --input_path_ampl={input.path_ampl} \
-        --input_path_del={input.path_del} 2> {log}
+        --input_path_del={input.path_del} \
+        --output_path_DARs={output.path_DARs} \
+        --output_path_DARs_woCNAs={output.path_DARs_woCNAs} \
+        --output_path_diagnostics_plot={output.path_diagnostics_plot} \
+        --output_path_diagnostics_plot_woCNAs={output.path_diagnostics_plot_woCNAs} \
+        --output_path_volcano_plot={output.path_volcano_plot} \
+        --output_path_volcano_plot_woCNAs={output.path_volcano_plot_woCNAs} \
+        --output_path_landscape_plot={output.path_landscape_plot} \
+        --output_path_landscape_plot_woCNAs={output.path_landscape_plot_woCNAs} \
+        --output_path_CNA_comparison_plot={output.path_CNA_comparison_plot} \
+        --output_path_CNA_comparison_plot_woCNAs={output.path_CNA_comparison_plot_woCNAs} 2>{log}
         """

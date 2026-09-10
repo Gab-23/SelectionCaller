@@ -14,10 +14,10 @@ rule call_peaks_bysample_atacseq:
         """
         Genrich -j -D \
         -t {input} \
-		-l {wildcards.min_length_atacseq} \
-		-q {wildcards.q_val_thr_atacseq} \
-		-f {output.pq_vals_path} \
-		-k {output.pileups_path} \
-		-b {output.analized_reads_path} \
-		-o {output.peaks_path} 2> {log}
+        -l {wildcards.min_length_atacseq} \
+        -q {wildcards.q_val_thr_atacseq} \
+        -f {output.pq_vals_path} \
+        -k {output.pileups_path} \
+        -b {output.analized_reads_path} \
+        -o {output.peaks_path}
         """
