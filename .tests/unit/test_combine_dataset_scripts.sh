@@ -36,9 +36,19 @@ echo "    2) the final boxplots_0s_non0s_chromstates ggsave() passed the OUTPUT 
 echo "       plot object instead of the actual computed plot variable."
 echo "    3) the correlation-heatmap ggsave() referenced 'output_path_corr' (never assigned)"
 echo "       instead of 'output_path_corr_plot' (the actual variable) -> guaranteed crash."
+echo "    4) cor.test() crashed the ENTIRE script (before the feature matrix was even"
+echo "       written) if any pair of columns had zero variance - confirmed with the real toy"
+echo "       Snakemake pipeline (several near-constant toy features). Wrapped in tryCatch so a"
+echo "       degenerate pair is skipped (NA) instead of blocking the core deliverable; added"
+echo "       na.rm=TRUE to the final any() so NAs don't turn the multicollinearity flag itself"
+echo "       into NA."
 echo "    Also newly discovered while wiring up the .smk rule (not a script bug, a wiring"
 echo "    bug): the epigenomes input pointed at a file that contains a path STRING, not an"
 echo "    actual binID-keyed table (see README) - would have crashed merge(by='binID')."
+echo "    Hi-C's eigen_1..eigen_10 columns were added as a new input per user request (Phase"
+echo "    12) - combine_dataset.R never read any Hi-C input before that; no script changes"
+echo "    needed beyond declaring the new argument, since the merge loop auto-collects every"
+echo "    input_path_* variable in scope."
 
 python3 - "$TMP" << 'PYEOF'
 import random, sys, os
@@ -81,6 +91,7 @@ write("ohnologs.tsv", "binID\tn_ohnolog_bin\tmean_n_ohnologs.mmpaper\ttotal_n_oh
 write("paralogs.tsv", "binID\tn_paralogs_bin\tmean_n_paralogs\ttotal_n_paralogs\tmean_n_paralogs_trans\ttotal_n_paralogs_trans",
       lambda b: [random.randint(0,2)]*5)
 write("haplo.tsv", "binID\thaploinsufficiency_score", lambda b: [round(random.uniform(0,1),2)])
+write("hic.tsv", "binID\teigen_1\teigen_2", lambda b: [round(random.uniform(-1,1),2), round(random.uniform(-1,1),2)])
 PYEOF
 
 mkdir -p "$TMP/out"
@@ -111,6 +122,7 @@ Rscript workflow/scripts/combine_dataset.R \
     --input_path_ohnologs="$TMP/ohnologs.tsv" \
     --input_path_paralogs="$TMP/paralogs.tsv" \
     --input_path_haploinsufficiency="$TMP/haplo.tsv" \
+    --input_path_hic="$TMP/hic.tsv" \
     --output_path_dataset="$TMP/out/dataset.tsv" \
     --output_path_corr="$TMP/out/corr.pdf" \
     --output_path_NA_frac_plot="$TMP/out/NA_frac.pdf" \
@@ -128,6 +140,7 @@ for f in dataset.tsv corr.pdf NA_frac.pdf zero_frac.pdf boxplots.pdf boxplots_sc
     check "produces $f" "$([ -s "$TMP/out/$f" ] && echo yes)" "yes"
 done
 check "feature matrix has a binID column" "$(head -1 "$TMP/out/dataset.tsv" | cut -f1)" "binID"
+check "feature matrix includes Hi-C's eigen_1 column" "$(head -1 "$TMP/out/dataset.tsv" | tr '\t' '\n' | grep -c '^eigen_1$')" "1"
 check "rows with NA logFC (the target variable) are dropped" "$(( $(wc -l < "$TMP/out/dataset.tsv") - 1 ))" "20"
 
 echo

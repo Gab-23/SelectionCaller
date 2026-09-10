@@ -47,7 +47,12 @@ rule combine_dataset:
         # in like every other feature, but this input was missing entirely from the rule -
         # confirmed with a toy test that the script expects it (NULL path would have crashed
         # read.delim()).
-        path_haploinsufficiency="data/haploinsufficiency/{assembly_code}_{window_mode}_{window_size}_{step}_v{gencode_version}_{haplo_thr}"
+        path_haploinsufficiency="data/haploinsufficiency/{assembly_code}_{window_mode}_{window_size}_{step}_v{gencode_version}_{haplo_thr}",
+        # Added per user request: combine_dataset.R never had a Hi-C input at all - the user
+        # confirmed Hi-C (and RepliSeq, before Phase 10) belongs in this feature matrix. No new
+        # wildcards needed: Hi-C's own output only depends on assembly_code/mapq_thr/
+        # window_mode/window_size/step, all of which this rule already has.
+        path_hic="data/hic/{assembly_code}_{mapq_thr}_{window_mode}_{window_size}_{step}.eigen"
     log:
         "logs/combine_dataset/{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}_{cov_thr}_{smoothing_size}_{minSamples_atacseq}_{minCounts_atacseq}_{minCpm_atacseq}_{SVs}_{tumor_type_GDC}_{gender_GDC}_{min_Num_Probes}_{min_abs_Segment_Mean}_{gender_COSMIC}_{COSMIC_parameters}_{oncotree_code_DepMap}_{gender_DepMap}_{essentiality_cutoff}_{num_assays_cutoff}_v{gencode_version}_{tissue_type_Roadmap}_{sample_type}_{liftover_str}_{file_format}_{tumor_type_IntOGen}_{haplo_thr}.log"
     conda:
@@ -81,6 +86,7 @@ rule combine_dataset:
         --input_path_ohnologs={input.path_ohnologs} \
         --input_path_paralogs={input.path_paralogs} \
         --input_path_haploinsufficiency={input.path_haploinsufficiency} \
+        --input_path_hic={input.path_hic} \
         --output_path_dataset={output.path_dataset} \
         --output_path_corr={output.path_corr_plot} \
         --output_path_NA_frac_plot={output.path_NA_frac_plot} \

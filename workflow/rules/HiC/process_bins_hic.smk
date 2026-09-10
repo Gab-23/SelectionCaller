@@ -13,5 +13,5 @@ rule process_bins_hic:
         Rscript workflow/scripts/process_bins_hic.R \
         --input_path_backbone={input.path_backbone} \
         --input_path_bins={input.path_bins} \
-        --output_path={output} 2> {log}
+        --output_path={output}
         """

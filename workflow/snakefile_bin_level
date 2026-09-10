@@ -778,36 +778,41 @@ include: "rules/atacseq/process_DARs.smk"
 
 ####
 
-# TODO(phase>1 - not yet migrated/tested): include: "rules/HiC/prefetch_hic.smk"
-# TODO(phase>1 - not yet migrated/tested): include: "rules/HiC/fastq_dump_hic.smk"
-# TODO(phase>1 - not yet migrated/tested): include: "rules/HiC/align_reads_hic.smk"
-# TODO(phase>1 - not yet migrated/tested): include: "rules/HiC/sort_bam_hic.smk"
-# TODO(phase>1 - not yet migrated/tested): include: "rules/HiC/index_bam_hic.smk"
-# TODO(phase>1 - not yet migrated/tested): include: "rules/HiC/filter_bam_hic.smk"
-# TODO(phase>1 - not yet migrated/tested): include: "rules/HiC/sort_filtered_bam_hic.smk"
-# TODO(phase>1 - not yet migrated/tested): include: "rules/HiC/run_HiCQC.smk"
-# TODO(phase>1 - not yet migrated/tested): include: "rules/HiC/compute_pairs_hic.smk"
-# TODO(phase>1 - not yet migrated/tested): include: "rules/HiC/sort_pairs_hic.smk"
-# TODO(phase>1 - not yet migrated/tested): include: "rules/HiC/deduplicate_pairs_hic.smk"
-# TODO(phase>1 - not yet migrated/tested): include: "rules/HiC/filter_pairs_hic.smk"
-# TODO(phase>1 - not yet migrated/tested): include: "rules/HiC/clip_pairs_hic.smk"
-# TODO(phase>1 - not yet migrated/tested): include: "rules/HiC/compute_pairs_stats_hic.smk"
-# TODO(phase>1 - not yet migrated/tested): include: "rules/HiC/compute_multiqc_hic.smk"
-# TODO(phase>1 - not yet migrated/tested): include: "rules/HiC/compute_matrices_hic.smk"
-# TODO(phase>1 - not yet migrated/tested): include: "rules/HiC/merge_cooler.smk"
-# TODO(phase>1 - not yet migrated/tested): include: "rules/HiC/balance_cooler.smk"
-# TODO(phase>1 - not yet migrated/tested): include: "rules/HiC/normalize_matrix_hic.smk"
-# TODO(phase>1 - not yet migrated/tested): include: "rules/HiC/process_bins_hic.smk"
-# TODO(phase>1 - not yet migrated/tested): include: "rules/HiC/process_hic.smk"
+include: "rules/HiC/prefetch_hic.smk"
+include: "rules/HiC/fastq_dump_hic.smk"
+include: "rules/HiC/align_reads_hic.smk"
+include: "rules/HiC/sort_bam_hic.smk"
+include: "rules/HiC/index_bam_hic.smk"
+include: "rules/HiC/filter_bam_hic.smk"
+include: "rules/HiC/sort_filtered_bam_hic.smk"
+include: "rules/HiC/run_HiCQC.smk"
+include: "rules/HiC/compute_pairs_hic.smk"
+include: "rules/HiC/sort_pairs_hic.smk"
+include: "rules/HiC/deduplicate_pairs_hic.smk"
+include: "rules/HiC/filter_pairs_hic.smk"
+include: "rules/HiC/clip_pairs_hic.smk"
+include: "rules/HiC/compute_pairs_stats_hic.smk"
+include: "rules/HiC/compute_multiqc_hic.smk"
+include: "rules/HiC/compute_matrices_hic.smk"
+include: "rules/HiC/merge_cooler.smk"
+include: "rules/HiC/balance_cooler.smk"
+include: "rules/HiC/normalize_matrix_hic.smk"
+include: "rules/HiC/process_bins_hic.smk"
+include: "rules/HiC/process_hic.smk"
 
 ####
 
 include: "rules/dataset/explore_datatypes.smk"
-# BLOCKED (reviewed and fixed, not just "not yet migrated"): include: "rules/dataset/combine_dataset.smk"
+include: "rules/dataset/combine_dataset.smk"
 #   combine_dataset.R and the rule have been fully reviewed, fixed (5 confirmed bugs, see
-#   README) and unit-tested with toy data covering every input/output. It cannot be wired
-#   into rule_all yet because it requires "data/atacseq/..." (ATAC-seq DARs) and
-#   "data/repliseq/..." (RepliSeq), neither of which is migrated yet. Activate once both are.
+#   README) and unit-tested with toy data covering every input/output. Both blockers
+#   (ATAC-seq DARs and RepliSeq) are now migrated as of Phase 11/10, so this is now active.
+#   NOTE: combine_dataset.R does not read any Hi-C input directly (confirmed - no
+#   "path_hic"-style argument exists anywhere in the script or the rule). Per the user, Hi-C
+#   (and RepliSeq) are actually incorporated into the final ML-ready table via a SEPARATE,
+#   manual merge step outside this script (`if(add_HiC_repliseq == TRUE){...}` in their own
+#   downstream code) - that step is not part of the reviewed Snakemake pipeline and hasn't
+#   been examined here.
 # NOT IMPLEMENTED (confirmed, not just untested): include: "rules/dataset/smooth_dataset.smk"
 #   smooth_dataset.smk has no input/output/shell at all (an empty stub) even though
 #   workflow/scripts/smooth_dataset.R exists with real logic - the rule was simply never
@@ -1012,6 +1017,13 @@ rule all:
             mapq_thr=mapq_thr, cov_thr=cov_thr, smoothing_size=smoothing_size
         ),
 
+        # ---- Phase 12: Hi-C module ----
+        expand(
+            "data/hic/{assembly_code}_{mapq_thr}_{window_mode}_{window_size}_{step}.eigen",
+            assembly_code=assembly_code, mapq_thr=mapq_thr, window_mode=window_mode,
+            window_size=window_sizes, step=steps
+        ),
+
         # ---- Phase 11: ATAC-seq module (alignment through CNVkit-scaled counts, cohort
         #      exploration, and bin-level DARs; peak-calling/Genrich chain not active per
         #      explicit confirmation - see README) ----
@@ -1029,9 +1041,23 @@ rule all:
             min_Num_Probes=min_Num_Probes, min_abs_Segment_Mean=min_abs_Segment_Means
         ),
 
-        # ---- Phase 9: dataset module (explore_datatypes only - combine_dataset blocked on
-        #      Hi-C, smooth_dataset not implemented, see comments above; ATAC-seq's own
-        #      DARs are now ready as of Phase 11) ----
+        # ---- Phase 9/12: dataset module (explore_datatypes + combine_dataset, now fully
+        #      active since both ATAC-seq DARs and RepliSeq are ready; smooth_dataset not
+        #      implemented, see comments above) ----
+        expand(
+            "data/feature_matrix/{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}_{cov_thr}_{smoothing_size}_{minSamples_atacseq}_{minCounts_atacseq}_{minCpm_atacseq}_{SVs}_{tumor_type_GDC}_{gender_GDC}_{min_Num_Probes}_{min_abs_Segment_Mean}_{gender_COSMIC}_{COSMIC_parameters}_{oncotree_code_DepMap}_{gender_DepMap}_{essentiality_cutoff}_{num_assays_cutoff}_v{gencode_version}_{tissue_type_Roadmap}_{sample_type}_{liftover_str}_{file_format}_{tumor_type_IntOGen}_{haplo_thr}",
+            assembly_code=assembly_code, window_mode=window_mode, window_size=window_sizes, step=steps,
+            mapq_thr=mapq_thr, cov_thr=cov_thr, smoothing_size=smoothing_size,
+            minSamples_atacseq=minSamples_atacseq, minCounts_atacseq=minCounts_atacseq,
+            minCpm_atacseq=minCpm_atacseq, SVs=SVs, tumor_type_GDC=tumor_type_GDC, gender_GDC=gender_GDC,
+            min_Num_Probes=min_Num_Probes, min_abs_Segment_Mean=min_abs_Segment_Means,
+            gender_COSMIC=gender_COSMIC, COSMIC_parameters=COSMIC_parameters,
+            oncotree_code_DepMap=oncotree_code_DepMap, gender_DepMap=gender_DepMap,
+            essentiality_cutoff=essentiality_cutoff, num_assays_cutoff=num_assays_cutoff,
+            gencode_version=gencode_version, tissue_type_Roadmap=tissue_type_Roadmap,
+            sample_type=sample_type, liftover_str=liftover_str, file_format=file_format,
+            tumor_type_IntOGen=tumor_type_IntOGen, haplo_thr=haplo_thr
+        ),
         expand(
             "results/plots/datatypes/GC_landscape/{assembly_code}_{window_mode}_{window_size}_{step}_{oncotree_code_DepMap}_{gender_DepMap}_{tumor_type_GDC}_{gender_GDC}_{gender_COSMIC}_{COSMIC_parameters}_v{gencode_version}_{tumor_type_IntOGen}_{essentiality_cutoff}_{num_assays_cutoff}.pdf",
             assembly_code=assembly_code, window_mode=window_mode, window_size=window_sizes, step=steps,

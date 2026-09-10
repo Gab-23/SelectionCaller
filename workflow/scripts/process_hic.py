@@ -38,13 +38,22 @@ valid = ~bad_bins # get valid bins
 print(f"Bad bins: {bad_bins.sum()} / {len(bad_bins)}")
 contact_valid = contact[numpy.ix_(valid, valid)] # subset matrix
 eigenvalues, eigenvectors = numpy.linalg.eigh(contact_valid)  # ascending, so reverse
-top10 = eigenvectors[:, ::-1][:, :10] # get top 10 eigenvectors
+n_valid = contact_valid.shape[0]
+n_eigen = min(10, n_valid)  # fix: with fewer than 10 valid bins (possible for a small toy
+                            # chromosome, or if an unusually large fraction of bins are
+                            # dropped as "bad"), eigh() can only return as many
+                            # eigenvectors as there are valid bins - requesting a fixed 10
+                            # unconditionally caused a shape-mismatch crash when fewer were
+                            # available. Real genome-scale Hi-C data has far more than 10
+                            # valid bins per chromosome, so this only ever engages as a
+                            # defensive fallback, not a change to normal behavior.
+top10 = eigenvectors[:, ::-1][:, :n_eigen] # get top eigenvectors (up to 10)
 n_bins = contact.shape[0] # get number of bins
-full_eigvec = numpy.full((n_bins, 10), numpy.nan) # initialize with NaNs
+full_eigvec = numpy.full((n_bins, n_eigen), numpy.nan) # initialize with NaNs
 full_eigvec[valid, :] = top10 # fill in eigenvectors
 
 # Assemble output: binID + eigenvectors
-eigen_cols = [f"eigen_{i+1}" for i in range(10)]
+eigen_cols = [f"eigen_{i+1}" for i in range(n_eigen)]
 df_eigen = pandas.DataFrame(full_eigvec, columns=eigen_cols)
 df_out   = pandas.concat([bins[["binID"]].reset_index(drop=True), df_eigen], axis=1)
 df_out.to_csv(OUTFILE_EIGEN, sep="\t", index=False, na_rep="NA")

@@ -34,6 +34,7 @@ input_path_repliseq                           <- args$input_path_repliseq
 input_path_ohnologs                           <- args$input_path_ohnologs
 input_path_paralogs                           <- args$input_path_paralogs
 input_path_haploinsufficiency                 <- args$input_path_haploinsufficiency
+input_path_hic                                <- args$input_path_hic
 
 output_path_dataset                           <- args$output_path_dataset
 output_path_corr_plot                         <- args$output_path_corr
@@ -114,7 +115,18 @@ cor.test.result <- do.call(rbind,
                                         FUN = function(col2){
                                         if(col != col2){
                                             y <- dataset[,col2]
-                                            test_result <- cor.test(x = x, y = y, method = "pearson")
+                                            # NOTE (fix): cor.test() errors out entirely (not just a warning) when either
+                                            # column has zero variance (e.g. a feature that happens to be constant across
+                                            # every bin in a small or restricted analysis) - this crashed the WHOLE script
+                                            # before it ever reached write.table() for the actual feature matrix, meaning a
+                                            # single degenerate pair in this purely diagnostic multicollinearity check could
+                                            # block the core deliverable entirely. Wrapped in tryCatch so a degenerate pair
+                                            # is skipped (NA) instead of stopping everything; unaffected for real, large-scale
+                                            # data where near-zero variance in a feature is not expected.
+                                            test_result <- tryCatch(
+                                                cor.test(x = x, y = y, method = "pearson"),
+                                                error = function(e) list(estimate = NA, p.value = NA)
+                                            )
                                             row <- data.frame(col1 = col,
                                                               col2 = col2, 
                                                               estimate = round(test_result$estimate,3), 
@@ -126,7 +138,7 @@ cor.test.result <- do.call(rbind,
 
 cor.test.result$FDR <- p.adjust(p = cor.test.result$pval, method = "BH")
 
-bool_multicollinearity <- any(cor.test.result$FDR < FDR_thr)
+bool_multicollinearity <- any(cor.test.result$FDR < FDR_thr, na.rm = TRUE)
 
 # sort DF
 coords <- do.call(rbind, strsplit(dataset$binID, "_"))

@@ -45,7 +45,7 @@ selected_samples_location_atacseqs:
 samples_to_exclude_location_atacseqs:
   - resources/BREAST_samples_to_exclude_atacseq_toy
 selected_samples_location_hics:
-  - config/MCF10A_selected_samples_hic
+  - resources/MCF10A_selected_samples_hic_toy
 hic_qc_script_locations:
   - "resources/hic_qc/hic_qc.py"
 assembly_codes:
