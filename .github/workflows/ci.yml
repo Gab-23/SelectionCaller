@@ -336,7 +336,7 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends \
-            r-base-core r-cran-dplyr r-cran-tidyr r-cran-tibble r-cran-ggplot2 r-cran-magrittr
+            r-base-core r-cran-dplyr r-cran-tidyr r-cran-tibble r-cran-ggplot2 r-cran-magrittr r-cran-r.utils r-cran-tidyselect
 
       - name: Sanity-check that all required tools are actually on PATH
         run: |
@@ -347,6 +347,7 @@ jobs:
             fi
           done
           python3 -c "import scipy, sklearn, skopt, xgboost, shap, joblib, seaborn, matplotlib; print('OK: ML python deps import correctly')"
+          Rscript -e 'library(R.utils); library(dplyr); library(tidyr); library(tibble); library(ggplot2); library(magrittr); library(tidyselect); cat("OK: ML R deps load correctly\n")'
 
       - name: Run snakefile_ML end-to-end on a toy dataset (fake feature matrix, small
               model/blocking selection, small CV/iteration counts for speed)
