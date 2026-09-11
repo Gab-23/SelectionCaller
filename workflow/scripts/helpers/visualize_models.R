@@ -23,13 +23,17 @@ visualize_models <- function(df_features, df_performances){
     tidyr::pivot_longer(cols = -c(Model, model_name, blocking, fold), names_to = "Feature", values_to = "Selected")
 
   heatmap_df_features$y_ordered <- create_ordered_y(heatmap_df_features, "blocking", "fold")
-  heatmap_df_performances$y_ordered <- create_ordered_y(heatmap_df_performances, "blocking", "fold")
 
+  # NOTE (fix): heatmap_df_performances was being used (both here, to set $y_ordered, and
+  # implicitly assumed to exist) BEFORE it was actually created a few lines below - confirmed
+  # directly: "object 'heatmap_df_performances' not found". Moved its creation above this line.
   heatmap_df_performances <- df_performances %>%
     tibble::rownames_to_column("Model") %>%
     tidyr::separate(Model, sep = "_", into = c("model_name", "blocking", "fold"), remove = F) %>%
     dplyr::mutate(blocking = factor(blocking, levels = c("noblocking", "5", "10", "15", "20")), fold = as.numeric(fold)) %>%
     tidyr::pivot_longer(cols = -c(Model, model_name, blocking, fold), names_to = "Metric", values_to = "Value")
+
+  heatmap_df_performances$y_ordered <- create_ordered_y(heatmap_df_performances, "blocking", "fold")
 
   boxplot_df_performances <- df_performances %>%
     tibble::rownames_to_column("Model") %>%

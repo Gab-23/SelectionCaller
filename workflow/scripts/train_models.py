@@ -42,6 +42,7 @@ parser.add_argument('--test_size', dest = 'test_size', required = True, type = f
 parser.add_argument('--optimizer', dest = 'optimizer', required = True, type = str, help = '')
 parser.add_argument('--n_iter', dest = 'n_iter', required = True, type = int, help = '')
 parser.add_argument('--n_jobs', dest = 'n_jobs', required = True, type = int, help = '')
+parser.add_argument('--model_n_jobs', dest = 'model_n_jobs', required = True, type = int, help = '')
 parser.add_argument('--output_dir_models', dest = 'output_dir_models', required = True, type = str, help = '')
 parser.add_argument('--output_path_warning', dest = 'output_path_warning', required = True, type = str, help = '')
 parser.add_argument('--output_path_hyperparams', dest = 'output_path_hyperparams', required = True, type = str, help = '')
@@ -59,6 +60,7 @@ INNER_CV = args.inner_cv
 OPTIMIZER = args.optimizer
 N_ITER = args.n_iter
 N_JOBS = args.n_jobs
+MODEL_N_JOBS = args.model_n_jobs
 SEED = 48047510 #!# TODO: list of seeds
 
 METRICS_LIST = ["r2", "adj_r2", "explained_variance", "neg_mean_squared_error",
@@ -99,7 +101,7 @@ for MODEL in MODELS:
     NEEDS_SCALING = bool(models_df[models_df.model == MODEL].needs_scaling.values)
     IS_TREE_BASED = bool(models_df[models_df.model == MODEL].is_tree_based.values)
     IS_LINEAR = bool(models_df[models_df.model == MODEL].is_linear.values)
-    REGRESSOR = BUILD_MODEL(MODEL)
+    REGRESSOR = BUILD_MODEL(MODEL, MODEL_N_JOBS)
     HYPERPARAM_SPACE = GET_HYPERPARAM_SPACE(MODEL) # add hyperparam spaces
     bool_optimize_hyperparams = True
 
@@ -143,7 +145,15 @@ for MODEL in MODELS:
 
             best_model, best_hyperparams = OPTIMIZE_HYPERPARAMS(pipe, HYPERPARAM_SPACE, OPTIMIZER, X_train_train, y_train_train, SEED, N_JOBS, N_ITER, INNER_CV)
             
-            performances = EVALUATE_PERFORMANCES(best_model, X_train_val, y_train_val, METRICS_LIST)
+            # NOTE (fix): missing the required CV argument entirely - confirmed this raised a
+            # TypeError ("missing 1 required positional argument: 'metrics_list'") since
+            # METRICS_LIST was being bound to the CV parameter position instead. Per your
+            # confirmation, CV=1 is correct here: nested CV is already handled by the outer/
+            # inner fold structure above, so this call should evaluate directly on the held-out
+            # validation fold (X_train_val/y_train_val) rather than run yet another internal
+            # cross-validation - CV=1 is exactly what triggers that direct-evaluation branch in
+            # EVALUATE_PERFORMANCES (see the "if CV != 1" check there).
+            performances = EVALUATE_PERFORMANCES(best_model, X_train_val, y_train_val, 1, METRICS_LIST)
 
             best_hyperparams_dict[row_name] = best_hyperparams
             selected_features_dict[row_name] = X_train_train.columns[best_model.named_steps["feature_selection"].get_support()]
@@ -167,6 +177,14 @@ aggregated_best_hyperparams = pd.DataFrame.from_dict(best_hyperparams_dict, orie
 aggregated_selected_features = AGGREGATE_SELECTED_FEATURES(X_train.columns.tolist(), selected_features_dict)
 aggregated_performances = pd.DataFrame.from_dict(performances_dict, orient="index")
 
-aggregated_best_hyperparams.to_csv(args.output_path_hyperparams, sep = "\t", header = True, index = False)
-aggregated_selected_features.to_csv(args.output_path_selected_features, sep = "\t", header = True, index = False)
-aggregated_performances.to_csv(args.output_path_performances, sep = "\t", header = True, index = False)
+# NOTE (fix): all three were writing index=False, silently discarding the "{MODEL}_{BLOCKING}_
+# {fold}" row identifiers (the dict keys used as each DataFrame's index via orient="index",
+# and AGGREGATE_SELECTED_FEATURES's own index=rows) - but aggregate_and_visualize_models.R
+# reads these files back with row.names=1, and visualize_models.R's rownames_to_column("Model")
+# + separate(Model, into=c("model_name","blocking","fold")) depends entirely on that row
+# identifier being present. Confirmed directly: without it, read.delim's row.names=1 falls back
+# to treating the first DATA column as row names, which crashed with "duplicate 'row.names' are
+# not allowed" the moment two rows happened to share a value in that column.
+aggregated_best_hyperparams.to_csv(args.output_path_hyperparams, sep = "\t", header = True, index = True)
+aggregated_selected_features.to_csv(args.output_path_selected_features, sep = "\t", header = True, index = True)
+aggregated_performances.to_csv(args.output_path_performances, sep = "\t", header = True, index = True)

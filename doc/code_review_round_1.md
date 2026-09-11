@@ -17,7 +17,7 @@ time in later phases without losing track of what's left.
 
 ```
 workflow/
-  snakefile_bin_level          # production Snakefile (phase 1: only the backbone module is active)
+  snakefile_dataset_bin_level          # production Snakefile (phase 1: only the backbone module is active)
   snakefile_helpers/           # helpers.py, helpers.smk (unchanged)
   rules/
     chrom_sizes/
@@ -32,13 +32,13 @@ workflow/
   scripts/                     # fixed R scripts + scripts/helpers/
   envs/                        # conda env yml files used by this module
 config/
-  config.yaml                  # production config (original, values unchanged)
+  config_dataset.yaml                  # production config (original, values unchanged)
   mapping_tissue_tumor_type, mapping_gender, sequencers_info,   # <- 1 typo fixed here
   BREAST_selected_samples_atacseq, BREAST_samples_to_exclude_atacseq,
   MCF10A_selected_samples_hic, HMEC_selected_samples_repliseq
 .tests/
   unit/test_*.sh                    # fast unit tests on individual R scripts (no Snakemake)
-  integration/config/config.yaml    # test config using a fake "hg00" assembly
+  integration/config/config_dataset.yaml    # test config using a fake "hg00" assembly
   integration/data/                 # toy fixtures replacing the real downloads
 .github/workflows/ci.yml       # 3 jobs: production dry-run, unit tests, toy integration test
 ```
@@ -409,7 +409,7 @@ updated to match these confirmed real schemas.
     also missing).
 
 25. **Config gap**: `haplo_thr` (the pLI threshold for calling a gene
-    haploinsufficient) did not exist anywhere in `config.yaml` — consistent with
+    haploinsufficient) did not exist anywhere in `config_dataset.yaml` — consistent with
     `process_haploinsufficiency` never having been wired into `rule all` before.
     **Added `haplo_thrs: [0.9]`** (the standard ExAC/gnomAD literature convention
     for "haploinsufficient"). **Please confirm this matches your intended
@@ -978,6 +978,27 @@ incorporated into it too, **`combine_dataset` is fully active as of this phase.*
     `TRUE`/`FALSE`). No change in behavior for real, large-scale data, where
     near-zero-variance features are not expected.
 
+## Naming note (post-rename)
+
+`workflow/snakefile_bin_level` and `config/config.yaml` were renamed to
+`workflow/snakefile_dataset_bin_level` and `config/config_dataset.yaml`
+respectively, to disambiguate from `workflow/snakefile_ML`/`config/config_ML.yaml`.
+The toy test config under `.tests/integration/config/` was renamed the same way
+(`config.yaml` → `config_dataset.yaml`) for consistency. All references across
+`ci.yml` and this README were updated accordingly; re-verified with a clean
+dry-run and a full toy-integration run under the new names.
+
+## ML pipeline test infrastructure
+
+`workflow/snakefile_ML` now has its own permanent toy integration test, mirroring
+the bin-level pipeline's pattern: a small toy feature matrix, `MODELS`/`BLOCKINGS`
+registries, and `IS_AUTOCORRELATED`/`IS_MULTICOLLINEAR` flags under
+`.tests/integration/data/resources/ML/`, driven by
+`.tests/integration/config/config_ML.yaml` (2 models × 2 blockings, small CV/
+iteration counts for speed). Wired into CI as its own job
+(`ml-toy-integration-test`), verified end-to-end (6/6 steps, all 3 plots
+produced) independently of the bin-level pipeline's own toy-integration-test job.
+
 ## What is NOT (yet) tested in CI
 
 - **`get_GC_content.R`** requires the Bioconductor package `BSgenome.Hsapiens.UCSC.*`
@@ -1044,11 +1065,11 @@ mkdir -p resources/GDC/CNAs/clinical.cohort.2026-01-28 resources/GDC/CNAs/files/
 touch resources/GDC/CNAs/clinical.cohort.2026-01-28/clinical.tsv resources/GDC/CNAs/gdc_sample_sheet.2026-01-28.tsv resources/GDC/CNAs/gdc_manifest.2026-01-28.170055.txt resources/GDC/CNAs/files/dummy/dummy.seg.v2.txt
 mkdir -p resources/fragile_sites/origin resources/ohnologs_and_paralogs/origin resources/haploinsufficiency
 touch resources/fragile_sites/origin/fragile_sites_li_hg38.bed resources/ohnologs_and_paralogs/origin/OhnologList.RData resources/ohnologs_and_paralogs/origin/ParalogList.RData resources/haploinsufficiency/haploinsufficiency.csv
-snakemake -n -s workflow/snakefile_bin_level --configfile config/config.yaml
+snakemake -n -s workflow/snakefile_dataset_bin_level --configfile config/config_dataset.yaml
 
 # real execution on toy data (fake "hg00" assembly)
 mkdir -p resources && cp -r .tests/integration/data/resources/. ./resources/
-snakemake -s workflow/snakefile_bin_level --configfile .tests/integration/config/config.yaml \
+snakemake -s workflow/snakefile_dataset_bin_level --configfile .tests/integration/config/config_dataset.yaml \
   --cores 2 data/distances/centromeres/hg00_binned_200_0  # ...and the other targets, see ci.yml
 ```
 

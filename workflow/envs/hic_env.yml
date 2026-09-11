@@ -5,6 +5,6 @@ channels:
   - defaults
 dependencies:
   - bwa
-  - meme-suite
+  - meme
   - samtools
   - samblaster

@@ -1,6 +1,6 @@
 import pandas
 import os
-from snakefile_helpers.helpers import * 
+from snakefile_helpers.helpers_dataset import * 
 
 dirs_lists = [["resources/", "resources/epigenomes/", "resources/epigenomes/roadmap/"],
               ["resources/", "resources/GDC/", "resources/GDC/CNAs/", "resources/GDC/CNAs/files/"],
@@ -559,7 +559,7 @@ SRA_normal_ids_atacseq = get_SRA_condition_ids(selected_samples_location_atacseq
 # actually calls them as input functions - confirmed with a real dry-run for the new function;
 # get_LOO_normal_bam_paths_atacseq has silently had the same latent bug all along, since
 # nothing in this codebase had ever actually invoked it before ATAC-seq was activated.
-import snakefile_helpers.helpers as _helpers_module
+import snakefile_helpers.helpers_dataset as _helpers_module
 _helpers_module.SRA_tumor_ids_atacseq = SRA_tumor_ids_atacseq
 _helpers_module.SRA_normal_ids_atacseq = SRA_normal_ids_atacseq
 
@@ -588,7 +588,7 @@ else:
 
 #####
 
-include: "snakefile_helpers/helpers.smk"
+include: "snakefile_helpers/helpers_dataset.smk"
 
 ####
 

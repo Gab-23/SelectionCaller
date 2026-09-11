@@ -46,7 +46,7 @@ jobs:
 
       - name: Dry-run on the entire production DAG
         run: |
-          snakemake -n -s workflow/snakefile_bin_level --configfile config/config.yaml
+          snakemake -n -s workflow/snakefile_dataset_bin_level --configfile config/config_dataset.yaml
 
   unit-tests:
     name: Unit test on R scripts (toy data, no snakemake)
@@ -55,15 +55,16 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install Python packages (numpy/pandas needed directly by test_hic_scripts.sh,
-              which exercises process_hic.py's Python logic via a subprocess)
-        run: pip install numpy pandas --break-system-packages
+              which exercises process_hic.py's Python logic via a subprocess; scikit-learn/
+              scikit-optimize/xgboost/shap needed by test_ml_scripts.sh)
+        run: pip install numpy pandas scikit-learn scikit-optimize xgboost shap --break-system-packages
 
       - name: Install R + bedtools + bwa + bowtie2
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends \
             r-base-core r-cran-dplyr r-cran-magrittr r-cran-r.utils \
-            r-bioc-genomicranges r-bioc-rtracklayer r-cran-tidyr r-cran-ggplot2 r-cran-gridextra r-bioc-edger r-bioc-sva r-bioc-dnacopy bedtools bwa bowtie2 samtools trim-galore picard-tools sra-toolkit
+            r-bioc-genomicranges r-bioc-rtracklayer r-cran-tidyr r-cran-ggplot2 r-cran-gridextra r-cran-tibble r-bioc-edger r-bioc-sva r-bioc-dnacopy bedtools bwa bowtie2 samtools trim-galore picard-tools sra-toolkit
           # Ubuntu's picard-tools package ships "PicardCommandLine", not "picard" (the
           # command name the real conda "picard" package - and this pipeline's rules -
           # expect). Shim it so the rules work unmodified.
@@ -101,6 +102,7 @@ jobs:
           bash .tests/unit/test_repliseq_scripts.sh
           bash .tests/unit/test_atacseq_scripts.sh
           bash .tests/unit/test_hic_scripts.sh
+          bash .tests/unit/test_ml_scripts.sh
 
   toy-integration-test:
     name: Integration testing (toy data, backbone/DepMap/IntOGen modules)
@@ -198,8 +200,8 @@ jobs:
               manifest, so gdc-client's real download can be bypassed with a fresh-enough
               timestamp afterwards)
         run: |
-          snakemake -s workflow/snakefile_bin_level \
-            --configfile .tests/integration/config/config.yaml \
+          snakemake -s workflow/snakefile_dataset_bin_level \
+            --configfile .tests/integration/config/config_dataset.yaml \
             --cores 2 -p \
             resources/GDC/CNAs/BRCA_female_manifest
 
@@ -213,8 +215,8 @@ jobs:
       - name: Build the backbone first, then bypass get_GC_content/process_GC_content (real
               BSgenome package needed, not available for a fake assembly)
         run: |
-          snakemake -s workflow/snakefile_bin_level \
-            --configfile .tests/integration/config/config.yaml \
+          snakemake -s workflow/snakefile_dataset_bin_level \
+            --configfile .tests/integration/config/config_dataset.yaml \
             --cores 2 -p \
             resources/backbone/hg00_binned_200_0.mask.filtered.sorted.bed
           # NOTE: this must run AFTER the backbone is actually built above, not before - if
@@ -227,8 +229,8 @@ jobs:
 
       - name: Execute pipeline on toy data (fake hg00 assembly) - part 2
         run: |
-          snakemake -s workflow/snakefile_bin_level \
-            --configfile .tests/integration/config/config.yaml \
+          snakemake -s workflow/snakefile_dataset_bin_level \
+            --configfile .tests/integration/config/config_dataset.yaml \
             --cores 2 -p \
             data/distances/centromeres/hg00_binned_200_0 \
             data/distances/telomeres/hg00_binned_200_0 \
@@ -316,6 +318,58 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: snakemake-logs
+          path: |
+            logs/
+            .snakemake/log/
+
+  ml-toy-integration-test:
+    name: Toy integration test - ML pipeline (snakefile_ML)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Snakemake and ML dependencies
+        run: |
+          pip install snakemake pandas numpy scikit-learn scikit-optimize xgboost shap --break-system-packages
+
+      - name: Install R + visualization packages
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            r-base-core r-cran-dplyr r-cran-tidyr r-cran-tibble r-cran-ggplot2 r-cran-magrittr
+
+      - name: Sanity-check that all required tools are actually on PATH
+        run: |
+          for tool in Rscript; do
+            if ! command -v "$tool" > /dev/null 2>&1; then
+              echo "ERROR: '$tool' is not on PATH after installation"
+              exit 1
+            fi
+          done
+          python3 -c "import sklearn, skopt, xgboost, shap; print('OK: ML python deps import correctly')"
+
+      - name: Run snakefile_ML end-to-end on a toy dataset (fake feature matrix, small
+              model/blocking selection, small CV/iteration counts for speed)
+        run: |
+          snakemake -s workflow/snakefile_ML \
+            --configfile .tests/integration/config/config_ML.yaml \
+            --cores 2 -p
+
+      - name: Verify all expected outputs exist and are non-empty
+        run: |
+          for f in \
+            "results/ML/toy_dataset/plots/performance_heatmap.pdf" \
+            "results/ML/toy_dataset/plots/selfeats_heatmap.pdf" \
+            "results/ML/toy_dataset/plots/median_boxplots.pdf" ; do
+            test -s "$f" || { echo "Missing or empty file: $f"; exit 1; }
+          done
+          echo "OK: all expected ML pipeline outputs are present and non-empty"
+
+      - name: Upload logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ml-snakemake-logs
           path: |
             logs/
             .snakemake/log/

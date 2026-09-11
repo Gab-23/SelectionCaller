@@ -2,17 +2,20 @@ import sklearn as sk
 import skopt as sko
 
 def OPTIMIZE_HYPERPARAMS(ESTIMATOR, HYPERPARAM_SPACE, OPTIMIZER, X, y, SEED, N_JOBS, N_ITER, CV):
-    
+
     HYPERPARAM_SPACE = HYPERPARAM_SPACE[OPTIMIZER]
-    # fix space for BayesSearch    
+
     if OPTIMIZER == "GridSearchCV":
-        
-        opti = sk.model_selection.GridSearchCV(estimator = ESTIMATOR, 
+
+        # NOTE (fix): GridSearchCV does not accept an n_iter argument at all - it exhaustively
+        # searches every combination in param_grid, unlike RandomizedSearchCV/BayesSearchCV
+        # which sample a fixed number of candidates. Passing n_iter raised a TypeError
+        # immediately on instantiation, confirmed directly - this branch could never have run.
+        opti = sk.model_selection.GridSearchCV(estimator = ESTIMATOR,
                                                param_grid = HYPERPARAM_SPACE,
-                                               n_iter = N_ITER, 
                                                cv = CV,
-                                               refit = True, 
-                                               n_jobs = N_JOBS, 
+                                               refit = True,
+                                               n_jobs = N_JOBS,
                                                verbose = 0)
 
     elif OPTIMIZER == "RandomSearchCV":

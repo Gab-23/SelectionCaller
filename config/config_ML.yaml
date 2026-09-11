@@ -1,0 +1,37 @@
+input_path_datasets:
+  - "data/feature_matrix/toy_dataset.tsv"
+
+input_path_is_autocorrelated: "IS_AUTOCORRELATED"
+
+input_path_is_multicollinear: "IS_MULTICOLLINEAR"
+
+input_path_models: "MODELS"
+
+selected_models:
+  - "all"
+
+input_path_blockings: "BLOCKINGS"
+
+selected_blockings:
+  - "all"
+
+test_sizes:
+  - 0.2
+
+outer_cvs:
+  - 5
+
+inner_cvs:
+  - 5
+
+optimizers:
+  - "BayesSearchCV"
+
+n_iters:
+  - 50
+
+n_jobs_MLs:
+  - 4
+
+model_n_jobs_MLs:
+  - 1

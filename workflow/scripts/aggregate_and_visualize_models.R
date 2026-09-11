@@ -33,6 +33,12 @@ selfeats_aggregated <- do.call(rbind, selfeats_list)
 
 output_visualization <- visualize_models(selfeats_aggregated, performances_aggregated)
 
-ggplot2::ggsave(output_path_heatmap_sel_feats, output_visualization$heatmap_features, width = 20, height = 10)
-ggplot2::ggsave(output_path_heatmap_performances, output_visualization$heatmap_performances, width = 15, height = 10)
+# NOTE (fix): these referenced output_path_heatmap_sel_feats / output_path_heatmap_performances,
+# which were never assigned anywhere in this script (only output_path_performance,
+# output_path_selfeats and output_path_median_boxplots are read from args) - a copy-paste
+# naming mismatch that would crash with "object not found". Mapped to the actually-declared
+# variables: the selected-features heatmap goes with output_path_selfeats, the performances
+# heatmap goes with output_path_performance.
+ggplot2::ggsave(output_path_selfeats, output_visualization$heatmap_features, width = 20, height = 10)
+ggplot2::ggsave(output_path_performance, output_visualization$heatmap_performances, width = 15, height = 10)
 ggplot2::ggsave(output_path_median_boxplots, output_visualization$median_boxplots, width = 15, height = 10)

@@ -1,17 +1,65 @@
-import pandas
 import os
-from snakefile_helpers.helpers import * 
+from snakefile_helpers.helpers_ML import (
+    check_dataset_exists,
+    read_model_registry,
+    read_blockings,
+    resolve_selection,
+)
+from snakemake.exceptions import WorkflowError
 
-#####
+input_path_datasets = config["input_path_datasets"]
+if len(input_path_datasets) > 1:
+    raise WorkflowError(
+        "snakefile_ML: multiple input_path_datasets given, but only a single dataset is "
+        "currently supported per run (see the config file's own note on this). Restrict "
+        "input_path_datasets to exactly one path."
+    )
+input_path_dataset = input_path_datasets[0]
+dataset_id = os.path.splitext(os.path.basename(input_path_dataset))[0]
 
-# include: "rules/ML/train_models.smk"
-# include: "rules/ML/aggregate_and_visualize_models.smk"
+check_dataset_exists([input_path_dataset])
 
-#####
+input_path_is_autocorrelated = config["input_path_is_autocorrelated"]
+input_path_is_multicollinear = config["input_path_is_multicollinear"]
+
+input_path_models = config["input_path_models"]
+model_registry = read_model_registry(input_path_models)
+MODELS = resolve_selection(config["selected_models"], model_registry["model"].tolist(), "models")
+
+input_path_blockings = config["input_path_blockings"]
+blocking_registry = read_blockings(input_path_blockings)
+BLOCKINGS = resolve_selection(config["selected_blockings"], blocking_registry, "blockings")
+
+def _single(key):
+    values = config[key]
+    if len(values) > 1:
+        raise WorkflowError(f"snakefile_ML: multiple {key} given, only one is supported per run.")
+    return values[0]
+
+TEST_SIZE = _single("test_sizes")
+OUTER_CV = _single("outer_cvs")
+INNER_CV = _single("inner_cvs")
+OPTIMIZER = _single("optimizers")
+N_ITER = _single("n_iters")
+N_JOBS_ML = _single("n_jobs_MLs")
+MODEL_N_JOBS_ML = _single("model_n_jobs_MLs")
+
+#### Rules ####
+
+include: "rules/ML/train_model.smk"
+include: "rules/ML/aggregate_and_visualize_models.smk"
 
 rule all:
     input:
-        AAAA
-
-wildcard_constraints:
-    AAAA
+        expand(
+            "results/ML/{dataset_id}/plots/performance_heatmap.pdf",
+            dataset_id=dataset_id
+        ),
+        expand(
+            "results/ML/{dataset_id}/plots/selfeats_heatmap.pdf",
+            dataset_id=dataset_id
+        ),
+        expand(
+            "results/ML/{dataset_id}/plots/median_boxplots.pdf",
+            dataset_id=dataset_id
+        )
