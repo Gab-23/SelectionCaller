@@ -57,7 +57,7 @@ jobs:
       - name: Install Python packages (numpy/pandas needed directly by test_hic_scripts.sh,
               which exercises process_hic.py's Python logic via a subprocess; scikit-learn/
               scikit-optimize/xgboost/shap needed by test_ml_scripts.sh)
-        run: pip install numpy pandas scikit-learn scikit-optimize xgboost shap --break-system-packages
+        run: pip install numpy pandas scipy scikit-learn scikit-optimize xgboost shap joblib seaborn matplotlib --break-system-packages
 
       - name: Install R + bedtools + bwa + bowtie2
         run: |
@@ -330,7 +330,7 @@ jobs:
 
       - name: Install Snakemake and ML dependencies
         run: |
-          pip install snakemake pandas numpy scikit-learn scikit-optimize xgboost shap --break-system-packages
+          pip install snakemake pandas numpy scipy scikit-learn scikit-optimize xgboost shap joblib seaborn matplotlib --break-system-packages
 
       - name: Install R + visualization packages
         run: |
@@ -346,7 +346,7 @@ jobs:
               exit 1
             fi
           done
-          python3 -c "import sklearn, skopt, xgboost, shap; print('OK: ML python deps import correctly')"
+          python3 -c "import scipy, sklearn, skopt, xgboost, shap, joblib, seaborn, matplotlib; print('OK: ML python deps import correctly')"
 
       - name: Run snakefile_ML end-to-end on a toy dataset (fake feature matrix, small
               model/blocking selection, small CV/iteration counts for speed)
