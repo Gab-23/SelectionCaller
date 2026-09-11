@@ -46,7 +46,7 @@ MODEL_N_JOBS_ML = _single("model_n_jobs_MLs")
 
 #### Rules ####
 
-include: "rules/ML/train_model.smk"
+include: "rules/ML/train_models.smk"
 include: "rules/ML/aggregate_and_visualize_models.smk"
 
 rule all:
