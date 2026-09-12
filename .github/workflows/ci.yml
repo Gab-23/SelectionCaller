@@ -103,6 +103,7 @@ jobs:
           bash .tests/unit/test_atacseq_scripts.sh
           bash .tests/unit/test_hic_scripts.sh
           bash .tests/unit/test_ml_scripts.sh
+          bash .tests/unit/test_conda_env_declarations.sh
 
   toy-integration-test:
     name: Integration testing (toy data, backbone/DepMap/IntOGen modules)
@@ -374,3 +375,4 @@ jobs:
           path: |
             logs/
             .snakemake/log/
+

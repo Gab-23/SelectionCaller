@@ -551,7 +551,7 @@ SRA_ids_hic = get_SRA_ids(selected_samples_location_hic)
 SRA_tumor_ids_atacseq = get_SRA_condition_ids(selected_samples_location_atacseq, "tumor")
 SRA_normal_ids_atacseq = get_SRA_condition_ids(selected_samples_location_atacseq, "NAT")
 
-# fix: helpers.py is imported as a real Python module ("from snakefile_helpers.helpers import
+# fix: helpers.py is imported as a real Python module ("from snakefile_helpers.helpers_dataset import
 # *"), which gives it its OWN separate global namespace - functions defined there (like
 # get_LOO_normal_bam_paths_atacseq, already present before this phase, and the new
 # get_CNVkit_check_atacseq) cannot see variables defined here in the main Snakefile just
@@ -707,6 +707,7 @@ include: "rules/GDC_CNA/process_GDC_CNA_overlap.smk"
 
 ####
 
+include: "rules/fragile_sites/sort_fragile_sites.smk"
 include: "rules/fragile_sites/get_dist_num_overlaps_fragile_sites.smk"
 include: "rules/fragile_sites/process_dist_to_fragile_sites.smk"
 include: "rules/fragile_sites/process_num_overlaps_fragile_sites.smk"

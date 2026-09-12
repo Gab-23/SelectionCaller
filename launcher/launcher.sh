@@ -2,9 +2,9 @@
 #SBATCH --job-name=snakemake_single
 #SBATCH --partition=general
 #SBATCH --output=/hpcnfs/scratch/MS/ieo7429/SelectionCaller/snakemake_%j.out
-#SBATCH --time=120:00:00
-#SBATCH --cpus-per-task=50
-#SBATCH --mem=200G
+#SBATCH --time=48:00:00
+#SBATCH --cpus-per-task=20
+#SBATCH --mem=300G
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=ieo7429@ieo.it
 
@@ -97,7 +97,7 @@ section "Dry-run"
 snakemake --snakefile "$SNAKEFILE" --configfile "$CONFIGFILE" --unlock
 
 log "Checking the DAG before committing any compute..."
-snakemake --snakefile "$SNAKEFILE" --configfile "$CONFIGFILE" --dry-run
+snakemake --snakefile "$SNAKEFILE" --configfile "$CONFIGFILE" --rerun-incomplete --dry-run
 EXIT_STATUS_DRY_RUN=$?
 
 if [ "$EXIT_STATUS_DRY_RUN" -ne 0 ]; then
