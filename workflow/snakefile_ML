@@ -33,7 +33,7 @@ MODELS = resolve_selection(config["selected_models"], model_registry["model"].to
 
 input_path_blockings = config["input_path_blockings"]
 blocking_registry = read_blockings(input_path_blockings)
-blocking_registry = [b for b in blocking_registry if b != "noblocking"]  # spatial blocking is
+#blocking_registry = [b for b in blocking_registry if b != "noblocking"]  # spatial blocking is
 # always used now (confirmed) - "noblocking" is never a candidate, even if present in the
 # registry file.
 BLOCKINGS = resolve_selection(config["selected_blockings"], blocking_registry, "blockings")
