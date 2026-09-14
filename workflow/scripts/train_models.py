@@ -14,18 +14,18 @@ import random
 import warnings
 import argparse
 
-from workflow.scripts.helpers_ML.BUILD_MODEL import *
-from workflow.scripts.helpers_ML.GET_HYPERPARAM_SPACE import *
+from workflow.scripts.helpers.BUILD_MODEL import *
+from workflow.scripts.helpers.GET_HYPERPARAM_SPACE import *
 
-from workflow.scripts.helpers_ML.SPLIT_DATASET import *
-from workflow.scripts.helpers_ML.CHECK_CHR_SORTING import *
-from workflow.scripts.helpers_ML.BLOCK_DATASET import *
+from workflow.scripts.helpers.SPLIT_DATASET import *
+from workflow.scripts.helpers.CHECK_CHR_SORTING import *
+from workflow.scripts.helpers.BLOCK_DATASET import *
 
-from workflow.scripts.helpers_ML.GENERATE_KFOLD_IDXS import *
-from workflow.scripts.helpers_ML.SUBSET_DATA_BY_IDXS import *
-from workflow.scripts.helpers_ML.OPTIMIZE_HYPERPARAMS import *
-from workflow.scripts.helpers_ML.EVALUATE_PERFORMANCES import *
-from workflow.scripts.helpers_ML.AGGREGATE_SELECTED_FEATURES import *
+from workflow.scripts.helpers.GENERATE_KFOLD_IDXS import *
+from workflow.scripts.helpers.SUBSET_DATA_BY_IDXS import *
+from workflow.scripts.helpers.OPTIMIZE_HYPERPARAMS import *
+from workflow.scripts.helpers.EVALUATE_PERFORMANCES import *
+from workflow.scripts.helpers.AGGREGATE_SELECTED_FEATURES import *
 
 parser = argparse.ArgumentParser()
 
