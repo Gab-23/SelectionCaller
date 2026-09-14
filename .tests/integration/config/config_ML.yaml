@@ -9,7 +9,6 @@ selected_models:
 input_path_blockings: ".tests/integration/data/resources/ML/BLOCKINGS"
 selected_blockings:
   - "5"
-  - "noblocking"
 test_sizes:
   - 0.2
 outer_cvs:

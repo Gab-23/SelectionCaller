@@ -337,7 +337,7 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends \
-            r-base-core r-cran-dplyr r-cran-tidyr r-cran-tibble r-cran-ggplot2 r-cran-magrittr r-cran-r.utils r-cran-tidyselect
+            r-base-core r-cran-dplyr r-cran-tidyr r-cran-tibble r-cran-ggplot2 r-cran-magrittr r-cran-r.utils r-cran-tidyselect r-cran-gridextra
 
       - name: Sanity-check that all required tools are actually on PATH
         run: |
@@ -348,7 +348,7 @@ jobs:
             fi
           done
           python3 -c "import scipy, sklearn, skopt, xgboost, shap, joblib, seaborn, matplotlib; print('OK: ML python deps import correctly')"
-          Rscript -e 'library(R.utils); library(dplyr); library(tidyr); library(tibble); library(ggplot2); library(magrittr); library(tidyselect); cat("OK: ML R deps load correctly\n")'
+          Rscript -e 'library(R.utils); library(dplyr); library(tidyr); library(tibble); library(ggplot2); library(magrittr); library(tidyselect); library(gridExtra); cat("OK: ML R deps load correctly\n")'
 
       - name: Run snakefile_ML end-to-end on a toy dataset (fake feature matrix, small
               model/blocking selection, small CV/iteration counts for speed)
@@ -359,13 +359,23 @@ jobs:
 
       - name: Verify all expected outputs exist and are non-empty
         run: |
-          for f in \
-            "results/ML/toy_dataset/plots/performance_heatmap.pdf" \
-            "results/ML/toy_dataset/plots/selfeats_heatmap.pdf" \
-            "results/ML/toy_dataset/plots/median_boxplots.pdf" ; do
-            test -s "$f" || { echo "Missing or empty file: $f"; exit 1; }
+          for chrom in 1 2 3; do
+            # consensus_features.tsv can legitimately be empty (0 bytes) - it's valid for no
+            # single feature to be selected in more than half the outer folds, especially with
+            # this toy dataset's small fold count; only existence is checked for this one file.
+            test -f "results/ML/toy_dataset/per_chrom/$chrom/best_model/consensus_features.tsv" \
+              || { echo "Missing file: results/ML/toy_dataset/per_chrom/$chrom/best_model/consensus_features.tsv"; exit 1; }
+            for f in \
+              "results/ML/toy_dataset/per_chrom/$chrom/best_model/best_model_name.txt" \
+              "results/ML/toy_dataset/per_chrom/$chrom/best_model/consensus_hyperparams.tsv" \
+              "results/ML/toy_dataset/per_chrom/$chrom/plots/selfeats_heatmap.pdf" \
+              "results/ML/toy_dataset/per_chrom/$chrom/plots/performance_heatmap.pdf" \
+              "results/ML/toy_dataset/per_chrom/$chrom/plots/median_boxplots.pdf" \
+              "results/ML/toy_dataset/per_chrom/$chrom/plots/hyperparams_table.pdf" ; do
+              test -s "$f" || { echo "Missing or empty file: $f"; exit 1; }
+            done
           done
-          echo "OK: all expected ML pipeline outputs are present and non-empty"
+          echo "OK: all expected ML pipeline outputs are present, for every chromosome"
 
       - name: Upload logs on failure
         if: failure()
