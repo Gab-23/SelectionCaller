@@ -1,26 +1,26 @@
 rule train_models:
-    # NOTE: MODEL and BLOCKING are genuine Snakemake wildcards (one job per combination, run
-    # in parallel by Snakemake) - train_models.py is always invoked with a specific
-    # --selected_model/--selected_blocking (never "all"), letting Snakemake itself handle the
-    # "all models x all blockings" fan-out declared in rule_all, instead of looping internally
-    # in Python as a single monolithic job.
+    # NOTE: MODEL, BLOCKING and CHROM are genuine Snakemake wildcards (one job per
+    # combination, run in parallel by Snakemake) - train_models.py is always invoked with a
+    # specific --selected_model/--selected_blocking (never "all"), letting Snakemake itself
+    # handle the "all models x all blockings x all chromosomes" fan-out declared in rule_all,
+    # instead of looping internally in Python as a single monolithic job.
     output:
         models=[
-            f"results/ML/{dataset_id}/models/{{model}}_{{blocking}}/{{model}}_{{blocking}}_{i}.pkl"
+            "results/ML/{dataset_id}/per_chrom/{chrom}/models/{model}_{blocking}/{model}_{blocking}_" + str(i) + ".pkl"
             for i in range(OUTER_CV)
         ],
-        warning=f"results/ML/{dataset_id}/logs/{{model}}_{{blocking}}_warning.log",
-        hyperparams=f"results/ML/{dataset_id}/hyperparams/hyperparams_{{model}}_{{blocking}}.tsv",
-        selected_features=f"results/ML/{dataset_id}/selfeats/selfeats_file_{{model}}_{{blocking}}.tsv",
-        performances=f"results/ML/{dataset_id}/performances/perf_file_{{model}}_{{blocking}}.tsv"
+        warning="results/ML/{dataset_id}/per_chrom/{chrom}/logs/{model}_{blocking}_warning.log",
+        hyperparams="results/ML/{dataset_id}/per_chrom/{chrom}/hyperparams/hyperparams_{model}_{blocking}.tsv",
+        selected_features="results/ML/{dataset_id}/per_chrom/{chrom}/selfeats/selfeats_file_{model}_{blocking}.tsv",
+        performances="results/ML/{dataset_id}/per_chrom/{chrom}/performances/perf_file_{model}_{blocking}.tsv"
     input:
-        dataset=input_path_dataset,
+        dataset="results/ML/{dataset_id}/per_chrom/{chrom}/dataset.tsv",
         is_autocorrelated=input_path_is_autocorrelated,
         is_multicollinear=input_path_is_multicollinear,
         models=input_path_models,
         blockings=input_path_blockings
     params:
-        model_dir=f"results/ML/{dataset_id}/models/{{model}}_{{blocking}}",
+        model_dir="results/ML/{dataset_id}/per_chrom/{chrom}/models/{model}_{blocking}",
         test_size=TEST_SIZE,
         outer_cv=OUTER_CV,
         inner_cv=INNER_CV,
@@ -29,7 +29,7 @@ rule train_models:
         n_jobs=N_JOBS_ML,
         model_n_jobs=MODEL_N_JOBS_ML
     log:
-        f"logs/train_model/{dataset_id}_{{model}}_{{blocking}}.log"
+        "logs/train_models/{dataset_id}_{chrom}_{model}_{blocking}.log"
     conda:
         "../../envs/py_ml_env.yml"
     shell:

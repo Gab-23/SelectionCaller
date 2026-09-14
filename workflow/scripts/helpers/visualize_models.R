@@ -14,35 +14,27 @@ create_ordered_y <- function(data, blocking_col, fold_col) {
       dplyr::pull(y_label)
   }
 
-visualize_models <- function(df_features, df_performances){
+visualize_models <- function(df_features, df_performances, df_hyperparams){
+  # NOTE (fix): df_features/df_performances/df_hyperparams are now expected to already be the
+  # output of process_aggregated_dataframe() (called upstream in select_best_model.R) - i.e.
+  # model_name/blocking/fold are already real columns (blocking already an ordered factor,
+  # fold already numeric), and the original "Model" rowname-derived column no longer exists
+  # (process_aggregated_dataframe drops it). The rownames_to_column("Model") -> separate() ->
+  # mutate(blocking, fold) steps that used to happen again here were entirely redundant with
+  # that upstream processing, and would have broken outright (no "Model" column left to pivot
+  # around).
 
   heatmap_df_features <- df_features %>%
-    tibble::rownames_to_column("Model") %>%
-    tidyr::separate(Model, sep = "_", into = c("model_name", "blocking", "fold"), remove = F) %>%
-    dplyr::mutate(blocking = factor(blocking, levels = c("noblocking", "5", "10", "15", "20")), fold = as.numeric(fold)) %>%
-    tidyr::pivot_longer(cols = -c(Model, model_name, blocking, fold), names_to = "Feature", values_to = "Selected")
+    tidyr::pivot_longer(cols = -c(model_name, blocking, fold), names_to = "Feature", values_to = "Selected")
 
   heatmap_df_features$y_ordered <- create_ordered_y(heatmap_df_features, "blocking", "fold")
 
-  # NOTE (fix): heatmap_df_performances was being used (both here, to set $y_ordered, and
-  # implicitly assumed to exist) BEFORE it was actually created a few lines below - confirmed
-  # directly: "object 'heatmap_df_performances' not found". Moved its creation above this line.
   heatmap_df_performances <- df_performances %>%
-    tibble::rownames_to_column("Model") %>%
-    tidyr::separate(Model, sep = "_", into = c("model_name", "blocking", "fold"), remove = F) %>%
-    dplyr::mutate(blocking = factor(blocking, levels = c("noblocking", "5", "10", "15", "20")), fold = as.numeric(fold)) %>%
-    tidyr::pivot_longer(cols = -c(Model, model_name, blocking, fold), names_to = "Metric", values_to = "Value")
+    tidyr::pivot_longer(cols = -c(model_name, blocking, fold), names_to = "Metric", values_to = "Value")
 
   heatmap_df_performances$y_ordered <- create_ordered_y(heatmap_df_performances, "blocking", "fold")
 
-  boxplot_df_performances <- df_performances %>%
-    tibble::rownames_to_column("Model") %>%
-    tidyr::separate(Model, sep = "_", into = c("model_name", "blocking", "fold"))
-
-  plot_data <- df_performances %>% 
-    tibble::rownames_to_column("Model") %>%
-    tidyr::separate(Model, sep = "_", into = c("model_name", "blocking", "fold")) %>%
-    dplyr::mutate(blocking = factor(blocking, levels = c("noblocking", "5", "10", "15", "20"))) %>%
+  plot_data <- df_performances %>%
     tidyr::pivot_longer(cols = tidyselect::starts_with("train_"), names_to = "metric", values_to = "value")
 
   plot_medians <- plot_data %>%
@@ -74,9 +66,25 @@ visualize_models <- function(df_features, df_performances){
     ggplot2::theme_bw() +
     ggplot2::theme(strip.text = ggplot2::element_text(face = "bold"), axis.text.x = ggplot2::element_text(angle = 45, hjust = 1))
 
+  # NOTE: hyperparameter names/types differ per model (see MODELS/GET_HYPERPARAM_SPACE.py) - a
+  # single heatmap with one shared color scale across mixed numeric/categorical values wouldn't
+  # be meaningful, so this renders the raw per-fold hyperparameter values as a plain text table
+  # instead, faceted by model via one grob per model_name. If you had a different visualization
+  # in mind for this, let me know and I'll change it.
+  hyperparams_table <- df_hyperparams %>%
+    dplyr::arrange(model_name, blocking, fold) %>%
+    (function(df) {
+      tables_per_model <- lapply(split(df, df$model_name), function(df_model) {
+        df_model <- df_model[, colSums(!is.na(df_model)) > 0, drop = FALSE]
+        gridExtra::tableGrob(df_model, rows = NULL)
+      })
+      gridExtra::arrangeGrob(grobs = tables_per_model, ncol = 1)
+    })()
+
   to.return <- list(heatmap_features  = heatmap_features, 
                     heatmap_performances = heatmap_performances,
-                    median_boxplots = median_boxplots)
+                    median_boxplots = median_boxplots,
+                    hyperparams_table = hyperparams_table)
 
   return(to.return)
 }

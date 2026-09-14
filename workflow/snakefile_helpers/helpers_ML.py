@@ -50,6 +50,20 @@ def read_blockings(path):
         return [line.rstrip() for line in f.readlines() if line.rstrip() != ""]
 
 
+def resolve_chroms(dataset_path):
+    """Read the dataset's binID column (format "{chrom}_{bin_num}") and return the sorted
+    list of distinct chromosomes present, as strings - one train_model job per chromosome is
+    generated from this list."""
+    if not os.path.isfile(dataset_path):
+        raise WorkflowError(
+            f"snakefile_ML: input_path_datasets entry ({dataset_path}) does not exist. See "
+            "check_dataset_exists for the earlier, more general check on this."
+        )
+    binIDs = pd.read_csv(dataset_path, sep="\t", usecols=["binID"])["binID"]
+    chroms = binIDs.str.split("_").str[0].unique().tolist()
+    return sorted(chroms, key=int)
+
+
 def resolve_selection(selected, available, kind):
     """Resolve a selected_models/selected_blockings config entry (["all"], or an explicit
     list) against what's actually available in the corresponding registry file, failing

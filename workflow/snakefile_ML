@@ -3,9 +3,12 @@ from snakefile_helpers.helpers_ML import (
     check_dataset_exists,
     read_model_registry,
     read_blockings,
+    resolve_chroms,
     resolve_selection,
 )
 from snakemake.exceptions import WorkflowError
+
+#### Resolve config ####
 
 input_path_datasets = config["input_path_datasets"]
 if len(input_path_datasets) > 1:
@@ -17,6 +20,8 @@ if len(input_path_datasets) > 1:
 input_path_dataset = input_path_datasets[0]
 dataset_id = os.path.splitext(os.path.basename(input_path_dataset))[0]
 
+# Fail fast and clearly if the dataset this whole pipeline depends on doesn't exist yet,
+# rather than letting Snakemake surface a generic MissingInputException later.
 check_dataset_exists([input_path_dataset])
 
 input_path_is_autocorrelated = config["input_path_is_autocorrelated"]
@@ -28,7 +33,13 @@ MODELS = resolve_selection(config["selected_models"], model_registry["model"].to
 
 input_path_blockings = config["input_path_blockings"]
 blocking_registry = read_blockings(input_path_blockings)
+blocking_registry = [b for b in blocking_registry if b != "noblocking"]  # spatial blocking is
+# always used now (confirmed) - "noblocking" is never a candidate, even if present in the
+# registry file.
 BLOCKINGS = resolve_selection(config["selected_blockings"], blocking_registry, "blockings")
+
+# One training job per chromosome actually present in the dataset.
+CHROMS = resolve_chroms(input_path_dataset)
 
 def _single(key):
     values = config[key]
@@ -46,20 +57,23 @@ MODEL_N_JOBS_ML = _single("model_n_jobs_MLs")
 
 #### Rules ####
 
+def get_train_model_outputs(wildcards):
+    return expand(rules.train_model.output, model=MODELS, blocking=BLOCKINGS, **wildcards)
+
+include: "rules/ML/split_dataset_by_chromosome.smk"
 include: "rules/ML/train_models.smk"
-include: "rules/ML/aggregate_and_visualize_models.smk"
+include: "snakefile_helpers/helpers_ML.smk"
+include: "rules/ML/select_best_model.smk"
+# NOT INCLUDED (needs revisiting once the per-chromosome design is complete): aggregate_and_visualize_models.smk
+#   still reflects the pre-per-chromosome pipeline structure (its inputs point at the old flat
+#   results/ML/{dataset_id}/performances/... paths, which train_model no longer produces now
+#   that everything is under per_chrom/{chrom}/...). Re-include once phases 3+ (final
+#   retraining, SHAP/conformal, locality metric, selection calls) are scaffolded and it's clear
+#   what should actually be aggregated/visualized across chromosomes.
 
 rule all:
     input:
         expand(
-            "results/ML/{dataset_id}/plots/performance_heatmap.pdf",
-            dataset_id=dataset_id
-        ),
-        expand(
-            "results/ML/{dataset_id}/plots/selfeats_heatmap.pdf",
-            dataset_id=dataset_id
-        ),
-        expand(
-            "results/ML/{dataset_id}/plots/median_boxplots.pdf",
-            dataset_id=dataset_id
+            "results/ML/{dataset_id}/per_chrom/{chrom}/best_model/best_model_name.txt",
+            dataset_id=dataset_id, chrom=CHROMS
         )
