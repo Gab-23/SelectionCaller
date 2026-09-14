@@ -58,7 +58,7 @@ MODEL_N_JOBS_ML = _single("model_n_jobs_MLs")
 #### Rules ####
 
 def get_train_model_outputs(wildcards):
-    return expand(rules.train_model.output, model=MODELS, blocking=BLOCKINGS, **wildcards)
+    return expand(rules.train_models.output, model=MODELS, blocking=BLOCKINGS, **wildcards)
 
 include: "rules/ML/split_dataset_by_chromosome.smk"
 include: "rules/ML/train_models.smk"
