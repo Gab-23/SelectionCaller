@@ -16,7 +16,7 @@ rule select_best_model:
     log:
         "logs/select_best_model/{dataset_id}_{chrom}.log"
     conda:
-        "../../envs/r_roadmap.yml"
+        "../../envs/r_plotting.yml"
     shell:
         """
         Rscript workflow/scripts/select_best_model.R \
