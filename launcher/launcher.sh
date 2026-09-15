@@ -2,9 +2,9 @@
 #SBATCH --job-name=snakemake_single
 #SBATCH --partition=general
 #SBATCH --output=/hpcnfs/scratch/MS/ieo7429/SelectionCaller/snakemake_%j.out
-#SBATCH --time=24:00:00
-#SBATCH --cpus-per-task=20
-#SBATCH --mem=350G
+#SBATCH --time=8:00:00
+#SBATCH --cpus-per-task=10
+#SBATCH --mem=100G
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=ieo7429@ieo.it
 
