@@ -39,10 +39,11 @@ jobs:
           touch resources/GDC/CNAs/gdc_manifest.2026-01-28.170055.txt
           mkdir -p resources/GDC/CNAs/files/dummy
           touch resources/GDC/CNAs/files/dummy/dummy.seg.v2.txt
-          mkdir -p resources/fragile_sites/origin resources/ohnologs_and_paralogs/origin resources/haploinsufficiency
+          mkdir -p resources/fragile_sites/origin resources/ohnologs_and_paralogs/origin resources/haploinsufficiency resources/epigenomes
           touch resources/fragile_sites/origin/fragile_sites_li_hg38.bed
           touch resources/ohnologs_and_paralogs/origin/OhnologList.RData resources/ohnologs_and_paralogs/origin/ParalogList.RData
           touch resources/haploinsufficiency/haploinsufficiency.csv
+          touch resources/epigenomes/mapping_EID_tt_raw.tsv
 
       - name: Dry-run on the entire production DAG
         run: |
@@ -385,4 +386,3 @@ jobs:
           path: |
             logs/
             .snakemake/log/
-
