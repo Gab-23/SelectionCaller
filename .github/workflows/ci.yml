@@ -43,6 +43,13 @@ jobs:
           touch resources/fragile_sites/origin/fragile_sites_li_hg38.bed
           touch resources/ohnologs_and_paralogs/origin/OhnologList.RData resources/ohnologs_and_paralogs/origin/ParalogList.RData
           touch resources/haploinsufficiency/haploinsufficiency.csv
+          # get_counts_atacseq.smk declares two bare (non-wildcarded) DIRECTORIES as `input:` -
+          # resources/atacseq/files/coverage and resources/atacseq/files/cnvkit - used internally
+          # by its R script to glob per-sample files. No rule produces exactly those bare paths
+          # (only wildcarded files INSIDE them), so --dry-run/--rulegraph treat them the same as
+          # any other missing source file (confirmed: MissingInputException otherwise, seen on a
+          # real CI run before this line was added).
+          mkdir -p resources/atacseq/files/coverage resources/atacseq/files/cnvkit
           touch resources/epigenomes/mapping_EID_tt_raw.tsv
 
       - name: Dry-run on the entire production DAG
