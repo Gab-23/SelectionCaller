@@ -102,7 +102,12 @@ python3 -c "
 import sys
 sys.path.insert(0, 'workflow/scripts/helpers')
 from BUILD_MODEL import BUILD_MODEL
-m = BUILD_MODEL('RandomForestRegressor', 4)
+m = BUILD_MODEL('RandomForestRegressor', N_JOBS=4)  # keyword arg: consensus_hyperparams_dict
+                                                       # is the 2nd POSITIONAL param, not N_JOBS -
+                                                       # this test previously called
+                                                       # BUILD_MODEL('RandomForestRegressor', 4),
+                                                       # which passed 4 as consensus_hyperparams_dict
+                                                       # and crashed on model.set_params(**4)
 print('N_JOBS', m.n_jobs)
 " > "$TMP/build_model_out.txt" 2>&1
 check "N_JOBS is actually threaded through to the model" "$(grep N_JOBS "$TMP/build_model_out.txt" | cut -d' ' -f2)" "4"

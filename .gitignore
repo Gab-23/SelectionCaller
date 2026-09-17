@@ -13,6 +13,6 @@ snakemake_*
 *.png
 !SelectionCaller.png
 TODO.txt
-train*
+train_*/
 *Regressor
 *Regression
