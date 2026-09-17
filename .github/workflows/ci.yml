@@ -56,9 +56,11 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install Python packages (numpy/pandas needed directly by test_hic_scripts.sh,
-              which exercises process_hic.py's Python logic via a subprocess; scikit-learn/
+              which exercises process_hic.py's Python logic via a subprocess; cooler needed
+              by the same script's new normalize_matrix_hic.py test, which builds a real toy
+              2-chromosome .cool file to verify the per-chromosome cis-only fetch; scikit-learn/
               scikit-optimize/xgboost/shap needed by test_ml_scripts.sh)
-        run: pip install numpy pandas scipy scikit-learn scikit-optimize xgboost shap joblib seaborn matplotlib --break-system-packages
+        run: pip install numpy pandas scipy scikit-learn scikit-optimize xgboost shap joblib seaborn matplotlib cooler --break-system-packages
 
       - name: Install R + bedtools + bwa + bowtie2
         run: |
@@ -314,6 +316,27 @@ jobs:
             test -s "$f" || { echo "Missing or empty file: $f"; exit 1; }
           done
           echo "OK: all expected outputs are present and non-empty"
+
+      - name: Verify the Hi-C cis-only per-chromosome chain ran correctly (checkpoint +
+              {chrom} wildcard, added 2026-09) - not just that the final aggregated file
+              exists, but that it was genuinely built from exactly the chromosomes the
+              clean_chrom_sizes checkpoint should have produced for the hg00 toy assembly
+              (chr1, chr2 - chrX/chrM are filtered out by clean_chrom_sizes' own grep, same
+              as before this change)
+        run: |
+          set -e
+          test -s "data/hic/hg00_20_binned_200_0_chr1.eigen" || { echo "Missing per-chromosome eigen file for chr1"; exit 1; }
+          test -s "data/hic/hg00_20_binned_200_0_chr2.eigen" || { echo "Missing per-chromosome eigen file for chr2"; exit 1; }
+          N_CHROM_FILES=$(ls data/hic/hg00_20_binned_200_0_chr*.eigen | wc -l)
+          [ "$N_CHROM_FILES" -eq 2 ] || { echo "Expected exactly 2 per-chromosome eigen files (chr1, chr2), found $N_CHROM_FILES - the clean_chrom_sizes checkpoint may have resolved an unexpected chromosome list"; exit 1; }
+          # the aggregated genome-wide file's data rows must equal the sum of the two
+          # per-chromosome files' data rows (header-deduplicated concatenation, not a
+          # coincidental byte-for-byte copy of just one of them)
+          N_AGG_DATA_ROWS=$(($(wc -l < "data/hic/hg00_20_binned_200_0.eigen") - 1))
+          N_CHR1_DATA_ROWS=$(($(wc -l < "data/hic/hg00_20_binned_200_0_chr1.eigen") - 1))
+          N_CHR2_DATA_ROWS=$(($(wc -l < "data/hic/hg00_20_binned_200_0_chr2.eigen") - 1))
+          [ "$N_AGG_DATA_ROWS" -eq "$((N_CHR1_DATA_ROWS + N_CHR2_DATA_ROWS))" ] || { echo "Aggregated file's row count ($N_AGG_DATA_ROWS) != chr1 ($N_CHR1_DATA_ROWS) + chr2 ($N_CHR2_DATA_ROWS)"; exit 1; }
+          echo "OK: Hi-C cis-only per-chromosome checkpoint chain produced exactly chr1+chr2, correctly aggregated"
 
       - name: Upload logs on failure
         if: failure()

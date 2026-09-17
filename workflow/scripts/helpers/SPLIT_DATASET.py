@@ -1,11 +1,23 @@
 import numpy as np
 import sklearn as sk
 
-def SPLIT_DATASET(DATASET, BLOCKING, SEED, TEST_SIZE, CHECK_SORTING_FUN, BLOCK_DATASET_FUN):
+def SPLIT_DATASET(DATASET, TARGET_COL, COLS_TO_EXCLUDE = None, EXIT_EARLY = False, BLOCKING = None, SEED = None, TEST_SIZE = None, CHECK_SORTING_FUN = None, BLOCK_DATASET_FUN = None):
 
-    X = DATASET.loc[:, (DATASET.columns != "logFC") & (DATASET.columns != "binID") & (DATASET.columns != "FDR")] # remove the FDR too!
-    y = DATASET.loc[:, "logFC"]
+    if COLS_TO_EXCLUDE is None:
+        COLS_TO_EXCLUDE = []
+
+    cols_to_drop = ["binID", TARGET_COL] + list(COLS_TO_EXCLUDE)  # binID is always excluded from
+                                                                    # X (it's a row identifier, not
+                                                                    # a feature) - not something
+                                                                    # that varies by config, unlike
+                                                                    # TARGET_COL/COLS_TO_EXCLUDE
+
+    X = DATASET.loc[:, ~DATASET.columns.isin(cols_to_drop)] # not DATASET.columns is in cols_to_drop
+    y = DATASET.loc[:, TARGET_COL]
     binIDs = DATASET["binID"]
+
+    if EXIT_EARLY:
+        return([X, y, binIDs])
 
     if BLOCKING == "noblocking":
 

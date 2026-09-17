@@ -35,3 +35,9 @@ n_jobs_MLs:
 
 model_n_jobs_MLs:
   - 1
+
+bin_size_bp: 
+  - 20000
+
+fdr_thresholds:
+  - 0.1

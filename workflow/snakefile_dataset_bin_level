@@ -28,6 +28,13 @@ def get_epigenome_ids(wildcards, tissue_type_Roadmap):
     else:
         return epigenome_ids
 
+
+def get_chroms_list(wildcards):
+    checkpoint_output = checkpoints.clean_chrom_sizes.get(assembly_code=wildcards.assembly_code).output[0]
+    with open(checkpoint_output) as f:
+        chroms = [line.split("\t")[0] for line in f if line.strip()]
+    return chroms
+
 ####
 
 def get_prefetch_outputs_repliseq(wildcards):
@@ -801,6 +808,7 @@ include: "rules/HiC/balance_cooler.smk"
 include: "rules/HiC/normalize_matrix_hic.smk"
 include: "rules/HiC/process_bins_hic.smk"
 include: "rules/HiC/process_hic.smk"
+include: "rules/HiC/aggregate_hic_eigen.smk"
 
 ####
 

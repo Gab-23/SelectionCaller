@@ -15,11 +15,26 @@ output_path_plot_landscape               <- args$output_path_plot_landscape
 output_path_plot_raw_smooth              <- args$output_path_plot_raw_smooth
 window_size                              <- as.numeric(args$window_size)
 smoothing_size                           <- as.numeric(args$smoothing_size)
+assembly_code                            <- args$assembly_code
+window_mode                              <- args$window_mode
+step                                     <- args$step
+mapq_thr                                 <- args$mapq_thr
+cov_thr                                  <- args$cov_thr
 chr_to_plot                              <- 17
 
 `%>%` <- magrittr::`%>%`
 
 files <- list.files(input_path_dir, recursive = T, full.names = T, pattern = "filtered")
+# NOTE (fix): the coverage files under input_path_dir accumulate across EVERY
+# assembly_code/window_mode/window_size/step/mapq_thr/cov_thr combination ever run (e.g. both
+# window_size=100000 and window_size=20000, if both have been run) - filtering only by the
+# literal word "filtered" (present in every such filename regardless of parameters) let files
+# from a DIFFERENT parameter combination slip in, causing "expected exactly 1 coverage file...
+# found 2" once more than one combination coexisted on disk. Confirmed directly on a real run.
+# Narrowed to the EXACT filename this specific run expects (anchored at the end of the path,
+# not just a loose substring - avoids e.g. window_size=20 matching inside window_size=200).
+expected_suffix <- paste0(assembly_code, "_", window_mode, "_", window_size, "_", step, "_", mapq_thr, "_", cov_thr, ".filtered.bed")
+files <- files[grepl(paste0(expected_suffix, "$"), files)]
 samples <- read.table(file = input_path_samples, header = T, sep = "\t")
 library_size_table <- read.table(file = input_path_library_size, header = T, sep = "\t")
 

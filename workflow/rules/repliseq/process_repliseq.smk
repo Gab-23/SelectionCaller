@@ -26,5 +26,10 @@ rule process_repliseq:
         --output_path_plot_landscape={output.path_plot_landscape} \
         --output_path_plot_raw_smooth={output.path_plot_raw_smooth} \
         --window_size={wildcards.window_size} \
-        --smoothing_size={wildcards.smoothing_size} 2>{log}
+        --smoothing_size={wildcards.smoothing_size} \
+        --assembly_code={wildcards.assembly_code} \
+        --window_mode={wildcards.window_mode} \
+        --step={wildcards.step} \
+        --mapq_thr={wildcards.mapq_thr} \
+        --cov_thr={wildcards.cov_thr} 2>{log}
         """

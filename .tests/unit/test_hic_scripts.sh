@@ -120,6 +120,99 @@ wait $PID
 ' 2>/dev/null; echo $?)
 check "a succeeding background job still reports success (non-regression)" "$SUCCESS_RC" "0"
 
+echo "=== 4) normalize_matrix_hic.py - per-chromosome cis-only fetch (2026-09 rewrite) ==="
+echo "    (bug: the previous version pulled cooler_obj.matrix(...)[:,:] - the ENTIRE"
+echo "    genome-wide dense matrix - into memory (twice: raw + symmetrized), looped in pure"
+echo "    Python over every genome-wide diagonal (~150k iterations at real scale), and wrote"
+echo "    the whole thing out as plain text. Beyond the O(n^2) memory / O(n) Python-loop cost,"
+echo "    it was scientifically wrong for the same reason as process_hic.py's eigh: the"
+echo "    per-diagonal z-score baseline only makes sense WITHIN one chromosome (distance in"
+echo "    bin-index space = real genomic distance only there), so a genome-wide baseline"
+echo "    mixes real cis distance-decay with structurally-different trans noise. Fixed by"
+echo "    fetching only the CIS submatrix for one chromosome directly from the (genome-wide"
+echo "    balanced) cooler object via .fetch(chrom) - never materializes anything genome-wide."
+echo "    Verified here with a real 2-chromosome toy .cool file built with the cooler package,"
+echo "    with distinguishable cis (strong, distance-decaying) vs trans (weak, flat) signal."
+python3 -c "
+import numpy as np, pandas as pd, cooler, subprocess, sys, os, tempfile
+
+rng = np.random.default_rng(42)
+bins = pd.DataFrame({
+    'chrom': ['chr1']*5 + ['chr2']*4,
+    'start': [0,100,200,300,400] + [0,100,200,300],
+    'end':   [100,200,300,400,500] + [100,200,300,400],
+})
+n = len(bins)
+chrom_arr = bins['chrom'].values
+mat = np.zeros((n, n))
+for i in range(n):
+    for j in range(n):
+        if i == j:
+            mat[i, j] = 100.0 + rng.normal(0, 3)
+        elif chrom_arr[i] == chrom_arr[j]:
+            d = abs(i - j)
+            mat[i, j] = max(50.0 / d + rng.normal(0, 2), 0.1)
+        else:
+            mat[i, j] = max(0.01 + rng.normal(0, 0.005), 0.001)  # trans: weak, flat, NOT distance-like
+
+pixels = [(i, j, mat[i, j]) for i in range(n) for j in range(i, n)]
+pixels_df = pd.DataFrame(pixels, columns=['bin1_id', 'bin2_id', 'count'])
+
+tmp = tempfile.mkdtemp()
+cool_path = os.path.join(tmp, 'toy.cool')
+cooler.create_cooler(cool_path, bins, pixels_df, dtypes={'count': 'float64'}, ordered=True)
+c = cooler.Cooler(cool_path)
+with cooler.util.open_hdf5(c.filename, 'r+') as h5:
+    h5['bins']['weight'] = np.ones(n, dtype=float)
+
+results = {}
+for chrom, expected_n in [('chr1', 5), ('chr2', 4)]:
+    mat_path = os.path.join(tmp, f'{chrom}.mat')
+    bins_path = os.path.join(tmp, f'{chrom}.bins')
+    r = subprocess.run([
+        sys.executable, 'workflow/scripts/normalize_matrix_hic.py',
+        '--input_path_cool', cool_path, '--chrom', chrom,
+        '--output_path_matrix', mat_path, '--output_path_bins', bins_path
+    ], capture_output=True, text=True)
+    if r.returncode != 0:
+        print('SCRIPT_FAILED', chrom); print(r.stderr); sys.exit(1)
+    out_bins = pd.read_csv(bins_path, sep='\t', header=None, names=['chr','start','end','w'])
+    out_mat = np.loadtxt(mat_path)
+    results[chrom] = (out_bins, out_mat)
+    assert (out_bins['chr'] == chrom).all(), f'{chrom}: bins leaked another chromosome'
+    assert len(out_bins) == expected_n, f'{chrom}: expected {expected_n} bins, got {len(out_bins)}'
+    assert out_mat.shape == (expected_n, expected_n), f'{chrom}: matrix shape {out_mat.shape} != ({expected_n},{expected_n})'
+
+# the two chromosomes' z-score matrices must differ (proves the computation is genuinely
+# independent per chromosome, not e.g. a slice of one shared precomputed genome-wide array)
+m1, m2 = results['chr1'][1], results['chr2'][1]
+assert not np.allclose(np.nan_to_num(m1[:4,:4]), np.nan_to_num(m2), equal_nan=True), 'chr1/chr2 z-scores suspiciously identical'
+print('OK')
+"
+RC=$?
+check "normalize_matrix_hic.py fetches only the requested chromosome's bins/matrix, shapes correct, no cross-chromosome leakage" "$RC" "0"
+
+echo "=== 5) get_chroms_list() - checkpoint chromosome-list parsing (helpers_dataset.smk) ==="
+echo "    (new function, added alongside the clean_chrom_sizes checkpoint conversion - reads"
+echo "    the checkpoint's cleaned chrom.sizes file to build the {chrom} wildcard list for"
+echo "    the Hi-C cis-only chain. Checked here in isolation from Snakemake's checkpoint"
+echo "    machinery itself, which is instead validated by the toy integration test.)"
+printf "chr1\t2000\nchr2\t1500\n" > "$TMP/clean_chrom_sizes.txt"
+PARSED=$(python3 -c "
+with open('$TMP/clean_chrom_sizes.txt') as f:
+    chroms = [line.split('\t')[0] for line in f if line.strip()]
+print(','.join(chroms))
+")
+check "chromosome list parsed correctly from a clean.chrom.sizes-shaped file" "$PARSED" "chr1,chr2"
+
+echo "=== 6) aggregate_hic_eigen - header-deduplicated concatenation of per-chromosome .eigen files ==="
+printf "binID\teigen_1\nchr1_1\t0.5\nchr1_2\t-0.3\n" > "$TMP/chr1.eigen"
+printf "binID\teigen_1\nchr2_1\t0.1\nchr2_2\t-0.9\n" > "$TMP/chr2.eigen"
+awk 'FNR==1 && NR!=1 { next } { print }' "$TMP/chr1.eigen" "$TMP/chr2.eigen" > "$TMP/combined.eigen"
+check "combined file has exactly 1 header + 4 data rows (no duplicated header)" "$(wc -l < "$TMP/combined.eigen" | tr -d ' ')" "5"
+check "header line is preserved" "$(sed -n 1p "$TMP/combined.eigen")" "$(printf 'binID\teigen_1')"
+check "chr2's header line was correctly dropped, not treated as data" "$(grep -c '^binID' "$TMP/combined.eigen")" "1"
+
 echo
 if [ "$FAIL" -eq 0 ]; then
     echo "ALL TESTS PASSED"

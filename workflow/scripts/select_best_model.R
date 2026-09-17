@@ -5,11 +5,12 @@ options(scipen=999)                                                             
 
 args <- R.utils::commandArgs(trailingOnly = TRUE, asValues = TRUE)                # read args
 
-input_dir_performances               <- args$input_dir_performances
+results_dir                          <- args$results_dir
 input_dir_hyperparams                <- args$input_dir_hyperparams
 input_dir_selfeats                   <- args$input_dir_selfeats
 
 output_path_best_model_name          <- args$output_path_best_model_name
+output_path_best_blocking            <- args$output_path_best_blocking
 output_path_consensus_hyperparams    <- args$output_path_consensus_hyperparams
 output_path_consensus_features       <- args$output_path_consensus_features
 output_path_plot_selfeats            <- args$output_path_plot_selfeats
@@ -21,13 +22,40 @@ eval_criterion <- "train_r2"
 
 `%>%` <- magrittr::`%>%`
 
-performances_paths <- list.files(input_dir_performances, pattern = "perf_file", full.names = T, recursive = T)
+# NOTE (fix, pooled model selection): performances are now read from EVERY chromosome's own
+# per_chrom/{chrom}/performances/ directory (results_dir/per_chrom/*/performances/), not just
+# this job's own chromosome - the (model, blocking) choice is pooled genome-wide, so every
+# chromosome's job reads the same full set and independently arrives at the same winner (see
+# conversation: avoids confounding "difference due to the chromosome" with "difference due to
+# model architecture" when later comparing feature importance across chromosomes).
+# input_dir_hyperparams/input_dir_selfeats stay chromosome-specific: once the winning
+# (model, blocking) is known, hyperparameter/feature consensus is computed from ONLY this
+# chromosome's own folds - that is where the chromosome-specific signal needs to live.
+performances_paths <- list.files(file.path(results_dir, "per_chrom"), pattern = "perf_file", full.names = T, recursive = T)
 selfeats_paths <- list.files(input_dir_selfeats, pattern = "selfeats_file", full.names = T, recursive = T)
 hyperparams_path <- list.files(input_dir_hyperparams, pattern = "hyperparams", full.names = T, recursive = T)
 
 performances_list <- lapply(X = performances_paths, 
                             FUN = function(path){
                                 df <- read.delim(path, sep = "\t", row.names = 1, check.names = F)
+                                # NOTE (fix): rownames alone ("{model}_{blocking}_{fold}") are NOT
+                                # unique once pooled across chromosomes - every chromosome
+                                # independently produces the same row names for the same
+                                # (model, blocking, fold), and do.call(rbind, ...) silently mangles
+                                # duplicate ROWNAMES (confirmed directly: "XGBRegressor_5_0" from
+                                # two different chromosomes becomes "XGBRegressor_5_0" and
+                                # "XGBRegressor_5_01" - corrupting the fold number once
+                                # re-parsed). A regular data-frame COLUMN, unlike rownames, has no
+                                # such uniqueness constraint - duplicate values across rows are
+                                # completely fine (confirmed directly) - so converting rownames to
+                                # an explicit "Model" column before combining avoids the collision
+                                # entirely, with no need to alter the value itself. An explicit
+                                # "chrom" column (parsed from the file path:
+                                # .../per_chrom/{chrom}/performances/perf_file_*.tsv) is also kept
+                                # for provenance/traceability.
+                                chrom <- basename(dirname(dirname(path)))
+                                df <- tibble::rownames_to_column(df, "Model")
+                                df$chrom <- chrom
                                 return(df)
                     })
 
@@ -43,7 +71,7 @@ hyperparams_list <- lapply(X = hyperparams_path,
                             return(df)
                     })
 
-performances_aggregated <- do.call(rbind, performances_list)
+performances_aggregated <- dplyr::bind_rows(performances_list)
 selfeats_aggregated <- do.call(rbind, selfeats_list)
 
 hyperparams_aggregated <- hyperparams_list |>
@@ -56,7 +84,7 @@ performances_aggregated <- process_aggregated_dataframe(performances_aggregated)
 selfeats_aggregated <- process_aggregated_dataframe(selfeats_aggregated)
 hyperparams_aggregated <- process_aggregated_dataframe(hyperparams_aggregated)
 
-output_visualization <- visualize_models(selfeats_aggregated, performances_aggregated, hyperparams_aggregated)
+output_visualization <- visualize_models(selfeats_aggregated, dplyr::select(performances_aggregated, -chrom), hyperparams_aggregated)
 
 mean_performance <- performances_aggregated %>% 
   dplyr::group_by(model_name, blocking) %>% 
@@ -71,6 +99,9 @@ best_model <- mean_performance[best_model_idx,]
 best_model_name <- mean_performance$model_name[best_model_idx] # get best model in general
 best_model_blocking <- mean_performance$blocking[best_model_idx]
 
+# NOTE: selfeats_aggregated/hyperparams_aggregated are chromosome-specific (see above), so
+# this restricts to the genome-wide winning (model, blocking) WITHIN this chromosome's own
+# folds only.
 best_model_selfeats <- selfeats_aggregated[(selfeats_aggregated$model_name == best_model_name & selfeats_aggregated$blocking == best_model_blocking), , drop = FALSE]
 best_model_hyperparams <- hyperparams_aggregated[(hyperparams_aggregated$model_name == best_model_name & hyperparams_aggregated$blocking == best_model_blocking), , drop = FALSE]
 
@@ -105,7 +136,8 @@ consensus_hyperparams <- data.frame(
 )
 
 writeLines(con = output_path_best_model_name, text = best_model_name)
-writeLines(con = output_path_consensus_features, text = most_common_features)
+writeLines(con = output_path_best_blocking, text = as.character(best_model_blocking))
+writeLines(con = output_path_consensus_features, text = most_common_features, sep = "\n") # remember that this is chromosome-specific
 write.table(file = output_path_consensus_hyperparams, x = consensus_hyperparams, sep = "\t", row.names = F, col.names = F, quote = F)
 
 ggplot2::ggsave(output_path_plot_selfeats, output_visualization$heatmap_features, width = 20, height = 10)

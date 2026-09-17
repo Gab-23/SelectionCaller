@@ -9,7 +9,7 @@ def GET_EXPLAINER(MODEL, IS_TREE_BASED, IS_LINEAR, BACKGROUND_DATA):
     # to be the training data used to fit MODEL, e.g. X_train_train) as a new argument.
 
     if IS_TREE_BASED:
-        explainer = sh.TreeExplainer(MODEL.named_steps["model"], approximate=False)
+        explainer = sh.TreeExplainer(MODEL.named_steps["model"], approximate=False) # no background provided, so feature_perturbation = "tree_path_dependent"
     elif IS_LINEAR:
         explainer = sh.LinearExplainer(MODEL.named_steps["model"], masker=BACKGROUND_DATA)
     else:

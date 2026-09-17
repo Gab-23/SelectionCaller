@@ -33,9 +33,6 @@ MODELS = resolve_selection(config["selected_models"], model_registry["model"].to
 
 input_path_blockings = config["input_path_blockings"]
 blocking_registry = read_blockings(input_path_blockings)
-#blocking_registry = [b for b in blocking_registry if b != "noblocking"]  # spatial blocking is
-# always used now (confirmed) - "noblocking" is never a candidate, even if present in the
-# registry file.
 BLOCKINGS = resolve_selection(config["selected_blockings"], blocking_registry, "blockings")
 
 # One training job per chromosome actually present in the dataset.
@@ -55,25 +52,39 @@ N_ITER = _single("n_iters")
 N_JOBS_ML = _single("n_jobs_MLs")
 MODEL_N_JOBS_ML = _single("model_n_jobs_MLs")
 
+# Genuine variable explored across multiple values (like MODELS/BLOCKINGS) - train_cv_plus_
+# models computes intervals for EVERY confidence level here in one script run (cheap - just
+# applying the interval formula per level to already-computed residuals, no need to re-run
+# training/SHAP), while quantify_selection still has {confidence} as a real Snakemake
+# wildcard, since a selection call is meaningful only at one specific confidence level.
+FDR_THRESHOLDS = [str(c) for c in config["fdr_thresholds"]]
+
 #### Rules ####
 
 def get_train_model_outputs(wildcards):
     return expand(rules.train_models.output, model=MODELS, blocking=BLOCKINGS, **wildcards)
 
+def get_all_chrom_train_model_checks(wildcards):
+    other_wildcards = {k: v for k, v in wildcards.items() if k != "chrom"}
+    return expand(rules.all_train_models.output, chrom=CHROMS, **other_wildcards)
+
 include: "rules/ML/split_dataset_by_chromosome.smk"
 include: "rules/ML/train_models.smk"
 include: "snakefile_helpers/helpers_ML.smk"
 include: "rules/ML/select_best_model.smk"
-# NOT INCLUDED (needs revisiting once the per-chromosome design is complete): aggregate_and_visualize_models.smk
-#   still reflects the pre-per-chromosome pipeline structure (its inputs point at the old flat
-#   results/ML/{dataset_id}/performances/... paths, which train_model no longer produces now
-#   that everything is under per_chrom/{chrom}/...). Re-include once phases 3+ (final
-#   retraining, SHAP/conformal, locality metric, selection calls) are scaffolded and it's clear
-#   what should actually be aggregated/visualized across chromosomes.
+include: "rules/ML/train_cv_plus_models.smk"
+include: "rules/ML/compute_feature_locality.smk"
+include: "rules/ML/quantify_selection.smk"
+# NOT INCLUDED (removed - see conversation): aggregate_and_visualize_models.R/.smk were
+#   consolidated into select_best_model.R/.smk and no longer exist as separate files.
 
 rule all:
     input:
         expand(
-            "results/ML/{dataset_id}/per_chrom/{chrom}/best_model/best_model_name.txt",
-            dataset_id=dataset_id, chrom=CHROMS
+            "results/ML/{dataset_id}/per_chrom/{chrom}/selection_calls/{fdr_threshold}/selection_calls.tsv",
+            dataset_id=dataset_id, chrom=CHROMS, fdr_threshold=FDR_THRESHOLDS
+        ),
+        expand(
+            "results/ML/{dataset_id}/per_chrom/{chrom}/conformal/{fdr_threshold}/locality/feature_locality.tsv",
+            dataset_id=dataset_id, chrom=CHROMS, fdr_threshold=FDR_THRESHOLDS
         )

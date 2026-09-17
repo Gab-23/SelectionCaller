@@ -23,6 +23,12 @@ input_dir_scaling_factors	                  <- args$input_dir_scaling_factors
 input_path_metadata                           <- args$input_path_metadata
 input_path_samples_to_exclude                 <- args$input_path_samples_to_exclude
 
+assembly_code                                 <- args$assembly_code
+window_mode                                   <- args$window_mode
+window_size                                   <- args$window_size
+step                                          <- args$step
+mapq_thr                                      <- args$mapq_thr
+
 minSamples_atacseq                            <- as.integer(args$minSamples_atacseq)                  # TODO: this can be automated in the snakefile, based on the metadata file
 minCounts_atacseq                             <- as.integer(args$minCounts_atacseq)                   # TODO: this can be automated in the snakefile, based on the metadata file
 minCpm_atacseq                                <- as.integer(args$minCpm_atacseq)                      # TODO: this can be automated in the snakefile, based on the metadata file
@@ -86,15 +92,17 @@ output_path_distance_plot_woCNAs	          <- args$output_path_distance_plot_woC
 
 output_path_CNVkit_lineplot                   <- args$output_path_CNVkit_lineplot
 
-files_coverage <- list.files(input_dir_coverage, recursive = T, full.names = T)
-files_scaling_factors <- list.files(input_dir_scaling_factors, recursive = T, full.names = T, pattern = "scaling")
+coverage_pattern <- paste0(assembly_code, "_", window_mode, "_", window_size, "_", step, "_", mapq_thr, "\\.bed$")
+scaling_pattern  <- paste0(assembly_code, "_", window_mode, "_", window_size, "_", step, "_", mapq_thr, "\\.scaling$")
+
+files_coverage <- list.files(input_dir_coverage, recursive = TRUE, full.names = TRUE, pattern = coverage_pattern)
+files_scaling_factors <- list.files(input_dir_scaling_factors, recursive = TRUE, full.names = TRUE, pattern = scaling_pattern)
 
 metadata <- read.table(input_path_metadata, header = T, sep = "\t")
 samples_to_exclude <- readLines(input_path_samples_to_exclude)
 
-sample_names_coverage <- unlist(lapply(X = files_coverage, FUN = function(x){strsplit(x, split = "/")[[1]][[5]]}))
-sample_names_scaling_factors <- unlist(lapply(X = files_scaling_factors, FUN = function(x){strsplit(x, split = "/")[[1]][[5]]}))
-sample_names_scaling_factors <- gsub(x = sample_names_scaling_factors, pattern = "_hg38_20.scaling", replacement = "")                     #### this is hardcoded and can be removed
+sample_names_coverage <- unlist(lapply(X = files_coverage, FUN = function(x){basename(dirname(x))}))
+sample_names_scaling_factors <- unlist(lapply(X = files_scaling_factors, FUN = function(x){basename(dirname(x))}))
 
 cov_list <- lapply(X = seq(length(files_coverage)), 
                    FUN = function(idx){
@@ -126,7 +134,7 @@ scaling_factors <- Reduce(f = function(x, y){merge(x,y, by = "binID")}, x = scal
 scaling_factors <- scaling_factors[,!(colnames(scaling_factors) %in% samples_to_exclude)]
 scaling_factors <- scaling_factors[scaling_factors$binID %in% counts$binID,]
 
-CNVkit_lineplot <- plot_CNVkit_lines(scaling_factors)
+CNVkit_lineplot <- plot_CNVkit_lines(scaling_factors, metadata)
 
 ## filter counts to account bins in scaling_factors
 

@@ -40,16 +40,10 @@ rule get_counts_atacseq:
     input:
         path_check_coverage="resources/atacseq/checks/{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}_coverage",
         path_check_scaling_factors="resources/atacseq/checks/{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}_scaling_factors",
+        path_dir_coverage="resources/atacseq/files/coverage",
+        path_dir_scaling_factors="resources/atacseq/files/cnvkit",
         path_metadata=selected_samples_location_atacseq,
         path_samples_to_exclude=samples_to_exclude_location_atacseq
-    params:
-        # bare directories, not formal Snakemake inputs (see process_CNVkit_output_atacseq.smk
-        # for the same reasoning): nothing declares these whole directories as an output, since
-        # they're just the accumulated per-sample files from earlier rules. The two "check"
-        # inputs above already guarantee every sample's coverage/scaling-factor file exists
-        # before this rule runs.
-        path_dir_coverage="resources/atacseq/files/coverage",
-        path_dir_scaling_factors="resources/atacseq/files/cnvkit"
     log:
         "logs/get_counts_atacseq/{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}_{minSamples_atacseq}_{minCounts_atacseq}_{minCpm_atacseq}_{SVs}.log"        
     conda:
@@ -57,49 +51,54 @@ rule get_counts_atacseq:
     shell:
         """
         Rscript workflow/scripts/get_counts_atacseq.R \
-        --input_dir_coverage={params.path_dir_coverage} \
-        --input_dir_scaling_factors={params.path_dir_scaling_factors} \
+        --input_dir_coverage={input.path_dir_coverage} \
+        --input_dir_scaling_factors={input.path_dir_scaling_factors} \
         --input_path_metadata={input.path_metadata} \
         --input_path_samples_to_exclude={input.path_samples_to_exclude} \
+        --assembly_code={wildcards.assembly_code} \
+        --window_mode={wildcards.window_mode} \
+        --window_size={wildcards.window_size} \
+        --step={wildcards.step} \
+        --mapq_thr={wildcards.mapq_thr} \
         --minSamples_atacseq={wildcards.minSamples_atacseq} \
         --minCounts_atacseq={wildcards.minCounts_atacseq} \
         --minCpm_atacseq={wildcards.minCpm_atacseq} \
         --SVs={wildcards.SVs} \
         --output_path_library_sizes={output.path_library_sizes} \
         --output_path_counts={output.path_counts} \
-        --output_path_model_matrix={output.path_model_matrix} \
+	    --output_path_model_matrix={output.path_model_matrix} \
         --output_path_PCA_condition={output.path_PCA_condition} \
         --output_path_PCA_library_size={output.path_PCA_library_size} \
         --output_path_PCA_sex={output.path_PCA_sex} \
         --output_path_PCA_donor={output.path_PCA_donor} \
         --output_path_PCA_study={output.path_PCA_study} \
         --output_path_PCA_subtype={output.path_PCA_subtype} \
-        --output_path_scree_plot={output.path_scree_plot} \
+	    --output_path_scree_plot={output.path_scree_plot} \
         --output_path_PCA_sva_condition={output.path_PCA_sva_condition} \
         --output_path_PCA_sva_library_size={output.path_PCA_sva_library_size} \
         --output_path_PCA_sva_sex={output.path_PCA_sva_sex} \
         --output_path_PCA_sva_donor={output.path_PCA_sva_donor} \
         --output_path_PCA_sva_study={output.path_PCA_sva_study} \
         --output_path_PCA_sva_subtype={output.path_PCA_sva_subtype} \
-        --output_path_scree_plot_sva={output.path_scree_plot_sva} \
-        --output_path_distance_plot={output.path_distance_plot} \
+	    --output_path_scree_plot_sva={output.path_scree_plot_sva} \
+	    --output_path_distance_plot={output.path_distance_plot} \
         --output_path_library_sizes_woCNAs={output.path_library_sizes_woCNAs} \
         --output_path_counts_woCNAs={output.path_counts_woCNAs} \
-        --output_path_model_matrix_woCNAs={output.path_model_matrix_woCNAs} \
+	    --output_path_model_matrix_woCNAs={output.path_model_matrix_woCNAs} \
         --output_path_PCA_condition_woCNAs={output.path_PCA_condition_woCNAs} \
         --output_path_PCA_library_size_woCNAs={output.path_PCA_library_size_woCNAs} \
         --output_path_PCA_sex_woCNAs={output.path_PCA_sex_woCNAs} \
         --output_path_PCA_donor_woCNAs={output.path_PCA_donor_woCNAs} \
         --output_path_PCA_study_woCNAs={output.path_PCA_study_woCNAs} \
         --output_path_PCA_subtype_woCNAs={output.path_PCA_subtype_woCNAs} \
-        --output_path_scree_plot_woCNAs={output.path_scree_plot_woCNAs} \
+	    --output_path_scree_plot_woCNAs={output.path_scree_plot_woCNAs} \
         --output_path_PCA_sva_condition_woCNAs={output.path_PCA_sva_condition_woCNAs} \
         --output_path_PCA_sva_library_size_woCNAs={output.path_PCA_sva_library_size_woCNAs} \
         --output_path_PCA_sva_sex_woCNAs={output.path_PCA_sva_sex_woCNAs} \
         --output_path_PCA_sva_donor_woCNAs={output.path_PCA_sva_donor_woCNAs} \
         --output_path_PCA_sva_study_woCNAs={output.path_PCA_sva_study_woCNAs} \
         --output_path_PCA_sva_subtype_woCNAs={output.path_PCA_sva_subtype_woCNAs} \
-        --output_path_scree_plot_sva_woCNAs={output.path_scree_plot_sva_woCNAs} \
-        --output_path_distance_plot_woCNAs={output.path_distance_plot_woCNAs} \
-        --output_path_CNVkit_lineplot={output.path_CNVkit_lineplot} 2>{log}
+	    --output_path_scree_plot_sva_woCNAs={output.path_scree_plot_sva_woCNAs} \
+	    --output_path_distance_plot_woCNAs={output.path_distance_plot_woCNAs} \
+        --output_path_CNVkit_lineplot={output.path_CNVkit_lineplot}
         """

@@ -109,7 +109,16 @@ for MODEL in MODELS:
 
         X_train, X_test, \
         y_train, y_test, \
-        binIDs_train, binIDs_test = SPLIT_DATASET(DATASET, BLOCKING, SEED, TEST_SIZE, CHECK_CHR_SORTING, BLOCK_DATASET)
+        binIDs_train, binIDs_test = SPLIT_DATASET(
+            DATASET,
+            TARGET_COL = "logFC",
+            COLS_TO_EXCLUDE = ["FDR"],
+            BLOCKING = BLOCKING,
+            SEED = SEED,
+            TEST_SIZE = TEST_SIZE,
+            CHECK_SORTING_FUN = CHECK_CHR_SORTING,
+            BLOCK_DATASET_FUN = BLOCK_DATASET
+        )
 
         num_rows_test_set = X_test.shape[0]
         empirical_test_size = (num_rows_test_set / num_rows_dataset)

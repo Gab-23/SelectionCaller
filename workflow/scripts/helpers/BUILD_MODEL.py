@@ -4,7 +4,7 @@ from sklearn.neighbors import KNeighborsRegressor
 from sklearn.ensemble import RandomForestRegressor
 from xgboost import XGBRegressor
 
-def BUILD_MODEL(MODEL, N_JOBS=1):
+def BUILD_MODEL(MODEL, consensus_hyperparams_dict = None, N_JOBS=1):
     # NOTE (fix): n_jobs was hardcoded to 1 for every parallelizable model - parametrized per
     # your request. Note that 1 remains a sensible default: this model sits inside an outer
     # hyperparameter search / cross-validation that already parallelizes across folds and
@@ -23,5 +23,8 @@ def BUILD_MODEL(MODEL, N_JOBS=1):
         model = RandomForestRegressor(n_jobs=N_JOBS)
     else:
         raise ValueError(f"Unknown MODEL: {MODEL}")
+
+    if consensus_hyperparams_dict is not None:
+        model.set_params(**consensus_hyperparams_dict)
 
     return model
