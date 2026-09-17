@@ -101,7 +101,7 @@ for MODEL in MODELS:
     NEEDS_SCALING = bool(models_df[models_df.model == MODEL].needs_scaling.values)
     IS_TREE_BASED = bool(models_df[models_df.model == MODEL].is_tree_based.values)
     IS_LINEAR = bool(models_df[models_df.model == MODEL].is_linear.values)
-    REGRESSOR = BUILD_MODEL(MODEL, MODEL_N_JOBS)
+    REGRESSOR = BUILD_MODEL(MODEL, None, MODEL_N_JOBS)
     HYPERPARAM_SPACE = GET_HYPERPARAM_SPACE(MODEL) # add hyperparam spaces
     bool_optimize_hyperparams = True
 
