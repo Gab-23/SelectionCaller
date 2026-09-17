@@ -362,7 +362,7 @@ jobs:
 
       - name: Install Snakemake and ML dependencies
         run: |
-          pip install snakemake pandas numpy scipy scikit-learn scikit-optimize xgboost shap joblib seaborn matplotlib --break-system-packages
+          pip install snakemake pandas numpy scipy statsmodels scikit-learn scikit-optimize xgboost shap joblib seaborn matplotlib --break-system-packages
 
       - name: Install R + visualization packages
         run: |
