@@ -37,6 +37,16 @@ def get_epigenome_ids(wildcards, tissue_type_Roadmap):
     else:
         return epigenome_ids
 
+def get_chroms_list(wildcards):
+    # Legge l'output del checkpoint clean_chrom_sizes (un cromosoma per riga, formato
+    # chrom_sizes: "{chrom}\t{size}") e ritorna la lista dei cromosomi - serve ad
+    # aggregate_hic_eigen (e a qualunque altra regola che debba sapere quali {chrom} esistono
+    # DOPO che il checkpoint ha girato, dato che il DAG non puo' conoscerli prima).
+    chrom_sizes_path = checkpoints.clean_chrom_sizes.get(assembly_code=wildcards.assembly_code).output[0]
+    with open(chrom_sizes_path) as f:
+        chroms = [line.split("\t")[0] for line in f if line.strip()]
+    return chroms
+
 ####
 
 def get_prefetch_outputs_repliseq(wildcards):
