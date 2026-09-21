@@ -2,9 +2,9 @@
 #SBATCH --job-name=snakemake_single
 #SBATCH --partition=general
 #SBATCH --output=/hpcnfs/scratch/MS/ieo7429/SelectionCaller/snakemake_%j.out
-#SBATCH --time=6:00:00
-#SBATCH --cpus-per-task=5
-#SBATCH --mem=600G
+#SBATCH --time=360:00:00
+#SBATCH --cpus-per-task=150
+#SBATCH --mem=300G
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=ieo7429@ieo.it
 
@@ -16,9 +16,11 @@ set -uo pipefail
 # ---------------------------------------------------------------------------
 # Arguments
 # ---------------------------------------------------------------------------
-SNAKEFILE=${1:?"Usage: sbatch $0 <snakefile> <configfile> <cores>"}
-CONFIGFILE=${2:?"Usage: sbatch $0 <snakefile> <configfile> <cores>"}
-CORES=${3:?"Usage: sbatch $0 <snakefile> <configfile> <cores>"}
+SNAKEFILE=${1:?"Usage: sbatch $0 <snakefile> <configfile> <cores> [target_rule]"}
+CONFIGFILE=${2:?"Usage: sbatch $0 <snakefile> <configfile> <cores> [target_rule]"}
+CORES=${3:?"Usage: sbatch $0 <snakefile> <configfile> <cores> [target_rule]"}
+TARGET_RULE="${4:-}"   # optional - e.g. "select_best_model" to stop there via --until;
+                        # empty (the default, unchanged from before) runs the full `rule all`
 
 LOCAL_BASE="/hpcnfs/scratch/MS/ieo7429/SelectionCaller"
 
@@ -59,6 +61,7 @@ log "Memory:        ${SLURM_MEM_PER_NODE:-N/A} MB"
 log "Working dir:   $LOCAL_BASE"
 log "Snakefile:     $SNAKEFILE"
 log "Configfile:    $CONFIGFILE"
+log "Target rule:   ${TARGET_RULE:-<none - running full 'rule all'>}"
 hr
 
 cd "$LOCAL_BASE" || { log "ERROR: cannot cd into $LOCAL_BASE"; FINAL_STATUS=1; exit; }
@@ -97,7 +100,11 @@ section "Dry-run"
 snakemake --snakefile "$SNAKEFILE" --configfile "$CONFIGFILE" --unlock
 
 log "Checking the DAG before committing any compute..."
-snakemake --snakefile "$SNAKEFILE" --configfile "$CONFIGFILE" --rerun-incomplete --dry-run
+if [ -n "$TARGET_RULE" ]; then
+    snakemake --snakefile "$SNAKEFILE" --configfile "$CONFIGFILE" --rerun-incomplete --dry-run --until "$TARGET_RULE"
+else
+    snakemake --snakefile "$SNAKEFILE" --configfile "$CONFIGFILE" --rerun-incomplete --dry-run
+fi
 EXIT_STATUS_DRY_RUN=$?
 
 if [ "$EXIT_STATUS_DRY_RUN" -ne 0 ]; then
@@ -115,14 +122,26 @@ section "Main pipeline run"
 snakemake --snakefile "$SNAKEFILE" --configfile "$CONFIGFILE" --unlock
 
 log "Launching Snakemake with $CORES cores..."
-snakemake \
-    --snakefile "$SNAKEFILE" \
-    --configfile "$CONFIGFILE" \
-    --cores "$CORES" \
-    --use-conda \
-    --rerun-incomplete \
-    --keep-going \
-    --printshellcmds
+if [ -n "$TARGET_RULE" ]; then
+    snakemake \
+        --snakefile "$SNAKEFILE" \
+        --configfile "$CONFIGFILE" \
+        --cores "$CORES" \
+        --use-conda \
+        --rerun-incomplete \
+        --keep-going \
+        --printshellcmds \
+        --until "$TARGET_RULE"
+else
+    snakemake \
+        --snakefile "$SNAKEFILE" \
+        --configfile "$CONFIGFILE" \
+        --cores "$CORES" \
+        --use-conda \
+        --rerun-incomplete \
+        --keep-going \
+        --printshellcmds
+fi
 EXIT_STATUS_FINAL_RUN=$?
 
 if [ "$EXIT_STATUS_FINAL_RUN" -eq 0 ]; then

@@ -50,8 +50,8 @@ N_JOBS_ML = _single("n_jobs_MLs")
 MODEL_N_JOBS_ML = _single("model_n_jobs_MLs")
 
 BIN_SIZE_BP = config["bin_size_bp"]
-
 FDR_THRESHOLDS = [str(t) for t in config["fdr_thresholds"]]
+TARGET_COLS = [str(t) for t in config["target_cols"]]
 
 #### Rules ####
 
@@ -72,6 +72,6 @@ include: "rules/ML/train_cv_plus_models.smk"
 rule all:
     input:
         expand(
-            "results/ML/{dataset_id}/per_chrom/{chrom}/significance/{fdr_threshold}/significance_calls.tsv",
-            dataset_id=dataset_id, chrom=CHROMS, fdr_threshold=FDR_THRESHOLDS
+            "results/ML/{dataset_id}/per_chrom/{chrom}/target/{target_col}/significance/{fdr_threshold}/significance_calls.tsv",
+            dataset_id=dataset_id, chrom=CHROMS, target_col=TARGET_COLS, fdr_threshold=FDR_THRESHOLDS
         )

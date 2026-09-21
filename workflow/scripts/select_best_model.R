@@ -6,6 +6,7 @@ options(scipen=999)                                                             
 args <- R.utils::commandArgs(trailingOnly = TRUE, asValues = TRUE)                # read args
 
 results_dir                          <- args$results_dir
+target_col                           <- args$target_col
 input_dir_hyperparams                <- args$input_dir_hyperparams
 input_dir_selfeats                   <- args$input_dir_selfeats
 
@@ -22,16 +23,21 @@ eval_criterion <- "train_r2"
 
 `%>%` <- magrittr::`%>%`
 
-# NOTE (fix, pooled model selection): performances are now read from EVERY chromosome's own
-# per_chrom/{chrom}/performances/ directory (results_dir/per_chrom/*/performances/), not just
-# this job's own chromosome - the (model, blocking) choice is pooled genome-wide, so every
-# chromosome's job reads the same full set and independently arrives at the same winner (see
-# conversation: avoids confounding "difference due to the chromosome" with "difference due to
-# model architecture" when later comparing feature importance across chromosomes).
-# input_dir_hyperparams/input_dir_selfeats stay chromosome-specific: once the winning
-# (model, blocking) is known, hyperparameter/feature consensus is computed from ONLY this
-# chromosome's own folds - that is where the chromosome-specific signal needs to live.
-performances_paths <- list.files(file.path(results_dir, "per_chrom"), pattern = "perf_file", full.names = T, recursive = T)
+# NOTE (fix, pooled model selection): performances are read from EVERY chromosome's own
+# per_chrom/{chrom}/target/{target_col}/performances/ directory, not just this job's own
+# chromosome - the (model, blocking) choice is pooled genome-wide, so every chromosome's job
+# reads the same full set and independently arrives at the same winner (avoids confounding
+# "difference due to the chromosome" with "difference due to model architecture" when later
+# comparing feature importance across chromosomes).
+# NOTE (fix, aggiunto insieme a {target_col}): usa Sys.glob invece di list.files(...,
+# recursive=T) - list.files da solo non supporta un `*` come intero segmento di path. Senza
+# questo, la scansione ricorsiva avrebbe mescolato le performance di target_col DIVERSI
+# nello stesso pool genome-wide, corrompendo silenziosamente la scelta del modello migliore
+# non appena target_cols avesse avuto piu' di un valore.
+# input_dir_hyperparams/input_dir_selfeats stay chromosome-specific (e ora anche target-
+# specific): una volta noto il (model, blocking) vincente, il consenso di iperparametri/
+# feature e' calcolato SOLO dai fold di questo cromosoma+target.
+performances_paths <- Sys.glob(file.path(results_dir, "per_chrom", "*", "target", target_col, "performances", "perf_file*"))
 selfeats_paths <- list.files(input_dir_selfeats, pattern = "selfeats_file", full.names = T, recursive = T)
 hyperparams_path <- list.files(input_dir_hyperparams, pattern = "hyperparams", full.names = T, recursive = T)
 
@@ -51,9 +57,9 @@ performances_list <- lapply(X = performances_paths,
                                 # an explicit "Model" column before combining avoids the collision
                                 # entirely, with no need to alter the value itself. An explicit
                                 # "chrom" column (parsed from the file path:
-                                # .../per_chrom/{chrom}/performances/perf_file_*.tsv) is also kept
-                                # for provenance/traceability.
-                                chrom <- basename(dirname(dirname(path)))
+                                # .../per_chrom/{chrom}/target/{target_col}/performances/perf_file_*.tsv)
+                                # is also kept for provenance/traceability.
+                                chrom <- basename(dirname(dirname(dirname(path))))
                                 df <- tibble::rownames_to_column(df, "Model")
                                 df$chrom <- chrom
                                 return(df)
@@ -99,9 +105,6 @@ best_model <- mean_performance[best_model_idx,]
 best_model_name <- mean_performance$model_name[best_model_idx] # get best model in general
 best_model_blocking <- mean_performance$blocking[best_model_idx]
 
-# NOTE: selfeats_aggregated/hyperparams_aggregated are chromosome-specific (see above), so
-# this restricts to the genome-wide winning (model, blocking) WITHIN this chromosome's own
-# folds only.
 best_model_selfeats <- selfeats_aggregated[(selfeats_aggregated$model_name == best_model_name & selfeats_aggregated$blocking == best_model_blocking), , drop = FALSE]
 best_model_hyperparams <- hyperparams_aggregated[(hyperparams_aggregated$model_name == best_model_name & hyperparams_aggregated$blocking == best_model_blocking), , drop = FALSE]
 
@@ -110,11 +113,6 @@ feature_cols <- setdiff(colnames(best_model_selfeats), c("model_name", "blocking
 most_common_features <- names(colSums(best_model_selfeats[, feature_cols, drop = FALSE])[colSums(best_model_selfeats[, feature_cols, drop = FALSE]) > ceiling(nrow(best_model_selfeats) / 2)])
 
 # get median / more frequent hyperparams
-# NOTE (fix): excluding model_name/blocking/fold here too, same reasoning as feature_cols above -
-# best_model_hyperparams still carries these 3 metadata columns (process_aggregated_dataframe only
-# drops "Model"), and since they're never all-NA they'd otherwise leak into the consensus output
-# as if they were real hyperparameters (majority-voting model_name/blocking against themselves,
-# and taking a meaningless median() of the fold index).
 hyperparam_cols <- setdiff(colnames(best_model_hyperparams), c("model_name", "blocking", "fold"))
 best_model_hyperparams <- best_model_hyperparams[, hyperparam_cols, drop = FALSE]
 

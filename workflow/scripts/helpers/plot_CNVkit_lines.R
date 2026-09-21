@@ -34,7 +34,6 @@ if (any(is.na(df.out.long$condition))) {
 p <- ggplot2::ggplot(df.out.long,
                 ggplot2::aes(x = bin, y = scaling_factors,
                              group = sample, color = condition)) +
-  ggplot2::geom_line(alpha = 0.2) +
   ggplot2::stat_summary(
     ggplot2::aes(group = condition, color = condition),
     fun = mean,

@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import math as mh
 import scipy as sp
+from scipy.stats import norm
 from statsmodels.stats.multitest import multipletests
 import sklearn as sk
 import skopt as sko
@@ -35,6 +36,7 @@ parser.add_argument('--input_path_best_model_name', dest = 'input_path_best_mode
 parser.add_argument('--input_path_best_blocking', dest = 'input_path_best_blocking', required = True, type = str, help = '')
 parser.add_argument('--input_path_consensus_hyperparams', dest = 'input_path_consensus_hyperparams', required = True, type = str, help = '')
 parser.add_argument('--input_path_consensus_features', dest = 'input_path_consensus_features', required = True, type = str, help = '')
+parser.add_argument('--target_col', dest = 'target_col', required = True, type = str, help = '')
 parser.add_argument('--fdr_threshold', dest = 'fdr_threshold', required = True, type = float, help = '')
 parser.add_argument('--outer_cv', dest = 'outer_cv', required = True, type = int, help = '')
 parser.add_argument('--model_n_jobs', dest = 'model_n_jobs', required = True, type = int, help = '')
@@ -68,6 +70,7 @@ with open(args.input_path_best_model_name) as f:
 with open(args.input_path_best_blocking) as f:
     BEST_BLOCKING = f.readline().rstrip()
 
+TARGET_COL = args.target_col
 FDR_THRESHOLD = args.fdr_threshold
 OUTER_CV = args.outer_cv
 MODEL_N_JOBS = args.model_n_jobs
@@ -82,7 +85,7 @@ REGRESSOR = BUILD_MODEL(BEST_MODEL_NAME, consensus_hyperparams_dict, MODEL_N_JOB
 
 X, y, binIDs = SPLIT_DATASET(
                     DATASET,
-                    TARGET_COL = "logFC",
+                    TARGET_COL = TARGET_COL,
                     COLS_TO_EXCLUDE = non_consensus_features,
                     EXIT_EARLY = True
                 )
@@ -118,7 +121,6 @@ for outer_fold, outer_idxs_tuple in outer_idxs.items():
 
     pipe.fit(X_train, y_train) # fit
 
-    # NUOVO: salva il modello di questo fold (mancava - richiesto ora)
     jbl.dump(pipe, os.path.join(args.output_dir_models, f"{outer_fold}.pkl"))
 
     out_of_fold_predictions_elem = GET_OUT_OF_FOLD_PREDICTIONS(pipe, X_val, binIDs_val)
@@ -128,7 +130,6 @@ for outer_fold, outer_idxs_tuple in outer_idxs.items():
     out_of_fold_shap_values_elem = GET_OUT_OF_FOLD_SHAP_VALUES(EXPLAINER, X_val, binIDs_val)
     out_of_fold_shap_values_list.append(out_of_fold_shap_values_elem)
 
-    # NUOVO: salva il base value di questo fold (mancava - richiesto ora)
     base_values_list.append({"outer_fold": outer_fold, "base_value": EXPLAINER.expected_value})
 
 
@@ -142,7 +143,7 @@ assert set(out_of_fold_shap_values.index) == set(DATASET["binID"])
 assert len(out_of_fold_predictions) == num_rows_dataset
 assert len(out_of_fold_shap_values) == num_rows_dataset
 
-observation = DATASET.set_index("binID").loc[:, "logFC"]
+observation = DATASET.set_index("binID").loc[:, TARGET_COL]
 out_of_fold_residuals = (out_of_fold_predictions["prediction"] - observation).reindex(out_of_fold_predictions.index)
 
 p_values, z_robust = COMPUTE_MAD_Z_PVALS(out_of_fold_residuals)
@@ -166,6 +167,5 @@ VISUALIZE_SHAP_VALUES(
 )
 
 out_of_fold_shap_values.to_csv(args.output_path_shap_values, sep="\t", header=True, index=True)
-significance_calls.to_csv(args.output_path_significance_calls, sep="\t", header=True, index=True)
-
 pd.DataFrame(base_values_list).to_csv(args.output_path_base_value, sep="\t", header=True, index=False)
+significance_calls.to_csv(args.output_path_significance_calls, sep="\t", header=True, index=True)

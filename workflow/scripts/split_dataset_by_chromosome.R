@@ -8,7 +8,7 @@ output_path                         <- args$output_path
 
 pattern <- paste0(chrom, "_")
 
-dataset <- read.table(input_path, header = T, sep = "\t")
+dataset <- read.table(input_path, header = T, sep = "\t", quote = "")
 dataset.f <- dataset[startsWith(dataset$binID, pattern), , drop = FALSE]
 
 write.table(x = dataset.f, file = output_path, sep = "\t", row.names = F, col.names = T, quote = F)

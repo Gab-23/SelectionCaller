@@ -2,6 +2,15 @@ import pandas
 import os
 from snakefile_helpers.helpers_dataset import * 
 
+def _single(values, label):
+    # Uniformato con lo stesso helper di snakefile_ML (vedi TODO #7) - prima era ripetuto
+    # ~30 volte come blocco identico "if len(x) > 1: raise ValueError(...) else: y = x[0]",
+    # qui centralizzato in un'unica funzione. Comportamento invariato: stesso messaggio
+    # d'errore (solo con { } al posto della concatenazione manuale), stesso valore ritornato.
+    if len(values) > 1:
+        raise ValueError(f"ERROR, multiple {label} selected")
+    return values[0]
+
 dirs_lists = [["resources/", "resources/epigenomes/", "resources/epigenomes/roadmap/"],
               ["resources/", "resources/GDC/", "resources/GDC/CNAs/", "resources/GDC/CNAs/files/"],
               ["resources/", "resources/repliseq/", "resources/repliseq/files/", "resources/repliseq/files/sra/", "resources/repliseq/files/fastq/", "resources/repliseq/files/coverage/"],
@@ -27,13 +36,6 @@ def get_epigenome_ids(wildcards, tissue_type_Roadmap):
         raise ValueError("Empty DataFrame")
     else:
         return epigenome_ids
-
-
-def get_chroms_list(wildcards):
-    checkpoint_output = checkpoints.clean_chrom_sizes.get(assembly_code=wildcards.assembly_code).output[0]
-    with open(checkpoint_output) as f:
-        chroms = [line.split("\t")[0] for line in f if line.strip()]
-    return chroms
 
 ####
 
@@ -307,47 +309,24 @@ num_cores_Rs = config["num_cores_Rs"]
 
 ##### 
 
-if len(input_path_masks) > 1:
-    raise ValueError("ERROR, multiple input_path_masks selected")
-else:
-    input_path_mask = input_path_masks[0]
-
-if len(mapping_file_tt_locations) > 1:
-    raise ValueError("ERROR, multiple mapping_file_locations selected")
-else:
-    mapping_file_tt_location = mapping_file_tt_locations[0]
-
-if len(mapping_file_gender_locations) > 1:
-    raise ValueError("ERROR, multiple mapping_file_gender_locations selected")
-else:
-    mapping_file_gender_location = mapping_file_gender_locations[0]
-
-if len(sequencers_info_locations) > 1:
-    raise ValueError("ERROR, multiple sequencers_info_locations selected")
-else:
-    sequencers_info_location = sequencers_info_locations[0]
-
-if len(ohnologs_locations) > 1:
-    raise ValueError("ERROR, multiple ohnologs_locations selected")
-else:
-    ohnologs_location = ohnologs_locations[0]
-
-if len(paralogs_locations) > 1:
-    raise ValueError("ERROR, multiple paralogs_locations selected")
-else:
-    paralogs_location = paralogs_locations[0]
-
-if len(haploinsufficiency_locations) > 1:
-    raise ValueError("ERROR, multiple haploinsufficiency_locations selected")
-else:
-    haploinsufficiency_location = haploinsufficiency_locations[0]
+input_path_mask = _single(input_path_masks, "input_path_masks")
+mapping_file_tt_location = _single(mapping_file_tt_locations, "mapping_file_locations")
+mapping_file_gender_location = _single(mapping_file_gender_locations, "mapping_file_gender_locations")
+sequencers_info_location = _single(sequencers_info_locations, "sequencers_info_locations")
+ohnologs_location = _single(ohnologs_locations, "ohnologs_locations")
+paralogs_location = _single(paralogs_locations, "paralogs_locations")
+haploinsufficiency_location = _single(haploinsufficiency_locations, "haploinsufficiency_locations")
 
 haplo_thrs = config["haplo_thrs"]
-if len(haplo_thrs) > 1:
-    raise ValueError("ERROR, multiple haplo_thrs selected")
-else:
-    haplo_thr = haplo_thrs[0]
+haplo_thr = _single(haplo_thrs, "haplo_thrs")
 
+# NOTE: le seguenti *_locations sono validate ("non piu' di 1 selezionato") ma il valore
+# singolo non viene MAI estratto ne' referenziato altrove in questo file - probabile
+# omissione storica (stesso identico pattern delle righe sopra, ma senza il ramo
+# `else: x = values[0]`). Non tocco: non e' quello che il punto 7 della TODO chiedeva di
+# fare (uniformare l'helper, non completare estrazioni mancanti), e non ho trovato nessuna
+# regola .smk che referenzi le versioni singolari - rischio di modificare comportamento non
+# visto altrove. Segnalato separatamente, da verificare.
 if len(IntOGen_locations) > 1:
     raise ValueError("ERROR, multiple IntOGen_locations selected")
 
@@ -384,167 +363,62 @@ if len(GDC_manifest_locations) > 1:
 if len(GDC_CNA_files_locations) > 1:
     raise ValueError("ERROR, multiple GDC_CNA_files_locations selected")
 
-if len(selected_samples_location_repliseqs) > 1:
-    raise ValueError("ERROR, multiple selected_samples_location_repliseqs selected")
-else:
-    selected_samples_location_repliseq = selected_samples_location_repliseqs[0]
+selected_samples_location_repliseq = _single(selected_samples_location_repliseqs, "selected_samples_location_repliseqs")
+selected_samples_location_atacseq = _single(selected_samples_location_atacseqs, "selected_samples_location_atacseqs")
+samples_to_exclude_location_atacseq = _single(samples_to_exclude_location_atacseqs, "samples_to_exclude_location_atacseqs")
+selected_samples_location_hic = _single(selected_samples_location_hics, "selected_samples_location_hics")
+hic_qc_script_location = _single(hic_qc_script_locations, "hic_qc_script_locations")
 
-if len(selected_samples_location_atacseqs) > 1:
-    raise ValueError("ERROR, multiple selected_samples_location_atacseqs selected")
-else:
-    selected_samples_location_atacseq = selected_samples_location_atacseqs[0]
+assembly_code = _single(assembly_codes, "assemblies")
+is_liftover = True if assembly_code == "hg38" else False
+liftover_str = "hg38lift" if is_liftover else "noliftover"
 
-if len(samples_to_exclude_location_atacseqs) > 1:
-    raise ValueError("ERROR, multiple samples_to_exclude_location_atacseqs selected")
-else:
-    samples_to_exclude_location_atacseq = samples_to_exclude_location_atacseqs[0]
+gencode_version = _single(gencode_versions, "gencode_versions")
+sample_type = _single(sample_types, "sample types")
+file_format = _single(file_formats, "file formats")
 
-if len(selected_samples_location_hics) > 1:
-    raise ValueError("ERROR, multiple selected_samples_location_hics selected")
-else:
-    selected_samples_location_hic = selected_samples_location_hics[0]
-
-if len(hic_qc_script_locations) > 1:
-    raise ValueError("ERROR, multiple hic_qc_script_locations selected")
-else:
-    hic_qc_script_location = hic_qc_script_locations[0]
-
-if len(assembly_codes) > 1:
-    raise ValueError("ERROR, multiple assemblies selected")
-else:
-    assembly_code = assembly_codes[0]
-    is_liftover = True if assembly_code == "hg38" else False
-    liftover_str = "hg38lift" if is_liftover else "noliftover"
-
-if len(gencode_versions) > 1:
-    raise ValueError("ERROR, multiple gencode_versions selected")
-else:
-    gencode_version = gencode_versions[0]
-
-if len(sample_types) > 1:
-    raise ValueError("ERROR, multiple sample types selected")
-else:
-    sample_type = sample_types[0]
-
-if len(file_formats) > 1:
-    raise ValueError("ERROR, multiple file formats selected")
-else:
-    file_format = file_formats[0]
-
-if len(window_modes) > 1:
-    raise ValueError("ERROR, multiple window_modes selected")
-else:
-    window_mode = window_modes[0]
-    if window_mode not in ["sliding", "s", "binned", "b"]:
-        raise ValueError(f"ERROR, window_mode must be either 'binned' or 'sliding' [{window_mode}]")
-
+window_mode = _single(window_modes, "window_modes")
+if window_mode not in ["sliding", "s", "binned", "b"]:
+    raise ValueError(f"ERROR, window_mode must be either 'binned' or 'sliding' [{window_mode}]")
 if window_mode == "binned" and any([step > 0 for step in steps]):
     raise ValueError(f"ERROR, steps ({steps}) cannot be > 0 when window_mode is {window_mode}")
-else:
-    window_mode = window_modes[0]
+# NOTE (pulizia, trovata mentre uniformavo il punto 7): qui c'era una riassegnazione
+# ridondante `window_mode = window_modes[0]` dentro il ramo else - stesso identico valore
+# gia' assegnato sopra da _single(), non cambiava nulla (confermato: `step`, singolare, non
+# e' mai usato altrove nel file - solo {step} come wildcard risolto da expand(step=steps)
+# nelle regole - quindi non nascondeva un'estrazione mancante). Rimossa.
 
-if len(tumor_types) > 1:
-    raise ValueError("ERROR, multiple tumor_types selected")
-else:
-    tumor_type = tumor_types[0]
-
-if len(genders) > 1:
-    raise ValueError("ERROR, multiple genders selected")
-else:
-    gender = genders[0]
-
-if len(essentiality_cutoffs) > 1:
-    raise ValueError("ERROR, multiple essentiality_cutoffs selected")
-else:
-    essentiality_cutoff = essentiality_cutoffs[0]
-
-if len(num_assays_cutoffs) > 1:
-    raise ValueError("ERROR, multiple num_assays_cutoffs selected")
-else:
-    num_assays_cutoff = num_assays_cutoffs[0]
+tumor_type = _single(tumor_types, "tumor_types")
+gender = _single(genders, "genders")
+essentiality_cutoff = _single(essentiality_cutoffs, "essentiality_cutoffs")
+num_assays_cutoff = _single(num_assays_cutoffs, "num_assays_cutoffs")
 
 if len(COSMIC_sample_name_patterns) > 1:
     raise ValueError("ERROR, multiple COSMIC_sample_name_patterns selected")
+# NOTE: stessa osservazione di sopra - validato, mai estratto/referenziato altrove.
 
-if len(num_cores_repliseqs) > 1:
-    raise ValueError("ERROR, multiple num_cores_repliseqs selected")
-else:
-    num_cores_repliseq = num_cores_repliseqs[0]
+num_cores_repliseq = _single(num_cores_repliseqs, "num_cores_repliseqs")
+num_cores_atacseq = _single(num_cores_atacseqs, "num_cores_atacseqs")
+num_cores_hic = _single(num_cores_hics, "num_cores_hics")
 
-if len(num_cores_atacseqs) > 1:
-    raise ValueError("ERROR, multiple num_cores_atacseqs selected")
-else:
-    num_cores_atacseq = num_cores_atacseqs[0]
+java_mem_size_repliseq = _single(java_mem_size_repliseqs, "java_mem_size_repliseqs")
+java_mem_size_atacseq = _single(java_mem_size_atacseqs, "java_mem_size_atacseqs")
 
-if len(num_cores_hics) > 1:
-    raise ValueError("ERROR, multiple num_cores_hics selected")
-else:
-    num_cores_hic = num_cores_hics[0]
+mapq_thr = _single(mapq_thrs, "mapq_thrs")
+cov_thr = _single(cov_thrs, "cov_thrs")
+smoothing_size = _single(smoothing_sizes, "smoothing_sizes")
 
-if len(java_mem_size_repliseqs) > 1:
-    raise ValueError("ERROR, multiple java_mem_size_repliseqs selected")
-else:
-    java_mem_size_repliseq = java_mem_size_repliseqs[0]
+max_insert_size_atacseq = _single(max_insert_size_atacseqs, "max_insert_size_atacseqs")
 
-if len(java_mem_size_atacseqs) > 1:
-    raise ValueError("ERROR, multiple java_mem_size_atacseqs selected")
-else:
-    java_mem_size_atacseq = java_mem_size_atacseqs[0]
+minSamples_atacseq = _single(minSamples_atacseqs, "minSamples_atacseqs")
+minCounts_atacseq = _single(minCounts_atacseqs, "minCounts_atacseqs")
+minCpm_atacseq = _single(minCpm_atacseqs, "minCpm_atacseqs")
+SVs = _single(SVs_list, "SVs")
 
-if len(mapq_thrs) > 1:
-    raise ValueError("ERROR, multiple mapq_thrs selected")
-else:
-    mapq_thr = mapq_thrs[0]
+min_length_atacseq = _single(min_length_atacseqs, "min_length_atacseqs")
+q_val_thr_atacseq = _single(q_val_thr_atacseqs, "q_val_thr_atacseqs")
 
-if len(cov_thrs) > 1:
-    raise ValueError("ERROR, multiple cov_thrs selected")
-else:
-    cov_thr = cov_thrs[0]
-
-if len(smoothing_sizes) > 1:
-    raise ValueError("ERROR, multiple smoothing_sizes selected")
-else:
-    smoothing_size = smoothing_sizes[0]
-
-if len(max_insert_size_atacseqs) > 1:
-    raise ValueError("ERROR, multiple max_insert_size_atacseqs selected")
-else:
-    max_insert_size_atacseq = max_insert_size_atacseqs[0]
-
-if len(minSamples_atacseqs) > 1:
-    raise ValueError("ERROR, multiple minSamples_atacseqs selected")
-else:
-    minSamples_atacseq = minSamples_atacseqs[0]
-
-if len(minCounts_atacseqs) > 1:
-    raise ValueError("ERROR, multiple minCounts_atacseqs selected")
-else:
-    minCounts_atacseq = minCounts_atacseqs[0]
-
-if len(minCpm_atacseqs) > 1:
-    raise ValueError("ERROR, multiple minCpm_atacseqs selected")
-else:
-    minCpm_atacseq = minCpm_atacseqs[0]
-
-if len(SVs_list) > 1:
-    raise ValueError("ERROR, multiple SVs selected")
-else:
-    SVs = SVs_list[0]
-
-if len(min_length_atacseqs) > 1:
-    raise ValueError("ERROR, multiple min_length_atacseqs selected")
-else:
-    min_length_atacseq = min_length_atacseqs[0]
-
-if len(q_val_thr_atacseqs) > 1:
-    raise ValueError("ERROR, multiple q_val_thr_atacseqs selected")
-else:
-    q_val_thr_atacseq = q_val_thr_atacseqs[0]
-
-if len(num_cores_Rs) > 1:
-    raise ValueError("ERROR, multiple num_cores_Rs selected")
-else:
-    num_cores_R = num_cores_Rs[0]
+num_cores_R = _single(num_cores_Rs, "num_cores_Rs")
 
 #####
 

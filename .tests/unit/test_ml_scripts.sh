@@ -9,7 +9,7 @@
 # select_best_model.R/.smk) - any test referencing them has been replaced or removed below.
 #
 # Usage: bash .tests/unit/test_ml_scripts.sh
-# Requires: python3 (numpy, pandas, scikit-learn, scikit-optimize, xgboost, shap), Rscript
+# Requires: python3 (numpy, pandas, scikit-learn, scikit-optimize, xgboost, shap, statsmodels), Rscript
 # (dplyr, tidyr, tibble, ggplot2, magrittr, tidyselect, gridExtra, R.utils)
 
 set -euo pipefail
@@ -240,6 +240,35 @@ for pair in "split_dataset_by_chromosome.smk:split_dataset_by_chromosome.R" "sel
         echo "  [OK] $smk_file's conda env ($env_file) covers every package used by $r_script"
     fi
 done
+
+echo
+echo "=== 11) SPLIT_DATASET.py - TARGET_COL e' genuinamente dinamico, non hardcoded ==="
+echo "    (verifica per il wildcard {target_col} introdotto in train_models/select_best_model/"
+echo "    train_cv_plus_models: la stessa chiamata con TARGET_COL diverso deve restituire la"
+echo "    colonna target corretta, non sempre 'logFC' come prima della generalizzazione.)"
+python3 -c "
+import sys
+sys.path.insert(0, 'workflow/scripts/helpers')
+import pandas as pd
+from SPLIT_DATASET import SPLIT_DATASET
+
+DATASET = pd.DataFrame({
+    'binID': ['1_1', '1_2'],
+    'featA': [0.1, 0.2],
+    'logFC': [1.0, 2.0],
+    'FDR': [0.01, 0.02],
+})
+
+X, y, _ = SPLIT_DATASET(DATASET, TARGET_COL='logFC', COLS_TO_EXCLUDE=['FDR'], EXIT_EARLY=True)
+assert list(y) == [1.0, 2.0]
+assert 'logFC' not in X.columns and 'FDR' not in X.columns
+
+X2, y2, _ = SPLIT_DATASET(DATASET, TARGET_COL='FDR', COLS_TO_EXCLUDE=['logFC'], EXIT_EARLY=True)
+assert list(y2) == [0.01, 0.02]
+assert 'FDR' not in X2.columns and 'logFC' not in X2.columns
+print('OK')
+" > "$TMP/target_col_out.txt" 2>&1
+check "TARGET_COL dinamico produce la colonna target corretta in entrambi i casi" "$(cat "$TMP/target_col_out.txt")" "OK"
 
 echo
 if [ "$FAIL" -eq 0 ]; then

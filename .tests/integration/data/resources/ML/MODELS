@@ -3,4 +3,3 @@ LinearRegression	0	1	0	1
 SVR	0	1	0	0
 KNeighborsRegressor	0	1	0	0
 XGBRegressor	1	0	1	0
-RandomForestRegressor	1	0	1	0

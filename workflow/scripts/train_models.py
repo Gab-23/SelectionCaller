@@ -16,16 +16,16 @@ import argparse
 
 from workflow.scripts.helpers.BUILD_MODEL import *
 from workflow.scripts.helpers.GET_HYPERPARAM_SPACE import *
-
 from workflow.scripts.helpers.SPLIT_DATASET import *
 from workflow.scripts.helpers.CHECK_CHR_SORTING import *
 from workflow.scripts.helpers.BLOCK_DATASET import *
-
 from workflow.scripts.helpers.GENERATE_KFOLD_IDXS import *
 from workflow.scripts.helpers.SUBSET_DATA_BY_IDXS import *
 from workflow.scripts.helpers.OPTIMIZE_HYPERPARAMS import *
 from workflow.scripts.helpers.EVALUATE_PERFORMANCES import *
 from workflow.scripts.helpers.AGGREGATE_SELECTED_FEATURES import *
+
+warnings.filterwarnings("ignore", message="Skipping features without any observed values")
 
 parser = argparse.ArgumentParser()
 
@@ -34,6 +34,7 @@ parser.add_argument('--input_path_is_autocorrelated', dest='input_path_is_autoco
 parser.add_argument('--input_path_is_multicollinear', dest='input_path_is_multicollinear', required=True, type=str, help='')
 parser.add_argument('--input_path_models', dest='input_path_models', required=True, type=str, help='')
 parser.add_argument('--input_path_blockings', dest='input_path_blockings', required=True, type=str, help='')
+parser.add_argument('--target_col', dest = 'target_col', required = True, type = str, help = '')
 parser.add_argument('--selected_model', dest = 'selected_model', required = True, type = str, help = '')
 parser.add_argument('--selected_blocking', dest = 'selected_blocking', required = True, type = str, help = '')
 parser.add_argument('--outer_cv', dest = 'outer_cv', required = True, type = int, help = '')
@@ -51,9 +52,9 @@ parser.add_argument('--output_path_performances', dest = 'output_path_performanc
 
 args = parser.parse_args()
 
-DATASET = pd.read_csv(args.input_path_dataset, header = 0, sep = "\t") #!# we iterate over datasets
-#DATASET.drop(columns=["FDR"], inplace=True)
+DATASET = pd.read_csv(args.input_path_dataset, header = 0, sep = "\t")
 
+TARGET_COL = args.target_col
 TEST_SIZE = args.test_size
 OUTER_CV = args.outer_cv
 INNER_CV = args.inner_cv
@@ -86,9 +87,6 @@ with open(args.input_path_blockings) as f:
     if args.selected_blocking != "all":
         BLOCKINGS = [BLOCKINGS[BLOCKINGS.index(args.selected_blocking)]]
 
-# with open(args.input_path_seeds) as f:
-#   SEEDS = [line.rstrip() for line in f.readlines()]
-
 num_rows_dataset = DATASET.shape[0]
 
 best_hyperparams_dict = dict()
@@ -101,7 +99,7 @@ for MODEL in MODELS:
     NEEDS_SCALING = bool(models_df[models_df.model == MODEL].needs_scaling.values)
     IS_TREE_BASED = bool(models_df[models_df.model == MODEL].is_tree_based.values)
     IS_LINEAR = bool(models_df[models_df.model == MODEL].is_linear.values)
-    REGRESSOR = BUILD_MODEL(MODEL, None, MODEL_N_JOBS)
+    REGRESSOR = BUILD_MODEL(MODEL, N_JOBS=MODEL_N_JOBS)
     HYPERPARAM_SPACE = GET_HYPERPARAM_SPACE(MODEL) # add hyperparam spaces
     bool_optimize_hyperparams = True
 
@@ -111,7 +109,7 @@ for MODEL in MODELS:
         y_train, y_test, \
         binIDs_train, binIDs_test = SPLIT_DATASET(
             DATASET,
-            TARGET_COL = "logFC",
+            TARGET_COL = TARGET_COL,
             COLS_TO_EXCLUDE = ["FDR"],
             BLOCKING = BLOCKING,
             SEED = SEED,
@@ -122,9 +120,9 @@ for MODEL in MODELS:
 
         num_rows_test_set = X_test.shape[0]
         empirical_test_size = (num_rows_test_set / num_rows_dataset)
-    
+
         outer_idxs = GENERATE_KFOLD_IDXS(BLOCKING, OUTER_CV, X_train, binIDs_train, CHECK_CHR_SORTING)
-       
+
         for outer_fold, outer_idxs_tuple in outer_idxs.items():
 
             row_name = f"{MODEL}_{BLOCKING}_{outer_fold}"
@@ -134,8 +132,6 @@ for MODEL in MODELS:
             y_train_train, y_train_val, \
             binIDs_train_train, binIDs_train_val = SUBSET_DATA_BY_IDXS(X_train, y_train, binIDs_train, outer_idxs_tuple)
 
-            # if model handles NAs --> do not impute and do not scale (because it's XGBRegressor)
-            # else --> first impute, then scale 
             if (not NEEDS_SCALING) and (HANDLES_NAs):
 
                 pipe = sk.pipeline.Pipeline([
@@ -153,21 +149,18 @@ for MODEL in MODELS:
                 ])
 
             best_model, best_hyperparams = OPTIMIZE_HYPERPARAMS(pipe, HYPERPARAM_SPACE, OPTIMIZER, X_train_train, y_train_train, SEED, N_JOBS, N_ITER, INNER_CV)
-            
-            # NOTE (fix): missing the required CV argument entirely - confirmed this raised a
-            # TypeError ("missing 1 required positional argument: 'metrics_list'") since
-            # METRICS_LIST was being bound to the CV parameter position instead. Per your
-            # confirmation, CV=1 is correct here: nested CV is already handled by the outer/
-            # inner fold structure above, so this call should evaluate directly on the held-out
-            # validation fold (X_train_val/y_train_val) rather than run yet another internal
-            # cross-validation - CV=1 is exactly what triggers that direct-evaluation branch in
-            # EVALUATE_PERFORMANCES (see the "if CV != 1" check there).
+
             performances = EVALUATE_PERFORMANCES(best_model, X_train_val, y_train_val, 1, METRICS_LIST)
 
             best_hyperparams_dict[row_name] = best_hyperparams
-            selected_features_dict[row_name] = X_train_train.columns[best_model.named_steps["feature_selection"].get_support()]
+
+            imputed_columns = X_train_train.columns
+            if "imputation" in best_model.named_steps:
+                imputed_columns = best_model.named_steps["imputation"].get_feature_names_out(X_train_train.columns)
+            selected_features_dict[row_name] = pd.Index(imputed_columns)[best_model.named_steps["feature_selection"].get_support()]
+
             performances_dict[row_name] = performances
-            
+
             jbl.dump(best_model, (args.output_dir_models + "/" + row_name + ".pkl"))
 
             with open(args.output_path_warning, "a") as f:
@@ -180,20 +173,12 @@ for MODEL in MODELS:
             if BLOCKING == "noblocking" and IS_AUTOCORRELATED:
                 with open(args.output_path_warning, "a") as f:
                     f.write(f"[{outer_fold}] {MODEL} was trained on {args.input_path_dataset} with BLOCKING = {str(BLOCKING)} while IS_AUTOCORRELATED = {str(IS_AUTOCORRELATED)}" + "\n")
-    
-        
+
+
 aggregated_best_hyperparams = pd.DataFrame.from_dict(best_hyperparams_dict, orient="index")
 aggregated_selected_features = AGGREGATE_SELECTED_FEATURES(X_train.columns.tolist(), selected_features_dict)
 aggregated_performances = pd.DataFrame.from_dict(performances_dict, orient="index")
 
-# NOTE (fix): all three were writing index=False, silently discarding the "{MODEL}_{BLOCKING}_
-# {fold}" row identifiers (the dict keys used as each DataFrame's index via orient="index",
-# and AGGREGATE_SELECTED_FEATURES's own index=rows) - but aggregate_and_visualize_models.R
-# reads these files back with row.names=1, and visualize_models.R's rownames_to_column("Model")
-# + separate(Model, into=c("model_name","blocking","fold")) depends entirely on that row
-# identifier being present. Confirmed directly: without it, read.delim's row.names=1 falls back
-# to treating the first DATA column as row names, which crashed with "duplicate 'row.names' are
-# not allowed" the moment two rows happened to share a value in that column.
-aggregated_best_hyperparams.to_csv(args.output_path_hyperparams, sep = "\t", header = True, index = True)
-aggregated_selected_features.to_csv(args.output_path_selected_features, sep = "\t", header = True, index = True)
-aggregated_performances.to_csv(args.output_path_performances, sep = "\t", header = True, index = True)
+aggregated_best_hyperparams.to_csv(args.output_path_hyperparams, sep="\t", header=True, index=True)
+aggregated_selected_features.to_csv(args.output_path_selected_features, sep="\t", header=True, index=True)
+aggregated_performances.to_csv(args.output_path_performances, sep="\t", header=True, index=True)

@@ -26,3 +26,5 @@ model_n_jobs_MLs:
 bin_size_bp: 200
 fdr_thresholds:
   - 0.1
+target_cols:
+  - "logFC"
