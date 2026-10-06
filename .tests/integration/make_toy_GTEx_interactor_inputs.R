@@ -20,16 +20,15 @@ attr <- vapply(fields[is_pc_gene], `[`, character(1), 9)
 get_attr <- function(a, key) sub(paste0(".*(^|;)", key, "=([^;]*).*"), "\\2", a)
 genes <- unique(data.frame(id = get_attr(attr, "ID"), name = get_attr(attr, "gene_name"),
                            stringsAsFactors = FALSE))
-if(nrow(genes) < 4) stop(paste("toy GENCODE has only", nrow(genes), "protein-coding genes; need >= 4"))
+# >= 2 genes is enough: one complex with all of them + a PPI between consecutive genes
+if(nrow(genes) < 2) stop(paste("toy GENCODE has only", nrow(genes), "protein-coding genes; need >= 2"))
 message(nrow(genes), " protein-coding toy genes")
 
-# CORUM: two complexes splitting the genes in half, plus a single-subunit complex
-half <- ceiling(nrow(genes) / 2)
+# CORUM: one complex with all toy genes (every gene is a subunit with partners, whatever the
+# number of toy genes), plus a single-subunit complex
 human_proteincomplex <- data.frame(
-  ComplexID = c(1, 2, 3), ComplexName = c("toy complex A", "toy complex B", "toy monomer"),
-  subunits.Gene.name. = c(paste(genes$name[1:half], collapse = ";"),
-                          paste(genes$name[(half + 1):nrow(genes)], collapse = ";"),
-                          genes$name[1]),
+  ComplexID = c(1, 2), ComplexName = c("toy complex", "toy monomer"),
+  subunits.Gene.name. = c(paste(genes$name, collapse = ";"), genes$name[1]),
   stringsAsFactors = FALSE)
 # Interactome INSIDER: a chain gene_i - gene_(i+1), plus a homodimer to be filtered out
 n <- nrow(genes)

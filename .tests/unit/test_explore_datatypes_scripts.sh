@@ -30,22 +30,19 @@ echo "    args\$input_path_ampl for a GC-content input, args\$output_path_mutati
 echo "    for a variable named output_path_num_mutations_barplot - functionally harmless as"
 echo "    long as caller and script agree, but confusing; renamed for clarity since this rule"
 echo "    is being wired up for the first time) ==="
+echo "    The samples barplot (DepMap/GDC/COSMIC sample counts) moved to explore_cohort_atacseq.R,"
+echo "    so this script no longer takes the sample inputs nor produces that plot."
 
 printf "chr1\t0\t200\t1_1\t0.55\nchr1\t200\t400\t1_2\t0.42\n" > "$TMP/gc.bed"
-printf "M1\nM2\n" > "$TMP/depmap_models"
-printf "id\tfilename\tmd5\tsize\tstate\nGFILE1\tf1.txt\tabc\t1\tlive\nGFILE2\tf2.txt\tabc\t1\tlive\n" > "$TMP/gdc_manifest"
-printf "CS001\nCS002\nCS003\n" > "$TMP/cosmic_samples"
 printf "chr1\t99\t500\tENST001\tGENEA\tOG\n" > "$TMP/ogs.bed"
 printf "chr2\t99\t500\tENST002\tGENEB\tTSG\n" > "$TMP/tsgs.bed"
 printf "chr1\t99\t500\tGENEA\n" > "$TMP/essential.bed"
 printf "chr1\t99\t500\tCOSM1\tSubstitution - Missense\nchr1\t600\t900\tCOSM2\tDeletion - In frame\n" > "$TMP/coding.bed"
 printf "chr1\t250\t260\tCOSN1\n" > "$TMP/noncoding.bed"
 
+RC=0
 Rscript workflow/scripts/explore_datatypes.R \
     --input_path_GC="$TMP/gc.bed" \
-    --input_path_models_DepMap="$TMP/depmap_models" \
-    --input_path_manifest_GDC="$TMP/gdc_manifest" \
-    --input_path_samples_COSMIC="$TMP/cosmic_samples" \
     --input_path_OGs="$TMP/ogs.bed" \
     --input_path_TSGs="$TMP/tsgs.bed" \
     --input_path_essential="$TMP/essential.bed" \
@@ -53,14 +50,17 @@ Rscript workflow/scripts/explore_datatypes.R \
     --input_path_noncoding_mutations="$TMP/noncoding.bed" \
     --output_path_GC_landscape="$TMP/out_GC_landscape.pdf" \
     --output_path_GC_distribution="$TMP/out_GC_dist.pdf" \
-    --output_path_samples_barplot="$TMP/out_samples.pdf" \
     --output_path_genes_barplot="$TMP/out_genes.pdf" \
     --output_path_num_mutations_barplot="$TMP/out_nmut.pdf" \
-    --output_path_coding_mut_descriptions_barplot="$TMP/out_descr.pdf"
+    --output_path_coding_mut_descriptions_barplot="$TMP/out_descr.pdf" \
+    > "$TMP/stdout.log" 2>&1 || RC=$?
+check "script exits successfully" "$RC" "0"
+[ "$RC" -eq 0 ] || cat "$TMP/stdout.log"
 
-for f in out_GC_landscape out_GC_dist out_samples out_genes out_nmut out_descr; do
+for f in out_GC_landscape out_GC_dist out_genes out_nmut out_descr; do
     check "produces $f.pdf" "$([ -s "$TMP/$f.pdf" ] && echo yes)" "yes"
 done
+check "no samples barplot any more (moved to explore_cohort_atacseq.R)" "$(ls "$TMP" | grep -c samples || true)" "0"
 
 echo
 if [ "$FAIL" -eq 0 ]; then

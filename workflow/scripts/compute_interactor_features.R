@@ -41,10 +41,14 @@ partners_trans <- trans_partners("CORUM")
 ppis_trans     <- trans_partners("InteractomeINSIDER")
 all_int_trans  <- unique(rbind(partners_trans, ppis_trans))
 
-gene_sets <- rbind(data.frame(binID = bin_genes$binID,      gene_set = "genes",          gene = bin_genes$gene),
-                   data.frame(binID = partners_trans$binID, gene_set = "partners_trans", gene = partners_trans$gene),
-                   data.frame(binID = ppis_trans$binID,     gene_set = "ppis_trans",     gene = ppis_trans$gene),
-                   data.frame(binID = all_int_trans$binID,  gene_set = "all_int_trans",  gene = all_int_trans$gene))
+# rep() makes the label length match the rows, so an empty set (e.g. no partner in trans in
+# any bin) gives 0 rows instead of a data.frame() length error
+as_set <- function(df, label) data.frame(binID = df$binID, gene_set = rep(label, nrow(df)), gene = df$gene,
+                                         stringsAsFactors = FALSE)
+gene_sets <- rbind(as_set(bin_genes, "genes"),
+                   as_set(partners_trans, "partners_trans"),
+                   as_set(ppis_trans, "ppis_trans"),
+                   as_set(all_int_trans, "all_int_trans"))
 
 bins <- unique(bin_genes$binID)
 count_per_bin <- function(df){ n <- table(factor(df$binID, levels = bins)); as.numeric(n[bins]) }

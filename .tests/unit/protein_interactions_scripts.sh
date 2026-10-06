@@ -72,4 +72,20 @@ stopifnot(identical(s("chr1_0_100", "partners_trans"), c("C","D","F")),
 RS
 pass "compute_interactor_features.R: hand-computed density, trans partners/PPIs and gene sets"
 
+# Edge case: every gene of every partner pair sits in the same bin -> all trans sets empty.
+# Must not crash, must give 0 partners/PPIs in trans and only "genes" rows in the gene sets.
+printf 'chr1\t0\t1000\tchr1_0_1000\tA,B,C,D,F,G,H\n' > "$TMP/backbone_onebin.bed"
+Rscript "$REPO/workflow/scripts/compute_interactor_features.R" --input_path_backbone="$TMP/backbone_onebin.bed" \
+    --input_path_interactors="$TMP/interactors.tsv" --output_path_features="$TMP/features_onebin.tsv" \
+    --output_path_gene_sets="$TMP/gene_sets_onebin.tsv" 2> "$TMP/err3.log" \
+    || { cat "$TMP/err3.log"; fail "compute_interactor_features.R crashes when no partner is in trans"; }
+Rscript - "$TMP" <<'RS' || fail "empty trans sets: output checks"
+P <- commandArgs(TRUE)[1]
+f <- read.delim(file.path(P, "features_onebin.tsv"))
+stopifnot(nrow(f) == 1, f$n_complex_partners_trans == 0, f$n_PPIs_trans == 0)
+g <- read.delim(file.path(P, "gene_sets_onebin.tsv"))
+stopifnot(identical(unique(g$gene_set), "genes"), nrow(g) == 7)
+RS
+pass "compute_interactor_features.R: all partners in the same bin -> empty trans sets, no crash"
+
 echo "All protein-interactions tests passed."
