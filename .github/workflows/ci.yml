@@ -303,7 +303,7 @@ jobs:
             resources/reference_data/genome/hg00.fa.bwt \
             resources/reference_data/genome/hg00.1.bt2 \
             data/repliseq/hg00_binned_200_0_20_0_500000 \
-            "results/plots/atacseq/exploratory/samples_per_study/hg00_binned_200_0_20_2_1_1_1.pdf" \
+            "results/plots/atacseq/exploratory/samples_barplot/hg00_binned_200_0_20_2_1_1_1_BRCA_Female_BRCA_female_f_breast_carcinoma.pdf" \
             "data/atacseq/hg00_binned_200_0_20_2_1_1_1_BRCA_female_50_0.2" \
             "data/hic/hg00_20_binned_200_0.eigen" \
             "data/feature_matrix/hg00_binned_200_0_20_0_500000_2_1_1_1_BRCA_female_50_0.2_f_breast_carcinoma_BRCA_Female_0.5_1_v1_BREAST_PrimaryCulture_noliftover_mnemonics_BRCA_0.9_BRCA_v8"
@@ -347,7 +347,7 @@ jobs:
             resources/reference_data/genome/hg00.fa.bwt \
             resources/reference_data/genome/hg00.1.bt2 \
             data/repliseq/hg00_binned_200_0_20_0_500000 \
-            "results/plots/atacseq/exploratory/samples_per_study/hg00_binned_200_0_20_2_1_1_1.pdf" \
+            "results/plots/atacseq/exploratory/samples_barplot/hg00_binned_200_0_20_2_1_1_1_BRCA_Female_BRCA_female_f_breast_carcinoma.pdf" \
             "data/atacseq/hg00_binned_200_0_20_2_1_1_1_BRCA_female_50_0.2" \
             "data/hic/hg00_20_binned_200_0.eigen" \
             "data/feature_matrix/hg00_binned_200_0_20_0_500000_2_1_1_1_BRCA_female_50_0.2_f_breast_carcinoma_BRCA_Female_0.5_1_v1_BREAST_PrimaryCulture_noliftover_mnemonics_BRCA_0.9_BRCA_v8" ; do

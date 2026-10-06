@@ -78,6 +78,9 @@ touch "$SCRATCH_DIR/resources/ohnologs_and_paralogs/origin/OhnologList.RData"
 touch "$SCRATCH_DIR/resources/ohnologs_and_paralogs/origin/ParalogList.RData"
 touch "$SCRATCH_DIR/resources/haploinsufficiency/haploinsufficiency.csv"
 touch "$SCRATCH_DIR/resources/epigenomes/mapping_EID_tt_raw.tsv"
+mkdir -p "$SCRATCH_DIR/resources/protein_interactions/origin"
+touch "$SCRATCH_DIR/resources/protein_interactions/origin/HumanPCgenes_Subunits_allchr.RData"
+touch "$SCRATCH_DIR/resources/protein_interactions/origin/H_sapiens_interfacesHQ_genename.RData"
 
 # get_counts_atacseq.smk declares two bare (non-wildcarded) DIRECTORIES as `input:` -
 # resources/atacseq/files/coverage and resources/atacseq/files/cnvkit - used internally by its
@@ -123,7 +126,9 @@ declare -A MODULE_TARGETS=(
     [repliseq]="data/repliseq/hg00_binned_200_0_20_0_500000"
     [atacseq]="data/atacseq/hg00_binned_200_0_20_2_1_1_1_BRCA_female_50_0.2"
     [HiC]="data/hic/hg00_20_binned_200_0.eigen"
-    [dataset]="data/feature_matrix/hg00_binned_200_0_20_0_500000_2_1_1_1_BRCA_female_50_0.2_f_breast_carcinoma_BRCA_Female_0.5_1_v1_BREAST_PrimaryCulture_noliftover_mnemonics_BRCA_0.9"
+    [protein_interactions]="data/protein_interactions/hg00_binned_200_0_v1"
+    [GTEx]="data/GTEx/features/hg00_binned_200_0_v1_BRCA_v11"
+    [dataset]="data/feature_matrix/hg00_binned_200_0_20_0_500000_2_1_1_1_BRCA_female_50_0.2_f_breast_carcinoma_BRCA_Female_0.5_1_v1_BREAST_PrimaryCulture_noliftover_mnemonics_BRCA_0.9_BRCA_v11"
 )
 
 FAILED=()

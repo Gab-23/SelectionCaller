@@ -964,10 +964,13 @@ rule all:
         #      exploration, and bin-level DARs; peak-calling/Genrich chain not active per
         #      explicit confirmation - see README) ----
         expand(
-            "results/plots/atacseq/exploratory/samples_per_study/{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}_{minSamples_atacseq}_{minCounts_atacseq}_{minCpm_atacseq}_{SVs}.pdf",
+            "results/plots/atacseq/exploratory/samples_barplot/{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}_{minSamples_atacseq}_{minCounts_atacseq}_{minCpm_atacseq}_{SVs}_{oncotree_code_DepMap}_{gender_DepMap}_{tumor_type_GDC}_{gender_GDC}_{gender_COSMIC}_{COSMIC_parameters}.pdf",
             assembly_code=assembly_code, window_mode=window_mode, window_size=window_sizes, step=steps,
             mapq_thr=mapq_thr, minSamples_atacseq=minSamples_atacseq, minCounts_atacseq=minCounts_atacseq,
-            minCpm_atacseq=minCpm_atacseq, SVs=SVs
+            minCpm_atacseq=minCpm_atacseq, SVs=SVs,
+            oncotree_code_DepMap=oncotree_code_DepMap, gender_DepMap=gender_DepMap,
+            tumor_type_GDC=tumor_type_GDC, gender_GDC=gender_GDC,
+            gender_COSMIC=gender_COSMIC, COSMIC_parameters=COSMIC_parameters
         ),
         expand(
             "data/atacseq/{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}_{minSamples_atacseq}_{minCounts_atacseq}_{minCpm_atacseq}_{SVs}_{tumor_type_GDC}_{gender_GDC}_{min_Num_Probes}_{min_abs_Segment_Mean}",
@@ -996,10 +999,9 @@ rule all:
             GTEx_cohort=GTEx_cohort, GTEx_release=GTEx_release
         ),
         expand(
-            "results/plots/datatypes/GC_landscape/{assembly_code}_{window_mode}_{window_size}_{step}_{oncotree_code_DepMap}_{gender_DepMap}_{tumor_type_GDC}_{gender_GDC}_{gender_COSMIC}_{COSMIC_parameters}_v{gencode_version}_{tumor_type_IntOGen}_{essentiality_cutoff}_{num_assays_cutoff}.pdf",
+            "results/plots/datatypes/GC_landscape/{assembly_code}_{window_mode}_{window_size}_{step}_{oncotree_code_DepMap}_{gender_DepMap}_{gender_COSMIC}_{COSMIC_parameters}_v{gencode_version}_{tumor_type_IntOGen}_{essentiality_cutoff}_{num_assays_cutoff}.pdf",
             assembly_code=assembly_code, window_mode=window_mode, window_size=window_sizes, step=steps,
             oncotree_code_DepMap=oncotree_code_DepMap, gender_DepMap=gender_DepMap,
-            tumor_type_GDC=tumor_type_GDC, gender_GDC=gender_GDC,
             gender_COSMIC=gender_COSMIC, COSMIC_parameters=COSMIC_parameters,
             gencode_version=gencode_version, tumor_type_IntOGen=tumor_type_IntOGen,
             essentiality_cutoff=essentiality_cutoff, num_assays_cutoff=num_assays_cutoff
