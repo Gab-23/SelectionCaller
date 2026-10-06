@@ -42,16 +42,21 @@ echo "    (removed dead code: num.sv() was called but its result (n.sv) was neve
 echo "    sva() always used the explicit, user-provided SVs count instead. Confirmed unused"
 echo "    by inspection; incidentally this exact call is numerically fragile with few"
 echo "    features/samples, so removing the dead computation also removes that fragility.)"
+echo "    (helpers are sourced in the same order as workflow/scripts/get_counts_atacseq.R, so the"
+echo "    test cannot drift from the real script: plot_PCA_SVA_distance_panel.R was added to the"
+echo "    script but not here, and do_get_counts_analysis() failed with 'could not find function')"
 mkdir -p "$TMP/atacseq_counts_test"
+RC=0
 Rscript -e '
 suppressMessages(library(edgeR))
 suppressMessages(library(sva))
 source("workflow/scripts/helpers/normATAC.R")
 source("workflow/scripts/helpers/svaBatchCor.R")
-source("workflow/scripts/helpers/do_get_counts_analysis.R")
 source("workflow/scripts/helpers/pca_plot.R")
 source("workflow/scripts/helpers/pca_scree_plot.R")
 source("workflow/scripts/helpers/plot_distances_PCA.R")
+source("workflow/scripts/helpers/plot_PCA_SVA_distance_panel.R")
+source("workflow/scripts/helpers/do_get_counts_analysis.R")
 
 set.seed(1)
 n_bins <- 20
@@ -76,9 +81,11 @@ SVs <<- 1
 out <- do_get_counts_analysis(counts = counts, scaling_factors = NULL, correct_for_CNAs = FALSE)
 cat("OK: do_get_counts_analysis completed without the eigen()/num.sv() crash\n")
 cat("N_ROWS_COUNT_F:", nrow(out$count.f), "\n")
-' 2>&1 | tail -10
-RC=$?
+' > "$TMP/counts_analysis.log" 2>&1 || RC=$?
+tail -10 "$TMP/counts_analysis.log"
+# RC is R's own exit status (it used to be tail's, so an R crash could never fail this check)
 check "do_get_counts_analysis.R runs to completion with toy data (no dead-code crash)" "$RC" "0"
+check "completion message printed" "$(grep -c 'OK: do_get_counts_analysis completed' "$TMP/counts_analysis.log")" "1"
 
 echo "=== 3) do_DA_analysis.R defensive alignment check ==="
 echo "    (added stopifnot() on names(libsize) == colnames(counts), which was previously a"
