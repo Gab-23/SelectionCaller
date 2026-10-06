@@ -9,6 +9,9 @@ selected_models:
 input_path_blockings: ".tests/integration/data/resources/ML/BLOCKINGS"
 selected_blockings:
   - "5"
+# The CI verify step checks results/ML/toy_dataset/per_chrom/{1,2,3}/..., so per_chrom only
+training_modes:
+  - "per_chrom"
 test_sizes:
   - 0.2
 outer_cvs:
@@ -28,3 +31,7 @@ fdr_thresholds:
   - 0.1
 target_cols:
   - "logFC"
+# Same as production: "FDR" is not a column of the toy dataset either, so the toy run takes
+# the same "absent column -> warning, ignored" path as the production configs
+cols_to_exclude:
+  - "FDR"

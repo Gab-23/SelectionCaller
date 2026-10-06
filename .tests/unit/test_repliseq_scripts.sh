@@ -59,12 +59,20 @@ echo "    running the real Snakemake rule end-to-end, not just this isolated tes
 # was added, failing with "expected exactly 1 coverage file ... found 0". Confirmed by
 # reproducing the exact old (broken) invocation here before applying this fix - it failed
 # with that exact message; the fixed invocation below (matching args + filenames) succeeds.
+# NOTE (fix, 2026-10): process_repliseq.R now requires smoothing_size to cover at least 4
+# bins of window_size (loess, degree = 1, needs >= 4 points per local fit). The toy calls
+# below used smoothing_size = window_size = 200 (1 bin) and were stopped by that guard, so
+# they now use 800 (= 4 x 200). Expected values are unchanged: the toy's contiguous stretches
+# have 2 bins each, below the script's > 5 bins threshold for smoothing, so the smoothing size
+# does not affect the output. Section 4 checks the guard itself.
 ASSEMBLY_CODE_TOY=hg00
 WINDOW_MODE_TOY=binned
 STEP_TOY=0
 MAPQ_THR_TOY=20
 COV_THR_TOY=5
-COVERAGE_SUFFIX="${ASSEMBLY_CODE_TOY}_${WINDOW_MODE_TOY}_200_${STEP_TOY}_${MAPQ_THR_TOY}_${COV_THR_TOY}.filtered.bed"
+WINDOW_SIZE_TOY=200
+SMOOTHING_SIZE_TOY=800
+COVERAGE_SUFFIX="${ASSEMBLY_CODE_TOY}_${WINDOW_MODE_TOY}_${WINDOW_SIZE_TOY}_${STEP_TOY}_${MAPQ_THR_TOY}_${COV_THR_TOY}.filtered.bed"
 
 mkdir -p "$TMP/coverage/SRR9001" "$TMP/coverage/SRR9002" "$TMP/coverage/SRR9003"
 # coverage files WITHOUT a header (matching filter_coverage_repliseq.R's real col.names=F
@@ -77,24 +85,30 @@ printf "chr1\t0\t200\t1_1\nchr1\t200\t400\t1_2\nchr1\t400\t600\t1_3\nchr1\t600\t
 printf "SRA_id\tsample_type\nSRR9001\tES\nSRR9002\tLS\nSRR9003\tG1\n" > "$TMP/samples.tsv"
 printf "SRA_id\tlibrary_size\nSRR9001\t1000000\nSRR9002\t1000000\nSRR9003\t1000000\n" > "$TMP/library_size.tsv"
 
-Rscript workflow/scripts/process_repliseq.R \
-    --input_path_dir="$TMP/coverage/" --input_path_samples="$TMP/samples.tsv" \
-    --input_path_library_size="$TMP/library_size.tsv" --input_path_backbone_mask="$TMP/backbone_mask.bed" \
-    --output_path_data="$TMP/data.tsv" \
-    --output_path_plot_distribution="$TMP/dist.pdf" --output_path_plot_landscape="$TMP/landscape.pdf" \
-    --output_path_plot_raw_smooth="$TMP/raw_smooth.pdf" \
-    --window_size=200 --smoothing_size=200 \
-    --assembly_code=$ASSEMBLY_CODE_TOY --window_mode=$WINDOW_MODE_TOY --step=$STEP_TOY \
-    --mapq_thr=$MAPQ_THR_TOY --cov_thr=$COV_THR_TOY
+run_repliseq() {   # $1 samples, $2 library sizes, $3 output prefix, $4 smoothing_size
+    Rscript workflow/scripts/process_repliseq.R \
+        --input_path_dir="$TMP/coverage/" --input_path_samples="$1" \
+        --input_path_library_size="$2" --input_path_backbone_mask="$TMP/backbone_mask.bed" \
+        --output_path_data="$3_data.tsv" \
+        --output_path_plot_distribution="$3_dist.pdf" --output_path_plot_landscape="$3_landscape.pdf" \
+        --output_path_plot_raw_smooth="$3_raw_smooth.pdf" \
+        --window_size=$WINDOW_SIZE_TOY --smoothing_size="$4" \
+        --assembly_code=$ASSEMBLY_CODE_TOY --window_mode=$WINDOW_MODE_TOY --step=$STEP_TOY \
+        --mapq_thr=$MAPQ_THR_TOY --cov_thr=$COV_THR_TOY
+}
 
+RC=0
+run_repliseq "$TMP/samples.tsv" "$TMP/library_size.tsv" "$TMP/main" "$SMOOTHING_SIZE_TOY" > "$TMP/main.log" 2>&1 || RC=$?
+check "process_repliseq.R exits successfully (smoothing_size = 4 bins)" "$RC" "0"
+[ "$RC" -eq 0 ] || cat "$TMP/main.log"
 check "final data.tsv is NOT empty (bug: 'chr' prefix stripped from binID was never" \
-    "$(( $(wc -l < "$TMP/data.tsv") - 1 ))" "4"
+    "$(( $(wc -l < "$TMP/main_data.tsv") - 1 ))" "4"
 echo "     re-added before building the GRanges used for the final mask overlap, so"
 echo "     replication_timing_gr's seqnames ('1'..'22') never matched mask_gr's"
 echo "     ('chr1'..'chr22') and findOverlaps() always returned zero hits - the plots"
 echo "     were and remain unaffected, since they derive chr/pos from binID independently)"
 check "bin 1_1 present (header=F fix - it used to be silently eaten as a fake header)" \
-    "$(grep -c '^1_1' "$TMP/data.tsv")" "1"
+    "$(grep -c '^1_1' "$TMP/main_data.tsv")" "1"
 
 echo "=== 3) process_repliseq.R: multiple replicate files for one sample_type now fails"
 echo "    explicitly instead of silently using only the first one ==="
@@ -102,21 +116,28 @@ mkdir -p "$TMP/coverage/SRR9004"
 printf "chr1\t0\t200\t1_1\t120\nchr1\t200\t400\t1_2\t130\nchr1\t600\t800\t1_4\t115\nchr1\t800\t1000\t1_5\t100\n" > "$TMP/coverage/SRR9004/$COVERAGE_SUFFIX"
 printf "SRA_id\tsample_type\nSRR9001\tES\nSRR9002\tLS\nSRR9003\tG1\nSRR9004\tG1\n" > "$TMP/samples_multi.tsv"
 printf "SRA_id\tlibrary_size\nSRR9001\t1000000\nSRR9002\t1000000\nSRR9003\t1000000\nSRR9004\t1000000\n" > "$TMP/library_size_multi.tsv"
-if Rscript workflow/scripts/process_repliseq.R \
-    --input_path_dir="$TMP/coverage/" --input_path_samples="$TMP/samples_multi.tsv" \
-    --input_path_library_size="$TMP/library_size_multi.tsv" --input_path_backbone_mask="$TMP/backbone_mask.bed" \
-    --output_path_data="$TMP/data_multi.tsv" \
-    --output_path_plot_distribution="$TMP/dist2.pdf" --output_path_plot_landscape="$TMP/landscape2.pdf" \
-    --output_path_plot_raw_smooth="$TMP/raw_smooth2.pdf" \
-    --window_size=200 --smoothing_size=200 \
-    --assembly_code=$ASSEMBLY_CODE_TOY --window_mode=$WINDOW_MODE_TOY --step=$STEP_TOY \
-    --mapq_thr=$MAPQ_THR_TOY --cov_thr=$COV_THR_TOY 2>"$TMP/err.log"; then
+if run_repliseq "$TMP/samples_multi.tsv" "$TMP/library_size_multi.tsv" "$TMP/multi" "$SMOOTHING_SIZE_TOY" 2>"$TMP/err.log"; then
     echo "  [FAIL] should have failed with 2 G1 replicates, but it succeeded instead"
     FAIL=1
 else
     check "explicit, actionable error on multiple replicate files" \
         "$(grep -c 'expected exactly 1 coverage file' "$TMP/err.log")" "1"
 fi
+rm -rf "$TMP/coverage/SRR9004"
+
+echo "=== 4) process_repliseq.R: smoothing_size must cover >= 4 bins of window_size ==="
+echo "    (loess, degree = 1, needs >= 4 points per local fit: fewer either fails with"
+echo "    'span is too small' or gives degenerate fits, so the script stops up front)"
+for smooth in 200 600; do
+    if run_repliseq "$TMP/samples.tsv" "$TMP/library_size.tsv" "$TMP/guard_$smooth" "$smooth" > "$TMP/guard_$smooth.log" 2>&1; then
+        echo "  [FAIL] smoothing_size = $smooth bp (< 4 bins of 200 bp) was accepted"
+        FAIL=1
+    else
+        check "smoothing_size = $smooth bp (< 4 bins) -> explicit error suggesting >= 800 bp" \
+            "$(grep -c 'Use smoothing_size >= 800 bp' "$TMP/guard_$smooth.log")" "1"
+    fi
+done
+check "no data file written when the guard stops the script" "$([ -e "$TMP/guard_200_data.tsv" ] && echo yes || echo no)" "no"
 
 echo
 if [ "$FAIL" -eq 0 ]; then
