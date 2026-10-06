@@ -42,6 +42,8 @@ jobs:
           mkdir -p resources/fragile_sites/origin resources/ohnologs_and_paralogs/origin resources/haploinsufficiency resources/epigenomes
           touch resources/fragile_sites/origin/fragile_sites_li_hg38.bed
           touch resources/ohnologs_and_paralogs/origin/OhnologList.RData resources/ohnologs_and_paralogs/origin/ParalogList.RData
+          mkdir -p resources/protein_interactions/origin
+          touch resources/protein_interactions/origin/HumanPCgenes_Subunits_allchr.RData resources/protein_interactions/origin/H_sapiens_interfacesHQ_genename.RData
           touch resources/haploinsufficiency/haploinsufficiency.csv
           # get_counts_atacseq.smk declares two bare (non-wildcarded) DIRECTORIES as `input:` -
           # resources/atacseq/files/coverage and resources/atacseq/files/cnvkit - used internally
@@ -56,6 +58,22 @@ jobs:
         run: |
           snakemake -n -s workflow/snakefile_dataset_bin_level --configfile config/config_dataset.yaml
 
+      - name: Assembly guard (only hg38 accepted; hg19 is work in progress)
+        # Same production config with assembly_codes switched to hg19 / hg18: the snakefile
+        # must refuse both at parse time with an explicit error instead of building a DAG
+        # that would place GRCh38 COSMIC / GDC coordinates on hg19 bins.
+        run: |
+          for asm in hg19 hg18; do
+            sed "s/^ - hg38$/ - $asm/" config/config_dataset.yaml > /tmp/config_dataset_$asm.yaml
+            grep -A1 '^assembly_codes' /tmp/config_dataset_$asm.yaml | grep -q "$asm"
+            if snakemake -n -s workflow/snakefile_dataset_bin_level --configfile /tmp/config_dataset_$asm.yaml > /tmp/guard_$asm.log 2>&1; then
+              echo "assembly_code $asm was accepted, expected an error"; exit 1
+            fi
+            grep -q "assembly_code '$asm' is not supported" /tmp/guard_$asm.log \
+              || { tail -20 /tmp/guard_$asm.log; echo "wrong failure for $asm"; exit 1; }
+          done
+          echo "OK: hg19 and hg18 refused with an explicit error"
+
   unit-tests:
     name: Unit test on R scripts (toy data, no snakemake)
     runs-on: ubuntu-latest
@@ -66,8 +84,9 @@ jobs:
               which exercises process_hic.py's Python logic via a subprocess; cooler needed
               by the same script's new normalize_matrix_hic.py test, which builds a real toy
               2-chromosome .cool file to verify the per-chromosome cis-only fetch; scikit-learn/
-              scikit-optimize/xgboost/shap needed by test_ml_scripts.sh)
-        run: pip install numpy pandas scipy scikit-learn scikit-optimize xgboost shap joblib seaborn matplotlib cooler --break-system-packages
+              scikit-optimize/xgboost/shap needed by test_ml_scripts.sh; snakemake needed by
+              test_GTEx_scripts.sh, which runs the real download rule against a local HTTP server)
+        run: pip install numpy pandas scipy scikit-learn scikit-optimize xgboost shap joblib seaborn matplotlib cooler snakemake --break-system-packages
 
       - name: Install R + bedtools + bwa + bowtie2
         run: |
@@ -105,6 +124,9 @@ jobs:
           bash .tests/unit/test_gdc_scripts.sh
           bash .tests/unit/test_fragile_sites_scripts.sh
           bash .tests/unit/test_ohnologs_paralogs_scripts.sh
+          bash .tests/unit/gencode_annotation_rule.sh
+          bash .tests/unit/protein_interactions_scripts.sh
+          bash .tests/unit/test_GTEx_scripts.sh
           bash .tests/unit/test_gene_density_haploinsufficiency_scripts.sh
           bash .tests/unit/test_genome_scripts.sh
           bash .tests/unit/test_explore_datatypes_scripts.sh
@@ -165,6 +187,11 @@ jobs:
           # "src/." to copy the CONTENT without nesting resources/resources/...
           mkdir -p resources
           cp -r .tests/integration/data/resources/. ./resources/
+          # Toy CORUM / Interactome INSIDER / GTEx inputs built from the toy GENCODE genes (no
+          # binary fixtures committed; no upstream rule, so no timestamp-ordering issue)
+          Rscript .tests/integration/make_toy_GTEx_interactor_inputs.R \
+            resources/reference_data/gencode/gencode.v1.annotation.gff3.gz \
+            config/mapping_GTEx_TCGA resources
           # "cp -r" does not guarantee timestamp ordering between files copied in the same
           # command. get_blacklisted_regions has an input (chrom_sizes), and Snakemake compares
           # mtimes: if chrom_sizes happened to end up newer than blacklist.bed, Snakemake would
@@ -267,6 +294,8 @@ jobs:
             data/num_overlaps/fragile_sites/hg00_binned_200_0 \
             data/ohnologs_and_paralogs/ohnologs/hg00_binned_200_0_v1 \
             data/ohnologs_and_paralogs/paralogs/hg00_binned_200_0_v1 \
+            data/protein_interactions/hg00_binned_200_0_v1 \
+            data/GTEx/features/hg00_binned_200_0_v1_BRCA_v8 \
             resources/num_overlaps/density/essential/hg00_binned_200_0_BRCA_Female_0.5_1_v1_BRCA \
             resources/num_overlaps/density/OG/hg00_binned_200_0_BRCA_Female_0.5_1_v1_BRCA \
             resources/num_overlaps/density/TSG/hg00_binned_200_0_BRCA_Female_0.5_1_v1_BRCA \
@@ -277,7 +306,7 @@ jobs:
             "results/plots/atacseq/exploratory/samples_per_study/hg00_binned_200_0_20_2_1_1_1.pdf" \
             "data/atacseq/hg00_binned_200_0_20_2_1_1_1_BRCA_female_50_0.2" \
             "data/hic/hg00_20_binned_200_0.eigen" \
-            "data/feature_matrix/hg00_binned_200_0_20_0_500000_2_1_1_1_BRCA_female_50_0.2_f_breast_carcinoma_BRCA_Female_0.5_1_v1_BREAST_PrimaryCulture_noliftover_mnemonics_BRCA_0.9"
+            "data/feature_matrix/hg00_binned_200_0_20_0_500000_2_1_1_1_BRCA_female_50_0.2_f_breast_carcinoma_BRCA_Female_0.5_1_v1_BREAST_PrimaryCulture_noliftover_mnemonics_BRCA_0.9_BRCA_v8"
           # NOTE: data/GC/... itself is deliberately excluded from this test's target list:
           # get_GC_content.R requires the Bioconductor BSgenome package specific to the real
           # assembly (e.g. BSgenome.Hsapiens.UCSC.hg38, ~800MB) and can therefore not be tested
@@ -309,6 +338,8 @@ jobs:
             data/num_overlaps/fragile_sites/hg00_binned_200_0 \
             data/ohnologs_and_paralogs/ohnologs/hg00_binned_200_0_v1 \
             data/ohnologs_and_paralogs/paralogs/hg00_binned_200_0_v1 \
+            data/protein_interactions/hg00_binned_200_0_v1 \
+            data/GTEx/features/hg00_binned_200_0_v1_BRCA_v8 \
             resources/num_overlaps/density/essential/hg00_binned_200_0_BRCA_Female_0.5_1_v1_BRCA \
             resources/num_overlaps/density/OG/hg00_binned_200_0_BRCA_Female_0.5_1_v1_BRCA \
             resources/num_overlaps/density/TSG/hg00_binned_200_0_BRCA_Female_0.5_1_v1_BRCA \
@@ -319,10 +350,15 @@ jobs:
             "results/plots/atacseq/exploratory/samples_per_study/hg00_binned_200_0_20_2_1_1_1.pdf" \
             "data/atacseq/hg00_binned_200_0_20_2_1_1_1_BRCA_female_50_0.2" \
             "data/hic/hg00_20_binned_200_0.eigen" \
-            "data/feature_matrix/hg00_binned_200_0_20_0_500000_2_1_1_1_BRCA_female_50_0.2_f_breast_carcinoma_BRCA_Female_0.5_1_v1_BREAST_PrimaryCulture_noliftover_mnemonics_BRCA_0.9" ; do
+            "data/feature_matrix/hg00_binned_200_0_20_0_500000_2_1_1_1_BRCA_female_50_0.2_f_breast_carcinoma_BRCA_Female_0.5_1_v1_BREAST_PrimaryCulture_noliftover_mnemonics_BRCA_0.9_BRCA_v8" ; do
             test -s "$f" || { echo "Missing or empty file: $f"; exit 1; }
           done
           echo "OK: all expected outputs are present and non-empty"
+          # The toy CORUM/INSIDER/GTEx inputs are built from the toy GENCODE genes, so the
+          # features must not be all-NA (that would mean genes never matched across files)
+          Rscript -e 'g <- read.delim("data/GTEx/features/hg00_binned_200_0_v1_BRCA_v8"); stopifnot(nrow(g) > 0, any(!is.na(g$GTEx_genes))); i <- read.delim("data/protein_interactions/hg00_binned_200_0_v1"); stopifnot(nrow(i) > 0, any(i$complex_density > 0))' \
+            || { echo "GTEx / protein-interaction features are empty or all-NA on toy data"; exit 1; }
+          echo "OK: GTEx / protein-interaction features contain matched genes"
 
       - name: Verify the Hi-C cis-only per-chromosome chain ran correctly (checkpoint +
               {chrom} wildcard, added 2026-09) - not just that the final aggregated file

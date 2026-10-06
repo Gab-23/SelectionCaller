@@ -17,16 +17,19 @@ import warnings
 import argparse
 import os
 
+from workflow.scripts.helpers.coerce_hyperparam_value import *
 from workflow.scripts.helpers.BUILD_MODEL import *
 from workflow.scripts.helpers.SPLIT_DATASET import *
 from workflow.scripts.helpers.CHECK_CHR_SORTING import *
 from workflow.scripts.helpers.GENERATE_KFOLD_IDXS import *
 from workflow.scripts.helpers.SUBSET_DATA_BY_IDXS import *
+from workflow.scripts.helpers.EVALUATE_PERFORMANCES import *
 from workflow.scripts.helpers.GET_OUT_OF_FOLD_PREDICTIONS import *
 from workflow.scripts.helpers.GET_EXPLAINER import *
 from workflow.scripts.helpers.GET_OUT_OF_FOLD_SHAP_VALUES import *
 from workflow.scripts.helpers.VISUALIZE_SHAP_VALUES import *
 from workflow.scripts.helpers.COMPUTE_MAD_Z_PVALS import *
+from workflow.scripts.helpers.CHROMOSOME_FOLDS import CHROMOSOME_BLOCKING, CHROMOSOME_KFOLD_IDXS
 
 parser = argparse.ArgumentParser()
 
@@ -47,17 +50,24 @@ parser.add_argument('--output_path_shap_plots', dest = 'output_path_shap_plots',
 parser.add_argument('--output_path_base_value', dest = 'output_path_base_value', required = True, type = str, help = '')
 parser.add_argument('--output_path_significance_calls', dest = 'output_path_significance_calls', required = True, type = str, help = '')
 parser.add_argument('--shap_plot_rolling_window_bins', dest = 'shap_plot_rolling_window_bins', required = False, type = int, default = 50, help = '')
+parser.add_argument('--output_path_warning', dest = 'output_path_warning', required = True, type = str, help = '')
 
 args = parser.parse_args()
 
 DATASET = pd.read_csv(args.input_path_dataset, header = 0, sep = "\t")
+
+METRICS_LIST = ["r2", "adj_r2", "explained_variance", "neg_mean_squared_error",
+                "neg_root_mean_squared_error", "neg_mean_absolute_error", "neg_median_absolute_error",
+                "neg_max_error", "d2_absolute_error_score"]
 
 models_df = pd.read_csv(args.input_path_models, header = 0, sep = "\t")
 
 CONSENSUS_HYPERPARAMS = pd.read_csv(args.input_path_consensus_hyperparams, header = None, sep = "\t")
 CONSENSUS_HYPERPARAMS.columns = ["hyperparam_name", "value"]
 CONSENSUS_HYPERPARAMS.hyperparam_name = [name.replace("model__", "") for name in CONSENSUS_HYPERPARAMS.hyperparam_name.tolist()]
+
 consensus_hyperparams_dict = dict(zip(CONSENSUS_HYPERPARAMS.hyperparam_name, CONSENSUS_HYPERPARAMS.value))
+consensus_hyperparams_dict = {k: coerce_hyperparam_value(v) for k, v in consensus_hyperparams_dict.items()}
 
 with open(args.input_path_consensus_features) as f:
     CONSENSUS_FEATURES = [line.rstrip() for line in f.readlines()]
@@ -90,7 +100,11 @@ X, y, binIDs = SPLIT_DATASET(
                     EXIT_EARLY = True
                 )
 
-outer_idxs = GENERATE_KFOLD_IDXS(BEST_BLOCKING, OUTER_CV, X, binIDs, CHECK_CHR_SORTING)
+# NOTE (LOCO): BEST_BLOCKING == "chromosome" -> folds made of whole chromosomes
+if BEST_BLOCKING == CHROMOSOME_BLOCKING:
+    outer_idxs = CHROMOSOME_KFOLD_IDXS(binIDs, OUTER_CV)
+else:
+    outer_idxs = GENERATE_KFOLD_IDXS(BEST_BLOCKING, OUTER_CV, X, binIDs, CHECK_CHR_SORTING)
 
 os.makedirs(args.output_dir_models, exist_ok=True)
 
@@ -119,7 +133,15 @@ for outer_fold, outer_idxs_tuple in outer_idxs.items():
             ("model", sk.base.clone(REGRESSOR))
         ])
 
+    # NOTE (fix): fit / evaluation / dump were indented inside the `else:` above, so for models
+    # that need no scaling and handle NAs (e.g. XGBRegressor) the pipeline was never fitted.
+    # Now run for both branches.
     pipe.fit(X_train, y_train) # fit
+
+    performances = EVALUATE_PERFORMANCES(pipe, X_val, y_val, 1, METRICS_LIST)
+    with open(args.output_path_warning, "a") as f:
+        for k, v in performances.items():
+            f.write(f"[{outer_fold}] {BEST_MODEL_NAME} scored {v} on {k} with BLOCKING = {str(BEST_BLOCKING)}\n")
 
     jbl.dump(pipe, os.path.join(args.output_dir_models, f"{outer_fold}.pkl"))
 
@@ -159,8 +181,11 @@ significance_calls = pd.DataFrame({
     "significant": q_values < FDR_THRESHOLD,
 }, index=out_of_fold_predictions.index)
 
+RAW_VALUES = DATASET.set_index("binID")
+
 VISUALIZE_SHAP_VALUES(
     out_of_fold_shap_values,
+    RAW_VALUES,
     args.bin_size_bp,
     args.output_path_shap_plots,
     ROLLING_WINDOW_BINS=args.shap_plot_rolling_window_bins

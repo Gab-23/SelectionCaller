@@ -1,4 +1,7 @@
 import os
+import re
+import sys
+import pandas as pd
 from snakefile_helpers.helpers_ML import (
     check_dataset_exists,
     read_model_registry,
@@ -18,7 +21,9 @@ if len(input_path_datasets) > 1:
         "input_path_datasets to exactly one path."
     )
 input_path_dataset = input_path_datasets[0]
-dataset_id = os.path.splitext(os.path.basename(input_path_dataset))[0]
+
+dataset_basename = os.path.basename(input_path_dataset)
+dataset_id = re.sub(r"\.(tsv|txt|csv)$", "", dataset_basename)
 
 check_dataset_exists([input_path_dataset])
 
@@ -35,6 +40,29 @@ BLOCKINGS = resolve_selection(config["selected_blockings"], blocking_registry, "
 
 CHROMS = resolve_chroms(input_path_dataset)
 
+# NEW: training modalities. In "genome_wide" mode the {chrom} wildcard takes the single value
+# GENOME_WIDE_SCOPE, so every downstream path keeps the same {training_mode}/{chrom} shape.
+AVAILABLE_TRAINING_MODES = ["per_chrom", "genome_wide"]
+TRAINING_MODES = resolve_selection(config["training_modes"], AVAILABLE_TRAINING_MODES, "training_modes")
+GENOME_WIDE_SCOPE = "all"
+
+def get_scopes(training_mode):
+    return CHROMS if training_mode == "per_chrom" else [GENOME_WIDE_SCOPE]
+
+# NEW: leave-chromosome(s)-out CV, selected by adding a literal "chromosome" line to BLOCKINGS.
+# Only meaningful in genome_wide mode (a per_chrom dataset contains a single chromosome), so it
+# is silently dropped from per_chrom jobs and validated here for genome_wide.
+CHROMOSOME_BLOCKING = "chromosome"
+
+def get_blockings(training_mode):
+    if training_mode == "per_chrom":
+        return [b for b in BLOCKINGS if b != CHROMOSOME_BLOCKING]
+    return BLOCKINGS
+
+wildcard_constraints:
+    training_mode="|".join(AVAILABLE_TRAINING_MODES),
+    chrom="|".join(CHROMS + [GENOME_WIDE_SCOPE])
+
 def _single(key):
     values = config[key]
     if len(values) > 1:
@@ -50,17 +78,52 @@ N_JOBS_ML = _single("n_jobs_MLs")
 MODEL_N_JOBS_ML = _single("model_n_jobs_MLs")
 
 BIN_SIZE_BP = config["bin_size_bp"]
+
+if CHROMOSOME_BLOCKING in BLOCKINGS:
+    if "genome_wide" not in TRAINING_MODES:
+        raise WorkflowError(
+            f"snakefile_ML: blocking '{CHROMOSOME_BLOCKING}' (leave-chromosomes-out) is only valid in "
+            "genome_wide mode, but training_modes does not include 'genome_wide'."
+        )
+    # one or more whole chromosomes go to the held-out test set, then OUTER_CV folds of whole
+    # chromosomes are built from the rest -> at least OUTER_CV + 1 chromosomes are needed
+    if len(CHROMS) < OUTER_CV + 1:
+        raise WorkflowError(
+            f"snakefile_ML: blocking '{CHROMOSOME_BLOCKING}' needs at least outer_cv + 1 = {OUTER_CV + 1} "
+            f"chromosomes, but the dataset has {len(CHROMS)} ({CHROMS})."
+        )
 FDR_THRESHOLDS = [str(t) for t in config["fdr_thresholds"]]
 TARGET_COLS = [str(t) for t in config["target_cols"]]
 
+# NEW: columns never used as predictors (previously hard-coded as ["FDR"] inside train_models.py).
+# The current target_col is removed from the list per job, so other target variables can be
+# listed here (e.g. ampl.frequency / del.frequency when training on logFC) without clashing
+# with their own jobs. Columns absent from the dataset are reported, not fatal.
+COLS_TO_EXCLUDE = [str(c) for c in config["cols_to_exclude"]]
+_dataset_columns = pd.read_csv(input_path_dataset, sep="\t", nrows=0).columns.tolist()
+_missing_cols = [c for c in COLS_TO_EXCLUDE if c not in _dataset_columns]
+if _missing_cols:
+    print(f"snakefile_ML: WARNING - cols_to_exclude not present in the dataset (ignored): {_missing_cols}", file=sys.stderr)
+
+def get_cols_to_exclude(wildcards):
+    return [c for c in COLS_TO_EXCLUDE if c != wildcards.target_col]
+
 #### Rules ####
 
-def get_train_model_outputs(wildcards):
-    return expand(rules.train_models.output, model=MODELS, blocking=BLOCKINGS, **wildcards)
+# NEW: genome_wide bypasses split_dataset_by_chromosome and reads the feature matrix directly.
+def get_training_dataset(wildcards):
+    if wildcards.training_mode == "genome_wide":
+        return input_path_dataset
+    return f"results/ML/{wildcards.dataset_id}/per_chrom/{wildcards.chrom}/dataset.tsv"
 
+def get_train_model_outputs(wildcards):
+    return expand(rules.train_models.output, model=MODELS, blocking=get_blockings(wildcards.training_mode), **wildcards)
+
+# CHANGED: pools only the scopes of the SAME training mode (per_chrom -> all chromosomes,
+# genome_wide -> the single genome-wide run); modes are never pooled together.
 def get_all_chrom_train_model_checks(wildcards):
     other_wildcards = {k: v for k, v in wildcards.items() if k != "chrom"}
-    return expand(rules.all_train_models.output, chrom=CHROMS, **other_wildcards)
+    return expand(rules.all_train_models.output, chrom=get_scopes(wildcards.training_mode), **other_wildcards)
 
 include: "rules/ML/split_dataset_by_chromosome.smk"
 include: "rules/ML/train_models.smk"
@@ -71,7 +134,10 @@ include: "rules/ML/train_cv_plus_models.smk"
 
 rule all:
     input:
-        expand(
-            "results/ML/{dataset_id}/per_chrom/{chrom}/target/{target_col}/significance/{fdr_threshold}/significance_calls.tsv",
-            dataset_id=dataset_id, chrom=CHROMS, target_col=TARGET_COLS, fdr_threshold=FDR_THRESHOLDS
-        )
+        [
+            f"results/ML/{dataset_id}/{training_mode}/{chrom}/target/{target_col}/significance/{fdr_threshold}/significance_calls.tsv"
+            for training_mode in TRAINING_MODES
+            for chrom in get_scopes(training_mode)
+            for target_col in TARGET_COLS
+            for fdr_threshold in FDR_THRESHOLDS
+        ]

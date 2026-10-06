@@ -2,67 +2,73 @@
 #SBATCH --job-name=snakemake_single
 #SBATCH --partition=general
 #SBATCH --output=/hpcnfs/scratch/MS/ieo7429/SelectionCaller/snakemake_%j.out
-#SBATCH --time=360:00:00
-#SBATCH --cpus-per-task=150
-#SBATCH --mem=300G
+#SBATCH --time=48:00:00
+#SBATCH --cpus-per-task=10
+#SBATCH --mem=16G
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=ieo7429@ieo.it
+# NOTE: the #SBATCH values above are only defaults - override them per run on the
+# command line (sbatch --cpus-per-task=... --mem=... --time=... run_snakemake.sbatch ...),
+# so the same launcher can be sized for each config.
 
 set -uo pipefail
-# NOTE: deliberately NOT using `set -e` here - several steps below check $? explicitly
-# (dry-run, then the main run), and `set -e` would abort the script the instant any of
-# them fails, before we get a chance to inspect/report the exit code ourselves.
+# NOTE: deliberately NOT using `set -e` - exit codes of the dry-run and main run are
+# checked explicitly below.
 
 # ---------------------------------------------------------------------------
 # Arguments
 # ---------------------------------------------------------------------------
-SNAKEFILE=${1:?"Usage: sbatch $0 <snakefile> <configfile> <cores> [target_rule]"}
-CONFIGFILE=${2:?"Usage: sbatch $0 <snakefile> <configfile> <cores> [target_rule]"}
-CORES=${3:?"Usage: sbatch $0 <snakefile> <configfile> <cores> [target_rule]"}
-TARGET_RULE="${4:-}"   # optional - e.g. "select_best_model" to stop there via --until;
-                        # empty (the default, unchanged from before) runs the full `rule all`
+USAGE="Usage: sbatch [sbatch opts] $0 <snakefile> <configfile> [cores] [target_rule]"
+SNAKEFILE=${1:?"$USAGE"}
+CONFIGFILE=${2:?"$USAGE"}
+CORES="${3:-${SLURM_CPUS_PER_TASK:-1}}"   # default: exactly what SLURM gave us
+TARGET_RULE="${4:-}"                       # e.g. "select_best_model" (--until); empty = rule all
+
+# Rerun triggers: by default only missing/older inputs or a changed input set cause
+# reruns, so edits to scripts/Snakefile/conda env do NOT rerun finished jobs.
+# To restore Snakemake's full default:  RERUN_TRIGGERS="mtime params input software-env code"
+# To force a rule that must be redone:  EXTRA_ARGS="--forcerun train_models"
+RERUN_TRIGGERS="${RERUN_TRIGGERS:-mtime input}"
+EXTRA_ARGS="${EXTRA_ARGS:-}"
 
 LOCAL_BASE="/hpcnfs/scratch/MS/ieo7429/SelectionCaller"
+
+# Unbuffered Python output: per-fold progress lines reach the logs in real time.
+export PYTHONUNBUFFERED=1
 
 # ---------------------------------------------------------------------------
 # Logging helpers
 # ---------------------------------------------------------------------------
-SECONDS=0   # bash builtin, used for elapsed-time reporting at the end
+SECONDS=0
+log()     { printf '[%s] %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*"; }
+section() { printf '\n=== %s ===\n' "$*"; }
+hr()      { printf '%s\n' "--------------------------------------------------------------------"; }
+elapsed_human() { local s=$SECONDS; printf '%02dh:%02dm:%02ds' $((s/3600)) $(((s%3600)/60)) $((s%60)); }
 
-log()      { printf '[%s] %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*"; }
-section()  { printf '\n=== %s ===\n' "$*"; }
-hr()       { printf '%s\n' "--------------------------------------------------------------------"; }
-
-elapsed_human() {
-    local s=$SECONDS
-    printf '%02dh:%02dm:%02ds' $((s/3600)) $(((s%3600)/60)) $((s%60))
-}
-
-# Always print a closing summary, however the script exits (success, failure, or
-# cancellation) - makes the .out log easy to skim without hunting for the exit code.
 FINAL_STATUS=1
-finish() {
-    hr
-    log "Job finished (exit status: $FINAL_STATUS, elapsed: $(elapsed_human))"
-    hr
-    exit "$FINAL_STATUS"
-}
+finish() { hr; log "Job finished (exit status: $FINAL_STATUS, elapsed: $(elapsed_human))"; hr; exit "$FINAL_STATUS"; }
 trap finish EXIT
 
 # ---------------------------------------------------------------------------
 # Header
 # ---------------------------------------------------------------------------
 hr
-log "Job ID:        ${SLURM_JOB_ID:-N/A}"
-log "Job name:      ${SLURM_JOB_NAME:-N/A}"
-log "Node:          ${SLURM_NODELIST:-N/A}"
-log "CPUs assigned: ${SLURM_CPUS_PER_TASK:-N/A} (--cores requested: $CORES)"
-log "Memory:        ${SLURM_MEM_PER_NODE:-N/A} MB"
-log "Working dir:   $LOCAL_BASE"
-log "Snakefile:     $SNAKEFILE"
-log "Configfile:    $CONFIGFILE"
-log "Target rule:   ${TARGET_RULE:-<none - running full 'rule all'>}"
+log "Job ID:         ${SLURM_JOB_ID:-N/A}"
+log "Job name:       ${SLURM_JOB_NAME:-N/A}"
+log "Node:           ${SLURM_NODELIST:-N/A}"
+log "CPUs assigned:  ${SLURM_CPUS_PER_TASK:-N/A} (--cores used: $CORES)"
+log "Memory:         ${SLURM_MEM_PER_NODE:-N/A} MB"
+log "Working dir:    $LOCAL_BASE"
+log "Snakefile:      $SNAKEFILE"
+log "Configfile:     $CONFIGFILE"
+log "Target rule:    ${TARGET_RULE:-<none - running full 'rule all'>}"
+log "Rerun triggers: $RERUN_TRIGGERS"
+log "Extra args:     ${EXTRA_ARGS:-<none>}"
 hr
+
+if [ -n "${SLURM_CPUS_PER_TASK:-}" ] && [ "$CORES" -gt "$SLURM_CPUS_PER_TASK" ]; then
+    log "WARNING: --cores ($CORES) > CPUs assigned by SLURM ($SLURM_CPUS_PER_TASK): jobs will compete for CPUs."
+fi
 
 cd "$LOCAL_BASE" || { log "ERROR: cannot cd into $LOCAL_BASE"; FINAL_STATUS=1; exit; }
 
@@ -70,43 +76,34 @@ cd "$LOCAL_BASE" || { log "ERROR: cannot cd into $LOCAL_BASE"; FINAL_STATUS=1; e
 # Environment
 # ---------------------------------------------------------------------------
 section "Activating environment"
-
 source ~/miniforge3/etc/profile.d/conda.sh
 conda activate snakemake-env
-
-if ! command -v snakemake > /dev/null 2>&1; then
-    log "ERROR: 'snakemake' not found on PATH after activating snakemake-env"
-    FINAL_STATUS=1
-    exit
-fi
+command -v snakemake > /dev/null 2>&1 || { log "ERROR: 'snakemake' not found after activating snakemake-env"; FINAL_STATUS=1; exit; }
 log "snakemake: $(snakemake --version)"
+[ -f "$SNAKEFILE" ]  || { log "ERROR: Snakefile not found: $SNAKEFILE";  FINAL_STATUS=1; exit; }
+[ -f "$CONFIGFILE" ] || { log "ERROR: config file not found: $CONFIGFILE"; FINAL_STATUS=1; exit; }
 
-if [ ! -f "$SNAKEFILE" ]; then
-    log "ERROR: Snakefile not found: $SNAKEFILE"
-    FINAL_STATUS=1
-    exit
-fi
-if [ ! -f "$CONFIGFILE" ]; then
-    log "ERROR: config file not found: $CONFIGFILE"
-    FINAL_STATUS=1
-    exit
-fi
+# Snapshot of the config actually used by this job (traceability if the file is edited later)
+mkdir -p logs/config_snapshots
+cp "$CONFIGFILE" "logs/config_snapshots/$(basename "$CONFIGFILE" .yaml)_${SLURM_JOB_ID:-local}.yaml"
+log "Config snapshot saved in logs/config_snapshots/"
+
+# Common options: identical for dry-run and main run, so the dry-run shows exactly
+# what the real run will do (previously the dry-run lacked --use-conda).
+# $RERUN_TRIGGERS and $EXTRA_ARGS are intentionally unquoted (word splitting).
+COMMON=(--snakefile "$SNAKEFILE" --configfile "$CONFIGFILE" --use-conda --rerun-incomplete)
+UNTIL=()
+[ -n "$TARGET_RULE" ] && UNTIL=(--until "$TARGET_RULE")
 
 # ---------------------------------------------------------------------------
-# Unlock (in case a previous run left a stale lock) + dry-run
+# Unlock + dry-run
 # ---------------------------------------------------------------------------
 section "Dry-run"
-
 snakemake --snakefile "$SNAKEFILE" --configfile "$CONFIGFILE" --unlock
 
 log "Checking the DAG before committing any compute..."
-if [ -n "$TARGET_RULE" ]; then
-    snakemake --snakefile "$SNAKEFILE" --configfile "$CONFIGFILE" --rerun-incomplete --dry-run --until "$TARGET_RULE"
-else
-    snakemake --snakefile "$SNAKEFILE" --configfile "$CONFIGFILE" --rerun-incomplete --dry-run
-fi
+snakemake "${COMMON[@]}" --rerun-triggers $RERUN_TRIGGERS $EXTRA_ARGS ${UNTIL[@]+"${UNTIL[@]}"} --dry-run
 EXIT_STATUS_DRY_RUN=$?
-
 if [ "$EXIT_STATUS_DRY_RUN" -ne 0 ]; then
     log "ERROR: dry-run failed (exit status $EXIT_STATUS_DRY_RUN) - not starting the real run."
     FINAL_STATUS=$EXIT_STATUS_DRY_RUN
@@ -118,30 +115,11 @@ log "Dry-run OK."
 # Main run
 # ---------------------------------------------------------------------------
 section "Main pipeline run"
-
-snakemake --snakefile "$SNAKEFILE" --configfile "$CONFIGFILE" --unlock
-
 log "Launching Snakemake with $CORES cores..."
-if [ -n "$TARGET_RULE" ]; then
-    snakemake \
-        --snakefile "$SNAKEFILE" \
-        --configfile "$CONFIGFILE" \
-        --cores "$CORES" \
-        --use-conda \
-        --rerun-incomplete \
-        --keep-going \
-        --printshellcmds \
-        --until "$TARGET_RULE"
-else
-    snakemake \
-        --snakefile "$SNAKEFILE" \
-        --configfile "$CONFIGFILE" \
-        --cores "$CORES" \
-        --use-conda \
-        --rerun-incomplete \
-        --keep-going \
-        --printshellcmds
-fi
+snakemake "${COMMON[@]}" --rerun-triggers $RERUN_TRIGGERS $EXTRA_ARGS ${UNTIL[@]+"${UNTIL[@]}"} \
+    --cores "$CORES" \
+    --keep-going \
+    --printshellcmds
 EXIT_STATUS_FINAL_RUN=$?
 
 if [ "$EXIT_STATUS_FINAL_RUN" -eq 0 ]; then
@@ -149,5 +127,4 @@ if [ "$EXIT_STATUS_FINAL_RUN" -eq 0 ]; then
 else
     log "ERROR: pipeline exited with status $EXIT_STATUS_FINAL_RUN."
 fi
-
 FINAL_STATUS=$EXIT_STATUS_FINAL_RUN

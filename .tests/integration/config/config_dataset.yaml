@@ -4,16 +4,28 @@ mapping_file_tt_locations:
   - config/mapping_tissue_tumor_type
 mapping_file_gender_locations:
   - config/mapping_gender
+mapping_file_GTEx_locations:
+  - config/mapping_GTEx_TCGA
 sequencers_info_locations:
   - config/sequencers_info
 ohnologs_locations:
   - "resources/ohnologs_and_paralogs/origin/OhnologList.RData"
 paralogs_locations:
   - "resources/ohnologs_and_paralogs/origin/ParalogList.RData"
+# Toy CORUM / Interactome INSIDER / GTEx inputs are generated in CI by
+# .tests/integration/make_toy_GTEx_interactor_inputs.R from the toy GENCODE annotation.
+CORUM_locations:
+  - "resources/protein_interactions/origin/toy_CORUM.RData"
+InteractomeINSIDER_locations:
+  - "resources/protein_interactions/origin/toy_InteractomeINSIDER.RData"
 haploinsufficiency_locations:
   - "resources/haploinsufficiency/haploinsufficiency.csv"
 haplo_thrs:
   - 0.9
+# The toy GCT is pre-placed at resources/GTEx/v8/gene_median_tpm.gct.gz, so nothing is
+# downloaded (get_GTEx_median_TPM has no input, an existing output is up to date).
+GTEx_releases:
+  - v8
 IntOGen_locations:
   - resources/IntOGen/IntOGen-Drivers-20240920/Compendium_Cancer_Genes.tsv
 DepMap_models_locations:

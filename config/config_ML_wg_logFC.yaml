@@ -1,0 +1,63 @@
+# Run: genome_wide, target=logFC, 4 models x noblocking/5/10/15
+# Relaunch of job 7148030 (cancelled after 44 h). LinearRegression is listed so that
+# select_best_model compares all 4 models; its outputs already exist (reused unless
+# the dry-run says otherwise).
+
+input_path_datasets:
+  - "data/feature_matrix/hg38_binned_20000_0_20_50_500000_15_200_1_6_BRCA_female_50_0.2_f_breast_carcinoma_BRCA_Female_0.5_4_v45_BREAST_PrimaryCulture_hg38lift_mnemonics_BRCA_0.2"
+
+input_path_is_autocorrelated: "config/IS_AUTOCORRELATED"
+input_path_is_multicollinear: "config/IS_MULTICOLLINEAR"
+input_path_models: "config/MODELS"
+
+selected_models:
+  - "LinearRegression"
+  - "SVR"
+  - "KNeighborsRegressor"
+  - "XGBRegressor"
+
+input_path_blockings: "config/BLOCKINGS"
+
+selected_blockings:
+  - "noblocking"
+  - "5"
+  - "10"
+  - "15"
+
+training_modes:
+  - "genome_wide"
+
+test_sizes:
+  - 0.3
+
+outer_cvs:
+  - 5
+
+inner_cvs:
+  - 3
+
+optimizers:
+  - "BayesSearchCV"
+
+n_iters:
+  - 15
+
+n_jobs_MLs:
+  - 3
+
+model_n_jobs_MLs:
+  - 3
+
+bin_size_bp:
+  - 20000
+
+fdr_thresholds:
+  - 0.1
+
+target_cols:
+  - "logFC"
+
+cols_to_exclude:
+  - "FDR"
+# NOTE: ampl.frequency and del.frequency are kept as predictors, consistently with
+# the KNN LOCO run and with the LinearRegression models of job 7148030.

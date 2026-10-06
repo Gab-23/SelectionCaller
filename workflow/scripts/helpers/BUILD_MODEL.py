@@ -18,7 +18,7 @@ def BUILD_MODEL(MODEL, consensus_hyperparams_dict = None, N_JOBS=1):
     elif MODEL == "LinearRegression":
         model = LinearRegression()
     elif MODEL == "SVR":
-        model = SVR()
+        model = SVR(max_iter=1_000_000, cache_size=1000)
     elif MODEL == "RandomForestRegressor":
         model = RandomForestRegressor(n_jobs=N_JOBS)
     else:

@@ -16,3 +16,5 @@ TODO.txt
 train_*/
 *Regressor
 *Regression
+burners/
+/go_enrichment_out

@@ -35,6 +35,8 @@ input_path_ohnologs                           <- args$input_path_ohnologs
 input_path_paralogs                           <- args$input_path_paralogs
 input_path_haploinsufficiency                 <- args$input_path_haploinsufficiency
 input_path_hic                                <- args$input_path_hic
+input_path_interactors                        <- args$input_path_interactors
+input_path_GTEx                               <- args$input_path_GTEx
 
 output_path_dataset                           <- args$output_path_dataset
 output_path_corr_plot                         <- args$output_path_corr
@@ -91,10 +93,6 @@ cor.mat <- cor(dataset[,-1], use = "pairwise.complete.obs", method = "pearson")
 cor.df <- as.data.frame(as.table(cor.mat))
 names(cor.df) <- c("Var1", "Var2", "Correlation")
 
-#pca <- prcomp(dataset[,-1], scale. = TRUE)
-#pca_variance_vec <- summary(pca)$importance[2,]
-#pca_df <- data.frame(SRA_id = rownames(pca$x), PC1 = pca$x[,1], PC2 = pca$x[,2])
-
 NA_frac_plot <- fraction_plot(na_fraction, y_axis = "NA")
 zero_frac_plot <- fraction_plot(zero_fraction, y_axis = "zero")
 
@@ -104,7 +102,7 @@ boxplots_0s_non0s_muts <- boxplots_0s_non0s(dataset, "length_(non)?coding")
 boxplots_0s_chromstates <- boxplots_0s_non0s(dataset, "^[0-9]+_[aA-zZ]+")
 heatmap <- plot_heatmap_corr(cor.df)
 
-cols_to_test <- colnames(dataset)[-c(1,2)] # remove binID and logFC (the target variable)
+cols_to_test <- colnames(dataset)[-c(1,2)]
 
 cor.test.result <- do.call(rbind,
                       lapply(X = cols_to_test, 
@@ -115,14 +113,6 @@ cor.test.result <- do.call(rbind,
                                         FUN = function(col2){
                                         if(col != col2){
                                             y <- dataset[,col2]
-                                            # NOTE (fix): cor.test() errors out entirely (not just a warning) when either
-                                            # column has zero variance (e.g. a feature that happens to be constant across
-                                            # every bin in a small or restricted analysis) - this crashed the WHOLE script
-                                            # before it ever reached write.table() for the actual feature matrix, meaning a
-                                            # single degenerate pair in this purely diagnostic multicollinearity check could
-                                            # block the core deliverable entirely. Wrapped in tryCatch so a degenerate pair
-                                            # is skipped (NA) instead of stopping everything; unaffected for real, large-scale
-                                            # data where near-zero variance in a feature is not expected.
                                             test_result <- tryCatch(
                                                 cor.test(x = x, y = y, method = "pearson"),
                                                 error = function(e) list(estimate = NA, p.value = NA)

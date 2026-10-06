@@ -101,6 +101,7 @@ pca_sva_plot_donor        <- pca_plot(pca_sva, pca_sva_df, hue = "donor_id", sha
 pca_sva_plot_study        <- pca_plot(pca_sva, pca_sva_df, hue = "study_id", shape = "condition")
 
 pca_distance_plot         <- plot_distances_PCA(pca, pca_sva, metadata)
+pca_distance_panel        <- plot_PCA_SVA_distance_panel(pca, pca_sva, metadata)
 
 out.list = list(
     count.f=count.f,
@@ -120,7 +121,8 @@ out.list = list(
     pca_sva_plot_subtype=pca_sva_plot_subtype,
     pca_sva_plot_donor=pca_sva_plot_donor,
     pca_sva_plot_study=pca_sva_plot_study,
-    pca_distance_plot=pca_distance_plot
+    pca_distance_plot=pca_distance_plot,
+    pca_distance_panel=pca_distance_panel
 )
 
 return(out.list)

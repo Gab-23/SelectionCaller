@@ -1,27 +1,22 @@
 rule compute_feature_locality:
-    # Per-feature "locality" score: log((mean |SHAP| + eps) / (n_peaks + 1)) - importance
-    # (mean/median |SHAP| across bins) divided by number of local maxima detected along the
-    # genomic signal (scipy.signal.find_peaks or similar, with a prominence threshold scaled
-    # to that feature's own SHAP signal to stay scale-invariant across features). Positive =
-    # broadly/globally important (high importance, few peaks); negative = locally important
-    # (concentrated peaks). The +1/+eps smoothing avoids divide-by-zero for a feature with no
-    # detectable peaks at all (treated as maximally global) without a separate edge case.
-    #
-    # {confidence} is a genuine wildcard here too, purely because SHAP values now live under
-    # a {confidence}-specific path (train_cv_plus_models writes identical SHAP values under
-    # each confidence level it's run for) - feature locality itself has nothing to do with
-    # confidence level, this just picks which (redundant, identical) copy of shap_values.tsv
-    # to read.
     output:
-        "results/ML/{dataset_id}/per_chrom/{chrom}/conformal/{confidence}/locality/feature_locality.tsv"
+        feature_locality="results/ML/{dataset_id}/per_chrom/{chrom}/target/{target_col}/significance/{fdr_threshold}/locality/{stringency}/{smoothing_size}/feature_locality.tsv"
     input:
-        dataset="results/ML/{dataset_id}/per_chrom/{chrom}/dataset.tsv",
-        shap_values="results/ML/{dataset_id}/per_chrom/{chrom}/conformal/{confidence}/shap/shap_values.tsv"
+        shap_values="results/ML/{dataset_id}/per_chrom/{chrom}/target/{target_col}/significance/{fdr_threshold}/shap/shap_values.tsv"
+    params:
+        apply_smoothing=APPLY_SMOOTHING,
+        importance_aggregation=IMPORTANCE_AGGREGATION
     log:
-        "logs/compute_feature_locality/{dataset_id}_{chrom}_{confidence}.log"
+        "logs/compute_feature_locality/{dataset_id}_{chrom}_{target_col}_{fdr_threshold}_{stringency}_{smoothing_size}.log"
     conda:
         "../../envs/py_ml_env.yml"
     shell:
-        # TODO (user)
         """
+        python -m workflow.scripts.compute_feature_locality \
+        --input_path_shap_values={input.shap_values} \
+        --stringency={wildcards.stringency} \
+        --apply_smoothing={params.apply_smoothing} \
+        --smoothing_size={wildcards.smoothing_size} \
+        --importance_aggregation={params.importance_aggregation} \
+        --output_path_feature_locality={output.feature_locality} 2>{log}
         """

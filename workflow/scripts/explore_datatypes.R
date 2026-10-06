@@ -6,9 +6,6 @@ options(scipen=999)                                                             
 args <- R.utils::commandArgs(trailingOnly = TRUE, asValues = TRUE)                # read args
 
 input_path_GC                                 <- args$input_path_GC
-input_path_models_DepMap                      <- args$input_path_models_DepMap
-input_path_manifest_GDC                       <- args$input_path_manifest_GDC
-input_path_samples_COSMIC                     <- args$input_path_samples_COSMIC
 input_path_OGs                                <- args$input_path_OGs
 input_path_TSGs                               <- args$input_path_TSGs
 input_path_essential                          <- args$input_path_essential
@@ -16,7 +13,6 @@ input_path_coding_mutations                   <- args$input_path_coding_mutation
 input_path_noncoding_mutations                <- args$input_path_noncoding_mutations
 output_path_GC_landscape                      <- args$output_path_GC_landscape
 output_path_GC_distribution                   <- args$output_path_GC_distribution
-output_path_samples_barplot                   <- args$output_path_samples_barplot
 output_path_genes_barplot                     <- args$output_path_genes_barplot
 output_path_num_mutations_barplot             <- args$output_path_num_mutations_barplot
 output_path_coding_mut_descriptions_barplot   <- args$output_path_coding_mut_descriptions_barplot
@@ -25,10 +21,6 @@ output_path_coding_mut_descriptions_barplot   <- args$output_path_coding_mut_des
 
 GC <- read.table(input_path_GC, header = F, sep = "\t")
 colnames(GC) <- c("chr", "start", "end", "binID", "GC.content")
-
-DepMap <- readLines(input_path_models_DepMap)
-COSMIC <- readLines(input_path_samples_COSMIC)
-GDC <- read.table(input_path_manifest_GDC, header = T, sep = "\t")
 
 coding <- read.table(input_path_coding_mutations, header = F, sep = "\t")
 colnames(coding) <- c("chr", "start", "end", "mut_id", "description")
@@ -70,17 +62,6 @@ GC.out <- GC %>%
 
 p.GC <- plot_landscape(GC.out, "GC.content", "GC content", "GC distribution")
 
-n_samples_DepMap <- length(DepMap)
-n_samples_COSMIC <- length(COSMIC)
-n_samples_GDC <- nrow(GDC)
-
-samples_df <- data.frame(
-  Dataset = c("DepMap", "COSMIC", "GDC"),
-  Samples = c(n_samples_DepMap, n_samples_COSMIC, n_samples_GDC)
-)
-
-p.barplot_samples <- plot_barplot(samples_df, "Dataset", "Samples", "# Samples")
-
 n_OGs <- nrow(OGs)
 n_TSGs <- nrow(TSGs)
 n_essential <- nrow(essential)
@@ -113,7 +94,6 @@ p.barplot_n_mut_by_description <- plot_barplot(n_mut_by_description, "Category",
 
 ggplot2::ggsave(output_path_GC_landscape, p.GC, width = 14, height = 4)
 ggplot2::ggsave(output_path_GC_distribution, p.hist, width = 6, height = 4)
-ggplot2::ggsave(output_path_samples_barplot, p.barplot_samples, width = 6, height = 4)
 ggplot2::ggsave(output_path_genes_barplot, p.barplot_genes, width = 6, height = 4)
 ggplot2::ggsave(output_path_num_mutations_barplot, p.barplot_n_mut, width = 6, height = 4)
 ggplot2::ggsave(output_path_coding_mut_descriptions_barplot, p.barplot_n_mut_by_description, width = 6, height = 4)

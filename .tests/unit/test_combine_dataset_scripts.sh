@@ -49,6 +49,10 @@ echo "    Hi-C's eigen_1..eigen_10 columns were added as a new input per user re
 echo "    12) - combine_dataset.R never read any Hi-C input before that; no script changes"
 echo "    needed beyond declaring the new argument, since the merge loop auto-collects every"
 echo "    input_path_* variable in scope."
+echo "    Protein-interaction (CORUM + Interactome INSIDER) and GTEx features added as two new"
+echo "    inputs, same mechanism. Real data has bins without protein-coding genes: those bins"
+echo "    are ABSENT from both files (not NA rows), so the toy files below omit some bins and"
+echo "    also contain explicit NAs (gene sets with no expressed gene)."
 
 python3 - "$TMP" << 'PYEOF'
 import random, sys, os
@@ -56,10 +60,10 @@ random.seed(7)
 tmp = sys.argv[1]
 bins = [f"1_{i}" for i in range(1, 21)]
 
-def write(fname, header, cols_fn):
+def write(fname, header, cols_fn, bin_subset=None):
     with open(os.path.join(tmp, fname), "w") as f:
         f.write(header + "\n")
-        for b in bins:
+        for b in (bins if bin_subset is None else bin_subset):
             vals = cols_fn(b)
             f.write(b + "\t" + "\t".join(str(v) for v in vals) + "\n")
 
@@ -92,9 +96,19 @@ write("paralogs.tsv", "binID\tn_paralogs_bin\tmean_n_paralogs\ttotal_n_paralogs\
       lambda b: [random.randint(0,2)]*5)
 write("haplo.tsv", "binID\thaploinsufficiency_score", lambda b: [round(random.uniform(0,1),2)])
 write("hic.tsv", "binID\teigen_1\teigen_2", lambda b: [round(random.uniform(-1,1),2), round(random.uniform(-1,1),2)])
+# Bins 1_19 and 1_20 have no protein-coding genes -> absent from both files
+gene_bins = bins[:18]
+write("interactors.tsv", "binID\tcomplex_density\tn_complex_partners_trans\tn_PPIs_trans",
+      lambda b: [round(random.uniform(0,1),2), random.randint(0,30), random.randint(0,60)], gene_bins)
+# Fixed, known values for bin 1_1 so pass-through can be checked exactly; random elsewhere,
+# with NAs where a gene set has no expressed gene.
+write("gtex.tsv", "binID\tGTEx_genes\tGTEx_partners_trans\tGTEx_PPIs_trans\tGTEx_all_int_trans",
+      lambda b: [0.123, "NA", -0.456, 0.789] if b == "1_1" else
+                [round(random.uniform(-2,2),3) if random.random() > 0.2 else "NA" for _ in range(4)], gene_bins)
 PYEOF
 
 mkdir -p "$TMP/out"
+RC=0
 Rscript workflow/scripts/combine_dataset.R \
     --input_path_DARs="$TMP/DARs.tsv" \
     --input_path_centromeres="$TMP/centromeres.tsv" \
@@ -123,6 +137,8 @@ Rscript workflow/scripts/combine_dataset.R \
     --input_path_paralogs="$TMP/paralogs.tsv" \
     --input_path_haploinsufficiency="$TMP/haplo.tsv" \
     --input_path_hic="$TMP/hic.tsv" \
+    --input_path_interactors="$TMP/interactors.tsv" \
+    --input_path_GTEx="$TMP/gtex.tsv" \
     --output_path_dataset="$TMP/out/dataset.tsv" \
     --output_path_corr="$TMP/out/corr.pdf" \
     --output_path_NA_frac_plot="$TMP/out/NA_frac.pdf" \
@@ -132,9 +148,9 @@ Rscript workflow/scripts/combine_dataset.R \
     --output_path_boxplots_0s_non0s_muts="$TMP/out/box_muts.pdf" \
     --output_path_boxplots_0s_non0s_chromstates="$TMP/out/box_chromstates.pdf" \
     --output_path_bool_multicollinearity="$TMP/out/multicoll.txt" \
-    > "$TMP/stdout.log" 2>&1
-RC=$?
+    > "$TMP/stdout.log" 2>&1 || RC=$?
 check "script exits successfully" "$RC" "0"
+[ "$RC" -eq 0 ] || cat "$TMP/stdout.log"
 
 for f in dataset.tsv corr.pdf NA_frac.pdf zero_frac.pdf boxplots.pdf boxplots_scaled.pdf box_muts.pdf box_chromstates.pdf multicoll.txt; do
     check "produces $f" "$([ -s "$TMP/out/$f" ] && echo yes)" "yes"
@@ -142,6 +158,16 @@ done
 check "feature matrix has a binID column" "$(head -1 "$TMP/out/dataset.tsv" | cut -f1)" "binID"
 check "feature matrix includes Hi-C's eigen_1 column" "$(head -1 "$TMP/out/dataset.tsv" | tr '\t' '\n' | grep -c '^eigen_1$')" "1"
 check "rows with NA logFC (the target variable) are dropped" "$(( $(wc -l < "$TMP/out/dataset.tsv") - 1 ))" "20"
+for col in complex_density n_complex_partners_trans n_PPIs_trans GTEx_genes GTEx_partners_trans GTEx_PPIs_trans GTEx_all_int_trans; do
+    check "feature matrix includes $col" "$(head -1 "$TMP/out/dataset.tsv" | tr '\t' '\n' | grep -c "^${col}\$")" "1"
+done
+# Values pass through unchanged, and bins absent from the gene-based inputs are kept (as NA)
+check "GTEx values for bin 1_1 pass through unchanged" \
+    "$(awk -F'\t' 'NR==1{for(i=1;i<=NF;i++)c[$i]=i} $1=="1_1"{print $c["GTEx_genes"], $c["GTEx_partners_trans"], $c["GTEx_PPIs_trans"], $c["GTEx_all_int_trans"]}' "$TMP/out/dataset.tsv")" \
+    "0.123 NA -0.456 0.789"
+check "gene-less bins (absent from interactor/GTEx files) are kept with NA" \
+    "$(awk -F'\t' 'NR==1{for(i=1;i<=NF;i++)c[$i]=i} $1=="1_19" || $1=="1_20"{print $c["complex_density"], $c["GTEx_genes"]}' "$TMP/out/dataset.tsv" | sort -u)" \
+    "NA NA"
 
 echo
 if [ "$FAIL" -eq 0 ]; then

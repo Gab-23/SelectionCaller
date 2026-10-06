@@ -7,6 +7,10 @@ mapping_file_tt_locations:
 mapping_file_gender_locations:
   - config/mapping_gender
 
+# GTEx tissue -> TCGA cohort (PENNE Supplementary Table 9; GTEx names as R make.names())
+mapping_file_GTEx_locations:
+  - config/mapping_GTEx_TCGA
+
 sequencers_info_locations:
   - config/sequencers_info
 
@@ -16,11 +20,24 @@ ohnologs_locations:
 paralogs_locations:
   - "resources/ohnologs_and_paralogs/origin/ParalogList.RData"
 
+# Frozen inputs used by PENNE (origin of the raw releases unknown; CORUM cited as 3.0,
+# Giurgiu et al. 2019; Interactome INSIDER HQ interfaces, Meyer et al. 2018)
+CORUM_locations:
+  - "resources/protein_interactions/origin/HumanPCgenes_Subunits_allchr.RData"
+
+InteractomeINSIDER_locations:
+  - "resources/protein_interactions/origin/H_sapiens_interfacesHQ_genename.RData"
+
 haploinsufficiency_locations:
   - "resources/haploinsufficiency/haploinsufficiency.csv"
 
 haplo_thrs:
   - 0.2
+
+# GTEx release used for normal-tissue expression features (one at a time). Download
+# locations are defined in workflow/rules/GTEx/get_GTEx_median_TPM.smk.
+GTEx_releases:
+  - v11
 
 IntOGen_locations:
   - resources/IntOGen/IntOGen-Drivers-20240920/Compendium_Cancer_Genes.tsv

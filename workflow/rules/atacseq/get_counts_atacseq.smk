@@ -18,6 +18,7 @@ rule get_counts_atacseq:
         path_PCA_sva_subtype="results/plots/atacseq/wCNAs/PCA/subtype/{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}_{minSamples_atacseq}_{minCounts_atacseq}_{minCpm_atacseq}_{SVs}_sva.pdf",
         path_scree_plot_sva="results/plots/atacseq/wCNAs/scree/{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}_{minSamples_atacseq}_{minCounts_atacseq}_{minCpm_atacseq}_{SVs}_sva.pdf",
         path_distance_plot="results/plots/atacseq/wCNAs/distance/{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}_{minSamples_atacseq}_{minCounts_atacseq}_{minCpm_atacseq}_{SVs}.pdf",
+        path_distance_panel="results/plots/atacseq/wCNAs/distance_panel/{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}_{minSamples_atacseq}_{minCounts_atacseq}_{minCpm_atacseq}_{SVs}.pdf",
         path_library_sizes_woCNAs="resources/atacseq/files/woCNAs/library_sizes/{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}_{minSamples_atacseq}_{minCounts_atacseq}_{minCpm_atacseq}_{SVs}",
         path_counts_woCNAs="resources/atacseq/files/woCNAs/counts/{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}_{minSamples_atacseq}_{minCounts_atacseq}_{minCpm_atacseq}_{SVs}",
         path_model_matrix_woCNAs="resources/atacseq/files/woCNAs/model_matrix/{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}_{minSamples_atacseq}_{minCounts_atacseq}_{minCpm_atacseq}_{SVs}.RData",
@@ -36,6 +37,7 @@ rule get_counts_atacseq:
         path_PCA_sva_subtype_woCNAs="results/plots/atacseq/woCNAs/PCA/subtype/{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}_{minSamples_atacseq}_{minCounts_atacseq}_{minCpm_atacseq}_{SVs}_sva.pdf",
         path_scree_plot_sva_woCNAs="results/plots/atacseq/woCNAs/scree/{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}_{minSamples_atacseq}_{minCounts_atacseq}_{minCpm_atacseq}_{SVs}_sva.pdf",
         path_distance_plot_woCNAs="results/plots/atacseq/woCNAs/distance/{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}_{minSamples_atacseq}_{minCounts_atacseq}_{minCpm_atacseq}_{SVs}.pdf",
+        path_distance_panel_woCNAs="results/plots/atacseq/woCNAs/distance_panel/{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}_{minSamples_atacseq}_{minCounts_atacseq}_{minCpm_atacseq}_{SVs}.pdf",
         path_CNVkit_lineplot="results/plots/atacseq/CNVkit/{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}_{minSamples_atacseq}_{minCounts_atacseq}_{minCpm_atacseq}_{SVs}.pdf"
     input:
         path_check_coverage="resources/atacseq/checks/{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}_coverage",
@@ -82,6 +84,7 @@ rule get_counts_atacseq:
         --output_path_PCA_sva_subtype={output.path_PCA_sva_subtype} \
 	    --output_path_scree_plot_sva={output.path_scree_plot_sva} \
 	    --output_path_distance_plot={output.path_distance_plot} \
+        --output_path_distance_panel={output.path_distance_panel} \
         --output_path_library_sizes_woCNAs={output.path_library_sizes_woCNAs} \
         --output_path_counts_woCNAs={output.path_counts_woCNAs} \
 	    --output_path_model_matrix_woCNAs={output.path_model_matrix_woCNAs} \
@@ -100,5 +103,6 @@ rule get_counts_atacseq:
         --output_path_PCA_sva_subtype_woCNAs={output.path_PCA_sva_subtype_woCNAs} \
 	    --output_path_scree_plot_sva_woCNAs={output.path_scree_plot_sva_woCNAs} \
 	    --output_path_distance_plot_woCNAs={output.path_distance_plot_woCNAs} \
+        --output_path_distance_panel_woCNAs={output.path_distance_panel_woCNAs} \
         --output_path_CNVkit_lineplot={output.path_CNVkit_lineplot}
         """

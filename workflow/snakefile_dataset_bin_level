@@ -245,11 +245,16 @@ input_path_masks = config["input_path_masks"]
 
 mapping_file_tt_locations = config["mapping_file_tt_locations"]
 mapping_file_gender_locations = config["mapping_file_gender_locations"]
+mapping_file_GTEx_locations = config["mapping_file_GTEx_locations"]
 sequencers_info_locations=config["sequencers_info_locations"]
 
 ohnologs_locations = config["ohnologs_locations"]
 paralogs_locations = config["paralogs_locations"]
+CORUM_locations = config["CORUM_locations"]
+InteractomeINSIDER_locations = config["InteractomeINSIDER_locations"]
 haploinsufficiency_locations = config["haploinsufficiency_locations"]
+
+GTEx_releases = config["GTEx_releases"]
 
 IntOGen_locations = config["IntOGen_locations"]
 
@@ -322,13 +327,18 @@ num_cores_Rs = config["num_cores_Rs"]
 input_path_mask = _single(input_path_masks, "input_path_masks")
 mapping_file_tt_location = _single(mapping_file_tt_locations, "mapping_file_locations")
 mapping_file_gender_location = _single(mapping_file_gender_locations, "mapping_file_gender_locations")
+mapping_file_GTEx_location = _single(mapping_file_GTEx_locations, "mapping_file_GTEx_locations")
 sequencers_info_location = _single(sequencers_info_locations, "sequencers_info_locations")
 ohnologs_location = _single(ohnologs_locations, "ohnologs_locations")
 paralogs_location = _single(paralogs_locations, "paralogs_locations")
+CORUM_location = _single(CORUM_locations, "CORUM_locations")
+InteractomeINSIDER_location = _single(InteractomeINSIDER_locations, "InteractomeINSIDER_locations")
 haploinsufficiency_location = _single(haploinsufficiency_locations, "haploinsufficiency_locations")
 
 haplo_thrs = config["haplo_thrs"]
 haplo_thr = _single(haplo_thrs, "haplo_thrs")
+
+GTEx_release = _single(GTEx_releases, "GTEx_releases")
 
 # NOTE: le seguenti *_locations sono validate ("non piu' di 1 selezionato") ma il valore
 # singolo non viene MAI estratto ne' referenziato altrove in questo file - probabile
@@ -380,10 +390,29 @@ selected_samples_location_hic = _single(selected_samples_location_hics, "selecte
 hic_qc_script_location = _single(hic_qc_script_locations, "hic_qc_script_locations")
 
 assembly_code = _single(assembly_codes, "assemblies")
+# Supported assemblies. assembly_code stays a wildcard everywhere, but for now only hg38
+# (plus the CI toy assembly hg00) is accepted.
+# hg19 is work in progress: the gene annotation is ready (GENCODE lift37, see below), but
+# COSMIC mutations (Cosmic_*_GRCh38 files) and GDC CNA segments (GRCh38) are used with
+# their GRCh38 coordinates and their intermediate files do not encode the assembly, so an
+# hg19 run would silently place them on the wrong bins.
+if assembly_code == "hg19":
+    raise ValueError(
+        "ERROR, assembly_code 'hg19' is not supported yet (work in progress): COSMIC "
+        "mutations and GDC CNA segments are GRCh38-only in this pipeline. Use hg38."
+    )
+if assembly_code not in ("hg38", "hg00"):
+    raise ValueError(f"ERROR, assembly_code '{assembly_code}' is not supported (only hg38; hg00 = CI toy assembly)")
 is_liftover = True if assembly_code == "hg38" else False
 liftover_str = "hg38lift" if is_liftover else "noliftover"
 
 gencode_version = _single(gencode_versions, "gencode_versions")
+# (Unreachable while hg19 is blocked above; kept for when hg19 support is completed.)
+# hg19: use the GRCh38 GENCODE release back-mapped to GRCh37 (GRCh37_mapping/
+# gencode.v{N}lift37.*). The suffix is carried in gencode_version so every downstream path
+# and the dataset name encode the annotation actually used. Config keeps the plain number.
+if assembly_code == "hg19":
+    gencode_version = f"{gencode_version}lift37"
 sample_type = _single(sample_types, "sample types")
 file_format = _single(file_formats, "file formats")
 
@@ -607,6 +636,19 @@ include: "rules/fragile_sites/process_num_overlaps_fragile_sites.smk"
 
 include: "rules/ohnologs_and_paralogs/compute_and_process_ohnologs.smk"
 include: "rules/ohnologs_and_paralogs/compute_and_process_paralogs.smk"
+
+####
+
+include: "rules/protein_interactions/build_gene_interactors.smk"
+include: "rules/protein_interactions/compute_interactor_features.smk"
+
+####
+
+include: "rules/GTEx/get_GTEx_median_TPM.smk"
+# Fail at parse time if the selected release has no download location in the rule file
+GTEx_median_TPM_url(GTEx_release)
+include: "rules/GTEx/process_GTEx.smk"
+include: "rules/GTEx/compute_GTEx_features.smk"
 
 ####
 
@@ -939,7 +981,7 @@ rule all:
         #      active since both ATAC-seq DARs and RepliSeq are ready; smooth_dataset not
         #      implemented, see comments above) ----
         expand(
-            "data/feature_matrix/{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}_{cov_thr}_{smoothing_size}_{minSamples_atacseq}_{minCounts_atacseq}_{minCpm_atacseq}_{SVs}_{tumor_type_GDC}_{gender_GDC}_{min_Num_Probes}_{min_abs_Segment_Mean}_{gender_COSMIC}_{COSMIC_parameters}_{oncotree_code_DepMap}_{gender_DepMap}_{essentiality_cutoff}_{num_assays_cutoff}_v{gencode_version}_{tissue_type_Roadmap}_{sample_type}_{liftover_str}_{file_format}_{tumor_type_IntOGen}_{haplo_thr}",
+            "data/feature_matrix/{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}_{cov_thr}_{smoothing_size}_{minSamples_atacseq}_{minCounts_atacseq}_{minCpm_atacseq}_{SVs}_{tumor_type_GDC}_{gender_GDC}_{min_Num_Probes}_{min_abs_Segment_Mean}_{gender_COSMIC}_{COSMIC_parameters}_{oncotree_code_DepMap}_{gender_DepMap}_{essentiality_cutoff}_{num_assays_cutoff}_v{gencode_version}_{tissue_type_Roadmap}_{sample_type}_{liftover_str}_{file_format}_{tumor_type_IntOGen}_{haplo_thr}_{GTEx_cohort}_{GTEx_release}",
             assembly_code=assembly_code, window_mode=window_mode, window_size=window_sizes, step=steps,
             mapq_thr=mapq_thr, cov_thr=cov_thr, smoothing_size=smoothing_size,
             minSamples_atacseq=minSamples_atacseq, minCounts_atacseq=minCounts_atacseq,
@@ -950,7 +992,8 @@ rule all:
             essentiality_cutoff=essentiality_cutoff, num_assays_cutoff=num_assays_cutoff,
             gencode_version=gencode_version, tissue_type_Roadmap=tissue_type_Roadmap,
             sample_type=sample_type, liftover_str=liftover_str, file_format=file_format,
-            tumor_type_IntOGen=tumor_type_IntOGen, haplo_thr=haplo_thr
+            tumor_type_IntOGen=tumor_type_IntOGen, haplo_thr=haplo_thr,
+            GTEx_cohort=GTEx_cohort, GTEx_release=GTEx_release
         ),
         expand(
             "results/plots/datatypes/GC_landscape/{assembly_code}_{window_mode}_{window_size}_{step}_{oncotree_code_DepMap}_{gender_DepMap}_{tumor_type_GDC}_{gender_GDC}_{gender_COSMIC}_{COSMIC_parameters}_v{gencode_version}_{tumor_type_IntOGen}_{essentiality_cutoff}_{num_assays_cutoff}.pdf",
@@ -966,7 +1009,9 @@ rule all:
 
 wildcard_constraints:
     assembly_code = "hg\\d{2}",
-    gencode_version="[0-9]+",
+    gencode_version="[0-9]+(lift37)?",
+    GTEx_cohort="[A-Z]+",
+    GTEx_release="v[0-9]+",
     tss_subset="[a-z]+",
     window_size = "[0-9]+",
     step = "[0-9]+",

@@ -3,6 +3,7 @@ source("workflow/scripts/helpers/svaBatchCor.R")
 source("workflow/scripts/helpers/pca_plot.R")
 source("workflow/scripts/helpers/pca_scree_plot.R")
 source("workflow/scripts/helpers/plot_distances_PCA.R")
+source("workflow/scripts/helpers/plot_PCA_SVA_distance_panel.R")
 source("workflow/scripts/helpers/do_get_counts_analysis.R")
 source("workflow/scripts/helpers/plot_CNVkit_lines.R")
 
@@ -89,6 +90,9 @@ output_path_scree_plot_sva_woCNAs	          <- args$output_path_scree_plot_sva_w
 
 output_path_distance_plot	                  <- args$output_path_distance_plot
 output_path_distance_plot_woCNAs	          <- args$output_path_distance_plot_woCNAs
+
+output_path_distance_panel                    <- args$output_path_distance_panel
+output_path_distance_panel_woCNAs             <- args$output_path_distance_panel_woCNAs
 
 output_path_CNVkit_lineplot                   <- args$output_path_CNVkit_lineplot
 
@@ -181,6 +185,7 @@ ggplot2::ggsave(output_path_PCA_sva_study, plot = out.list$pca_sva_plot_study, w
 ggplot2::ggsave(output_path_PCA_sva_subtype, plot = out.list$pca_sva_plot_subtype, width = 6, height = 5)
 ggplot2::ggsave(output_path_scree_plot_sva, plot = out.list$scree_plot_sva, width = 6, height = 5)
 ggplot2::ggsave(output_path_distance_plot, plot = out.list$pca_distance_plot, width = 6, height = 5)
+ggplot2::ggsave(output_path_distance_panel, plot = out.list$pca_distance_panel, width = 13, height = 10)
 ggplot2::ggsave(output_path_PCA_condition_woCNAs, plot = out.list.woCNAs$pca_plot_condition, width = 6, height = 5)
 ggplot2::ggsave(output_path_PCA_library_size_woCNAs, plot = out.list.woCNAs$pca_plot_library_size, width = 6, height = 5)
 ggplot2::ggsave(output_path_PCA_sex_woCNAs, plot = out.list.woCNAs$pca_plot_sex, width = 6, height = 5)
@@ -196,4 +201,5 @@ ggplot2::ggsave(output_path_PCA_sva_study_woCNAs, plot = out.list.woCNAs$pca_sva
 ggplot2::ggsave(output_path_PCA_sva_subtype_woCNAs, plot = out.list.woCNAs$pca_sva_plot_subtype, width = 6, height = 5)
 ggplot2::ggsave(output_path_scree_plot_sva_woCNAs, plot = out.list.woCNAs$scree_plot_sva, width = 6, height = 5)
 ggplot2::ggsave(output_path_distance_plot_woCNAs, plot = out.list.woCNAs$pca_distance_plot, width = 6, height = 5)
+ggplot2::ggsave(output_path_distance_panel_woCNAs, plot = out.list.woCNAs$pca_distance_panel, width = 13, height = 10)
 ggplot2::ggsave(output_path_CNVkit_lineplot, plot = CNVkit_lineplot, width = 14, height = 4)

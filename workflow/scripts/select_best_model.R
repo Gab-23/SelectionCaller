@@ -1,3 +1,5 @@
+grDevices::pdf(NULL)
+
 source("workflow/scripts/helpers/visualize_models.R")
 source("workflow/scripts/helpers/process_aggregated_dataframe.R")
 
@@ -6,6 +8,7 @@ options(scipen=999)                                                             
 args <- R.utils::commandArgs(trailingOnly = TRUE, asValues = TRUE)                # read args
 
 results_dir                          <- args$results_dir
+training_mode                        <- args$training_mode
 target_col                           <- args$target_col
 input_dir_hyperparams                <- args$input_dir_hyperparams
 input_dir_selfeats                   <- args$input_dir_selfeats
@@ -18,6 +21,7 @@ output_path_plot_selfeats            <- args$output_path_plot_selfeats
 output_path_plot_performance         <- args$output_path_plot_performance
 output_path_median_boxplots          <- args$output_path_median_boxplots
 output_path_plot_hyperparams         <- args$output_path_plot_hyperparams
+output_path_blocking_density         <- args$output_path_blocking_density
 
 eval_criterion <- "train_r2"
 
@@ -37,7 +41,11 @@ eval_criterion <- "train_r2"
 # input_dir_hyperparams/input_dir_selfeats stay chromosome-specific (e ora anche target-
 # specific): una volta noto il (model, blocking) vincente, il consenso di iperparametri/
 # feature e' calcolato SOLO dai fold di questo cromosoma+target.
-performances_paths <- Sys.glob(file.path(results_dir, "per_chrom", "*", "target", target_col, "performances", "perf_file*"))
+# NOTE (training modes): the pool is restricted to the job's own {training_mode} - per_chrom
+# pools all chromosomes, genome_wide pools its single "all" scope; the two modes are never
+# mixed (each produces its own winner, so they can be compared rather than one overriding
+# the other).
+performances_paths <- Sys.glob(file.path(results_dir, training_mode, "*", "target", target_col, "performances", "perf_file*"))
 selfeats_paths <- list.files(input_dir_selfeats, pattern = "selfeats_file", full.names = T, recursive = T)
 hyperparams_path <- list.files(input_dir_hyperparams, pattern = "hyperparams", full.names = T, recursive = T)
 
@@ -57,9 +65,11 @@ performances_list <- lapply(X = performances_paths,
                                 # an explicit "Model" column before combining avoids the collision
                                 # entirely, with no need to alter the value itself. An explicit
                                 # "chrom" column (parsed from the file path:
-                                # .../per_chrom/{chrom}/target/{target_col}/performances/perf_file_*.tsv)
+                                # .../{training_mode}/{chrom}/target/{target_col}/performances/perf_file_*.tsv)
                                 # is also kept for provenance/traceability.
-                                chrom <- basename(dirname(dirname(dirname(path))))
+                                # NOTE (fix): 4x dirname, not 3x - since target/{target_col}/ was added
+                                # to the path, 3x dirname returned "target" instead of the chromosome.
+                                chrom <- basename(dirname(dirname(dirname(dirname(path)))))
                                 df <- tibble::rownames_to_column(df, "Model")
                                 df$chrom <- chrom
                                 return(df)
@@ -135,10 +145,11 @@ consensus_hyperparams <- data.frame(
 
 writeLines(con = output_path_best_model_name, text = best_model_name)
 writeLines(con = output_path_best_blocking, text = as.character(best_model_blocking))
-writeLines(con = output_path_consensus_features, text = most_common_features, sep = "\n") # remember that this is chromosome-specific
+writeLines(con = output_path_consensus_features, text = most_common_features, sep = "\n") # remember that this is scope-specific (chromosome, or whole genome in genome_wide mode)
 write.table(file = output_path_consensus_hyperparams, x = consensus_hyperparams, sep = "\t", row.names = F, col.names = F, quote = F)
 
 ggplot2::ggsave(output_path_plot_selfeats, output_visualization$heatmap_features, width = 20, height = 10)
 ggplot2::ggsave(output_path_plot_performance, output_visualization$heatmap_performances, width = 15, height = 10)
 ggplot2::ggsave(output_path_median_boxplots, output_visualization$median_boxplots, width = 15, height = 10)
 ggplot2::ggsave(output_path_plot_hyperparams, output_visualization$hyperparams_table, width = 15, height = 10)
+ggplot2::ggsave(output_path_blocking_density, output_visualization$blocking_density_plot, width = 15, height = 10)

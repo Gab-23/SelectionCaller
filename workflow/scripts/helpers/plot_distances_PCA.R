@@ -24,25 +24,20 @@ inter_condition_distance_vec <- unlist(inter_condition_distance)
 inter_study_distance_sva_vec <- unlist(inter_study_distance_sva)		   
 inter_condition_distance_sva_vec <- unlist(inter_condition_distance_sva)
 
-corresponding_donor_id_rows <- metadata[match(rownames(inter_condition_distance), metadata$SRA_id), "donor_id"]
-corresponding_donor_id_cols <- metadata[match(colnames(inter_condition_distance), metadata$SRA_id), "donor_id"]
-common_donor_ids <- intersect(corresponding_donor_id_rows, corresponding_donor_id_cols)
+# matched donors: NAT vs tumour distance of the SAME donor, paired explicitly by donor_id
+# (fix: previous match()/diag() logic misaligned rows whenever a donor had only one condition)
+get_matched_distances <- function(inter_condition_distance){
+  donor_rows <- metadata[match(rownames(inter_condition_distance), metadata$SRA_id), "donor_id"]
+  donor_cols <- metadata[match(colnames(inter_condition_distance), metadata$SRA_id), "donor_id"]
+  common_donor_ids <- intersect(donor_rows, donor_cols)
+  vapply(common_donor_ids, function(d){
+    stopifnot(sum(donor_rows == d) == 1, sum(donor_cols == d) == 1)
+    inter_condition_distance[donor_rows == d, donor_cols == d]
+  }, numeric(1))
+}
 
-matching_donor_ids <- match(corresponding_donor_id_rows[corresponding_donor_id_rows %in% common_donor_ids], 
-			    corresponding_donor_id_cols[corresponding_donor_id_cols %in% common_donor_ids])
-
-corresponding_donor_id_rows_sva <- metadata[match(rownames(inter_condition_distance_sva), metadata$SRA_id), "donor_id"]
-corresponding_donor_id_cols_sva <- metadata[match(colnames(inter_condition_distance_sva), metadata$SRA_id), "donor_id"]
-common_donor_ids_sva <- intersect(corresponding_donor_id_rows_sva, corresponding_donor_id_cols_sva)
-
-matching_donor_ids_sva <- match(corresponding_donor_id_rows_sva[corresponding_donor_id_rows_sva %in% common_donor_ids_sva],
-                                corresponding_donor_id_cols_sva[corresponding_donor_id_cols_sva %in% common_donor_ids_sva])
-
-inter_condition_distance_matched <- inter_condition_distance[, matching_donor_ids]
-matched_distances <- diag(as.matrix(inter_condition_distance_matched))
-
-inter_condition_distance_matched_sva <- inter_condition_distance_sva[, matching_donor_ids_sva]
-matched_distances_sva <- diag(as.matrix(inter_condition_distance_matched_sva))
+matched_distances     <- get_matched_distances(inter_condition_distance)
+matched_distances_sva <- get_matched_distances(inter_condition_distance_sva)
 
 
 distance_df <- data.frame(

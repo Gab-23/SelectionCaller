@@ -24,6 +24,18 @@ chr_to_plot                              <- 17
 
 `%>%` <- magrittr::`%>%`
 
+bins_in_smoothing_size <- (smoothing_size / window_size)                        # how many bins of size window_size to obtain smoothing_size
+  min_bins_in_smoothing_size <- 4
+  if (bins_in_smoothing_size < min_bins_in_smoothing_size) {
+    stop(sprintf(paste0(
+      "smoothing_size (%s bp) covers only %.2f bin(s) of window_size (%s bp): loess (degree = 1) ",
+      "needs at least %d bins per local fit (fewer either fails with 'span is too small' or ",
+      "gives degenerate fits). Use smoothing_size >= %s bp for this window_size."),
+      format(smoothing_size, scientific = FALSE), bins_in_smoothing_size,
+      format(window_size, scientific = FALSE), min_bins_in_smoothing_size,
+      format(min_bins_in_smoothing_size * window_size, scientific = FALSE)))
+  }
+
 files <- list.files(input_path_dir, recursive = T, full.names = T, pattern = "filtered")
 # NOTE (fix): the coverage files under input_path_dir accumulate across EVERY
 # assembly_code/window_mode/window_size/step/mapq_thr/cov_thr combination ever run (e.g. both
@@ -121,8 +133,6 @@ for (chr in unique(replication_timing$chr)){
   
   chr_mask <- replication_timing$chr == chr
   chr_subset <- replication_timing[chr_mask, , drop = FALSE]
-
-  bins_in_smoothing_size <- (smoothing_size / window_size)                        # how many bins of size window_size to obtain smoothing_size
 
   contiguous_subsets <- find_contiguous_subsets(chr_subset)
 

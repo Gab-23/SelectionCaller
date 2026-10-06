@@ -24,6 +24,7 @@ from workflow.scripts.helpers.SUBSET_DATA_BY_IDXS import *
 from workflow.scripts.helpers.OPTIMIZE_HYPERPARAMS import *
 from workflow.scripts.helpers.EVALUATE_PERFORMANCES import *
 from workflow.scripts.helpers.AGGREGATE_SELECTED_FEATURES import *
+from workflow.scripts.helpers.CHROMOSOME_FOLDS import CHROMOSOME_BLOCKING, CHROMOSOME_SPLIT_DATASET, CHROMOSOME_KFOLD_IDXS
 
 warnings.filterwarnings("ignore", message="Skipping features without any observed values")
 
@@ -35,6 +36,7 @@ parser.add_argument('--input_path_is_multicollinear', dest='input_path_is_multic
 parser.add_argument('--input_path_models', dest='input_path_models', required=True, type=str, help='')
 parser.add_argument('--input_path_blockings', dest='input_path_blockings', required=True, type=str, help='')
 parser.add_argument('--target_col', dest = 'target_col', required = True, type = str, help = '')
+parser.add_argument('--cols_to_exclude', dest = 'cols_to_exclude', nargs = '*', default = [], type = str, help = 'columns never used as predictors (config: cols_to_exclude)')
 parser.add_argument('--selected_model', dest = 'selected_model', required = True, type = str, help = '')
 parser.add_argument('--selected_blocking', dest = 'selected_blocking', required = True, type = str, help = '')
 parser.add_argument('--outer_cv', dest = 'outer_cv', required = True, type = int, help = '')
@@ -55,6 +57,7 @@ args = parser.parse_args()
 DATASET = pd.read_csv(args.input_path_dataset, header = 0, sep = "\t")
 
 TARGET_COL = args.target_col
+COLS_TO_EXCLUDE = args.cols_to_exclude # was hard-coded ["FDR"]; now from config (cols_to_exclude)
 TEST_SIZE = args.test_size
 OUTER_CV = args.outer_cv
 INNER_CV = args.inner_cv
@@ -105,23 +108,41 @@ for MODEL in MODELS:
 
     for BLOCKING in BLOCKINGS:
 
-        X_train, X_test, \
-        y_train, y_test, \
-        binIDs_train, binIDs_test = SPLIT_DATASET(
-            DATASET,
-            TARGET_COL = TARGET_COL,
-            COLS_TO_EXCLUDE = ["FDR"],
-            BLOCKING = BLOCKING,
-            SEED = SEED,
-            TEST_SIZE = TEST_SIZE,
-            CHECK_SORTING_FUN = CHECK_CHR_SORTING,
-            BLOCK_DATASET_FUN = BLOCK_DATASET
-        )
+        # NOTE (LOCO): BLOCKING == "chromosome" holds out WHOLE chromosomes as the test set
+        # (genome_wide mode only - enforced in snakefile_ML); every other blocking is unchanged.
+        if BLOCKING == CHROMOSOME_BLOCKING:
+            X_train, X_test, \
+            y_train, y_test, \
+            binIDs_train, binIDs_test = CHROMOSOME_SPLIT_DATASET(
+                DATASET,
+                TARGET_COL = TARGET_COL,
+                COLS_TO_EXCLUDE = COLS_TO_EXCLUDE,
+                TEST_SIZE = TEST_SIZE,
+                SEED = SEED,
+                SPLIT_DATASET_FUN = SPLIT_DATASET
+            )
+        else:
+            X_train, X_test, \
+            y_train, y_test, \
+            binIDs_train, binIDs_test = SPLIT_DATASET(
+                DATASET,
+                TARGET_COL = TARGET_COL,
+                COLS_TO_EXCLUDE = COLS_TO_EXCLUDE,
+                BLOCKING = BLOCKING,
+                SEED = SEED,
+                TEST_SIZE = TEST_SIZE,
+                CHECK_SORTING_FUN = CHECK_CHR_SORTING,
+                BLOCK_DATASET_FUN = BLOCK_DATASET
+            )
 
         num_rows_test_set = X_test.shape[0]
         empirical_test_size = (num_rows_test_set / num_rows_dataset)
 
-        outer_idxs = GENERATE_KFOLD_IDXS(BLOCKING, OUTER_CV, X_train, binIDs_train, CHECK_CHR_SORTING)
+        # NOTE (LOCO): outer folds made of whole chromosomes (GroupKFold, OUTER_CV folds)
+        if BLOCKING == CHROMOSOME_BLOCKING:
+            outer_idxs = CHROMOSOME_KFOLD_IDXS(binIDs_train, OUTER_CV)
+        else:
+            outer_idxs = GENERATE_KFOLD_IDXS(BLOCKING, OUTER_CV, X_train, binIDs_train, CHECK_CHR_SORTING)
 
         for outer_fold, outer_idxs_tuple in outer_idxs.items():
 

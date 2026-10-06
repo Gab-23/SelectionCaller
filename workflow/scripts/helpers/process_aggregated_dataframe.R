@@ -1,18 +1,20 @@
 process_aggregated_dataframe <- function(df){
-    # NOTE (fix): now tolerates a dataframe that already has a "Model" column (rather than
-    # requiring it live in rownames) - needed for the genome-wide pooled performances case in
-    # select_best_model.R, where rownames alone are NOT safe to combine across chromosomes:
-    # confirmed directly that do.call(rbind, ...) silently mangles duplicate rownames (e.g.
-    # two chromosomes both producing "XGBRegressor_5_0") into something like
-    # "XGBRegressor_5_01", corrupting the fold number once re-parsed. When pooling across
-    # chromosomes, the caller now builds an explicit, disambiguated "Model" column (plus a
-    # "chrom" column) BEFORE combining, bypassing the rowname collision entirely.
+    # NOTE (fix, dplyr-only rewrite): sostituisce tibble::rownames_to_column + tidyr::separate,
+    # non disponibili in questo env (solo dplyr). I nomi dei modelli reali (MODELS file) non
+    # contengono mai underscore, quindi uno strsplit("_") semplice su "Model" produce sempre
+    # esattamente 3 pezzi (model_name, blocking, fold), stesso comportamento di tidyr::separate
+    # in questo caso specifico.
     if (!"Model" %in% colnames(df)) {
-        df <- tibble::rownames_to_column(df, "Model")
+        df$Model <- rownames(df)
+        rownames(df) <- NULL
+        df <- df[, c("Model", setdiff(colnames(df), "Model")), drop = FALSE]
     }
-    df <- df %>%
-        tidyr::separate(Model, sep = "_", into = c("model_name", "blocking", "fold"), remove = F) %>%
-        dplyr::mutate(blocking = factor(blocking, levels = c("noblocking", "5", "10", "15", "20")), fold = as.numeric(fold)) %>%
-        dplyr::select(-Model)    
+
+    split_cols <- do.call(rbind, strsplit(df$Model, "_"))
+    df$model_name <- split_cols[, 1]
+    df$blocking <- factor(split_cols[, 2], levels = c("noblocking", "5", "10", "15", "20"))
+    df$fold <- as.numeric(split_cols[, 3])
+    df$Model <- NULL
+
     return(df)
 }
