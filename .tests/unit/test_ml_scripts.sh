@@ -50,7 +50,7 @@ within_chr_unsorted = pd.Series(['1_2','1_1','2_1','2_2'])
 print('INTERLEAVED', CHECK_CHR_SORTING(interleaved))
 print('SORTED', CHECK_CHR_SORTING(sorted_ok))
 print('WITHIN_CHR_UNSORTED', CHECK_CHR_SORTING(within_chr_unsorted))
-" > "$TMP/chr_sorting_out.txt"
+" > "$TMP/chr_sorting_out.txt" 2>&1 || true
 check "interleaved chromosomes correctly caught (False)" "$(grep INTERLEAVED "$TMP/chr_sorting_out.txt" | cut -d' ' -f2)" "False"
 check "properly sorted array still passes (True)" "$(grep '^SORTED' "$TMP/chr_sorting_out.txt" | cut -d' ' -f2)" "True"
 check "within-chromosome disorder still caught (False, non-regression)" "$(grep WITHIN_CHR "$TMP/chr_sorting_out.txt" | cut -d' ' -f2)" "False"
@@ -78,21 +78,39 @@ echo "    (bug: shap.LinearExplainer(...) passed a bare Ellipsis as its only arg
 echo "    masker parameter was never implemented at all, not just mistyped. Confirmed this"
 echo "    raised 'missing 1 required positional argument: masker'. Fixed by adding a"
 echo "    BACKGROUND_DATA parameter, used as the masker.)"
-RC=$(python3 -c "
+echo "    The pipeline and the call mirror train_cv_plus_models.py: linear models always get"
+echo "    imputation + scaling before the model (a model-only pipeline is built only for models"
+echo "    that need no scaling and handle NAs, i.e. XGBRegressor, which is tree-based and never"
+echo "    reaches this branch), and the explainer is used through .shap_values(), as in"
+echo "    GET_OUT_OF_FOLD_SHAP_VALUES.py. (The test used to build a model-only pipeline and call"
+echo "    explainer(X): the empty preprocessor has no .transform() in current scikit-learn and the"
+echo "    wrapper is not callable - failures of the test setup, not of the pipeline.)"
+python3 -c "
 import sys
 sys.path.insert(0, 'workflow/scripts/helpers')
 import numpy as np, pandas as pd
 from sklearn.linear_model import LinearRegression
 from sklearn.pipeline import Pipeline
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import StandardScaler
 from GET_EXPLAINER import GET_EXPLAINER
 np.random.seed(0)
 X = pd.DataFrame(np.random.rand(20, 2), columns=['a','b'])
 y = pd.Series(np.random.rand(20))
-pipe = Pipeline([('model', LinearRegression())]).fit(X, y)
+pipe = Pipeline([('imputation', SimpleImputer()), ('scaling', StandardScaler()), ('model', LinearRegression())]).fit(X, y)
 explainer = GET_EXPLAINER(pipe, IS_TREE_BASED=False, IS_LINEAR=True, BACKGROUND_DATA=X)
-explainer(X)
-" > /dev/null 2>&1; echo $?)
-check "LinearExplainer no longer crashes with missing masker" "$RC" "0"
+values = np.asarray(explainer.shap_values(X))
+print('SHAPE', values.shape)
+# local accuracy: base value + SHAP values = model prediction (exact for a linear model)
+print('ADDITIVE', bool(np.allclose(explainer.expected_value + values.sum(axis=1), pipe.predict(X))))
+# base value = mean model prediction over the background: only true if the masker is the
+# background as the model sees it (imputed + scaled); with raw data the base value is off
+print('BASE', bool(np.isclose(explainer.expected_value, pipe.predict(X).mean())))
+" > "$TMP/explainer_out.txt" 2>&1 || true
+check "LinearExplainer (with masker) builds and returns one SHAP value per sample and feature" "$(grep '^SHAPE' "$TMP/explainer_out.txt" | cut -d' ' -f2-)" "(20, 2)"
+check "base value + SHAP values = prediction (explainer sees the scaled data the model sees)" "$(grep '^ADDITIVE' "$TMP/explainer_out.txt" | cut -d' ' -f2)" "True"
+check "base value = mean prediction over the background (masker is the preprocessed background)" "$(grep '^BASE' "$TMP/explainer_out.txt" | cut -d' ' -f2)" "True"
+grep -q '^ADDITIVE' "$TMP/explainer_out.txt" || tail -5 "$TMP/explainer_out.txt"
 
 echo "=== 4) BUILD_MODEL.py ==="
 echo "    (n_jobs was hardcoded to 1 for every parallelizable model - parametrized per your"
@@ -131,11 +149,11 @@ import pandas as pd
 d = {'ModelA_5_0': {'r2': 0.1}, 'ModelA_5_1': {'r2': 0.1}}  # identical r2 on purpose
 df = pd.DataFrame.from_dict(d, orient='index')
 df.to_csv('$TMP/perf_test.tsv', sep='\t', header=True, index=True)
-"
+" || true
 Rscript -e '
 df <- read.delim("'"$TMP"'/perf_test.tsv", sep="\t", row.names=1, check.names=FALSE)
 cat("ROWNAMES", paste(rownames(df), collapse=","), "\n")
-' > "$TMP/r_read_out.txt" 2>&1
+' > "$TMP/r_read_out.txt" 2>&1 || true
 check "row identifiers survive the round-trip even with duplicate metric values" "$(grep ROWNAMES "$TMP/r_read_out.txt" | cut -d' ' -f2)" "ModelA_5_0,ModelA_5_1"
 
 echo "=== 6) select_best_model.R ggsave() variable names ==="
@@ -143,7 +161,10 @@ echo "    (aggregate_and_visualize_models.R was removed - its aggregation+visual
 echo "    was consolidated into select_best_model.R/visualize_models.R. This check verifies"
 echo "    the same class of bug that hit the old script (a ggsave() call referencing a"
 echo "    variable that was never actually assigned/read from args) isn't present here.)"
-declared_vars=$(grep -oE 'output_path_plot_[a-z_]+|output_path_median_boxplots' workflow/scripts/select_best_model.R | sort -u)
+# "declared" = assigned from the command-line arguments (output_path_X <- args$...). The list used
+# to be hard-coded (output_path_plot_* + output_path_median_boxplots) and missed every new output,
+# e.g. output_path_blocking_density, reporting a correctly declared variable as undeclared.
+declared_vars=$(grep -oE '^output_path_[a-z_]+[[:space:]]*<-[[:space:]]*args\$' workflow/scripts/select_best_model.R | grep -oE '^output_path_[a-z_]+' | sort -u)
 ggsave_vars=$(grep "ggplot2::ggsave" workflow/scripts/select_best_model.R | grep -oE 'output_path_[a-z_]+' | sort -u)
 undeclared=$(comm -23 <(echo "$ggsave_vars") <(echo "$declared_vars"))
 if [ -n "$undeclared" ]; then
@@ -161,9 +182,11 @@ echo "       (no error, no warning)."
 echo "    b) write.table(output_path, dataset.f, ...) had x and file swapped (the signature"
 echo "       is write.table(x, file, ...)) - crashed directly.)"
 printf "binID\tval\n1_1\t10\n1_2\t20\n10_1\t30\n2_1\t40\n" > "$TMP/split_dataset.tsv"
+RC=0
 Rscript workflow/scripts/split_dataset_by_chromosome.R \
-    --input_path="$TMP/split_dataset.tsv" --chrom=1 --output_path="$TMP/split_chr1.tsv" > "$TMP/split_out.log" 2>&1
-RC=$?
+    --input_path="$TMP/split_dataset.tsv" --chrom=1 --output_path="$TMP/split_chr1.tsv" > "$TMP/split_out.log" 2>&1 || RC=$?
+[ "$RC" -eq 0 ] || cat "$TMP/split_out.log"
+touch "$TMP/split_chr1.tsv"
 check "script runs without error" "$RC" "0"
 check "filters to exactly chr1's 2 rows (not the whole unfiltered dataset)" "$(tail -n +2 "$TMP/split_chr1.tsv" | wc -l | tr -d ' ')" "2"
 check "does not false-positive match chr10 as a chr1 prefix" "$(grep -c '^10_' "$TMP/split_chr1.tsv" || true)" "0"
@@ -202,8 +225,11 @@ hp <- data.frame(model__fit_intercept=c("True","True",NA,NA), model__max_depth=c
 rownames(hp) <- rn
 result <- visualize_models(process_aggregated_dataframe(feats), process_aggregated_dataframe(perf), process_aggregated_dataframe(hp))
 cat("NAMES", paste(names(result), collapse=","), "\n")
-' > "$TMP/visualize_out.txt" 2>&1
-check "visualize_models() runs end-to-end on already-processed input and returns all 4 plots" "$(grep NAMES "$TMP/visualize_out.txt" | cut -d' ' -f2)" "heatmap_features,heatmap_performances,median_boxplots,hyperparams_table"
+' > "$TMP/visualize_out.txt" 2>&1 || true
+# blocking_density_plot was added to visualize_models() (saved by select_best_model.R as
+# blocking_density.pdf); the test still expected the previous 4 plots
+check "visualize_models() runs end-to-end on already-processed input and returns all 5 plots" "$(grep NAMES "$TMP/visualize_out.txt" | cut -d' ' -f2)" "heatmap_features,heatmap_performances,median_boxplots,blocking_density_plot,hyperparams_table"
+grep -q NAMES "$TMP/visualize_out.txt" || tail -5 "$TMP/visualize_out.txt"
 
 echo "=== 10) generate_genes_on_bins_obj.smk / split_dataset_by_chromosome.smk / select_best_model.smk conda: ==="
 echo "    (bug: the conda: environment declared for a rule must actually match what its own"
@@ -226,9 +252,12 @@ for pair in "split_dataset_by_chromosome.smk:split_dataset_by_chromosome.R" "sel
     for pkg in $used_pkgs; do
         pkg_lower=$(echo "$pkg" | tr '[:upper:]' '[:lower:]')
         if ! echo "$env_pkgs" | grep -qx "$pkg_lower"; then
-            # r-essentials covers these common tidyverse packages transitively
+            # r-essentials covers these common tidyverse packages transitively; scales is
+            # installed with ggplot2 (a hard dependency); the base-R packages ship with r-base
+            # itself (they used to be reported as missing, e.g. grDevices::pdf)
             case "$pkg_lower" in
-                dplyr|tidyr|ggplot2|tibble|magrittr|tidyselect) continue ;;
+                dplyr|tidyr|ggplot2|tibble|magrittr|tidyselect|scales) continue ;;
+                grdevices|graphics|grid|stats|utils|methods|tools|parallel|splines) continue ;;
             esac
             missing="$missing $pkg"
         fi
@@ -267,7 +296,7 @@ X2, y2, _ = SPLIT_DATASET(DATASET, TARGET_COL='FDR', COLS_TO_EXCLUDE=['logFC'], 
 assert list(y2) == [0.01, 0.02]
 assert 'FDR' not in X2.columns and 'logFC' not in X2.columns
 print('OK')
-" > "$TMP/target_col_out.txt" 2>&1
+" > "$TMP/target_col_out.txt" 2>&1 || true
 check "TARGET_COL dinamico produce la colonna target corretta in entrambi i casi" "$(cat "$TMP/target_col_out.txt")" "OK"
 
 echo

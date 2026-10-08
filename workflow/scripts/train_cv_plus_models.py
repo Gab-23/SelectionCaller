@@ -62,12 +62,8 @@ METRICS_LIST = ["r2", "adj_r2", "explained_variance", "neg_mean_squared_error",
 
 models_df = pd.read_csv(args.input_path_models, header = 0, sep = "\t")
 
-CONSENSUS_HYPERPARAMS = pd.read_csv(args.input_path_consensus_hyperparams, header = None, sep = "\t")
-CONSENSUS_HYPERPARAMS.columns = ["hyperparam_name", "value"]
-CONSENSUS_HYPERPARAMS.hyperparam_name = [name.replace("model__", "") for name in CONSENSUS_HYPERPARAMS.hyperparam_name.tolist()]
-
-consensus_hyperparams_dict = dict(zip(CONSENSUS_HYPERPARAMS.hyperparam_name, CONSENSUS_HYPERPARAMS.value))
-consensus_hyperparams_dict = {k: coerce_hyperparam_value(v) for k, v in consensus_hyperparams_dict.items()}
+# read as text and typed by coerce_hyperparam_value (see read_consensus_hyperparams for why)
+consensus_hyperparams_dict = read_consensus_hyperparams(args.input_path_consensus_hyperparams)
 
 with open(args.input_path_consensus_features) as f:
     CONSENSUS_FEATURES = [line.rstrip() for line in f.readlines()]
