@@ -51,6 +51,9 @@ DepMap_probabilities_locations:
 DepMap_scores_locations:
   - "resources/DepMap/scores/CRISPRGeneEffect.csv"
 
+COSMIC_sample_name_patterns:
+  - "TCGA"
+
 COSMIC_classification_locations:
   - resources/COSMIC/classification/Cosmic_Classification_Tsv_v103_GRCh38/Cosmic_Classification_v103_GRCh38.tsv
 
@@ -60,8 +63,25 @@ COSMIC_samples_locations:
 COSMIC_coding_locations:
   - "resources/COSMIC/mutations/coding/Cosmic_GenomeScreensMutant_Tsv_v103_GRCh38/Cosmic_GenomeScreensMutant_v103_GRCh38.tsv"
 
+# Campioni ipermutati: esclusi se hanno piu' di questo numero di eventi CODIFICANTI
+# (campione x mutazione, sostituzioni e indel) nel file COSMIC filtrato. "none" = nessuna esclusione.
+# 3000 = criterio di Martincorena et al. 2017 (> 3000 mutazioni codificanti per campione).
+# Config-only (non entra nei nomi dei file): dopo un cambio usare --forcerun compute_coding_mutations_counts.
+COSMIC_hypermutator_max_mutations:
+  - "3000"
+
+# Trascritti usati per la classe delle mutazioni (mut_n_syn / mut_n_mis / mut_n_trunc / mut_n_other_coding):
+# "canonical" = trascritto con tag Ensembl_canonical nel GTF di GENCODE (gencode_versions);
+# "all" = classe piu' grave tra tutti i trascritti.
+# Config-only (non entra nei nomi dei file): dopo un cambio usare --forcerun compute_coding_mutations_counts.
+COSMIC_transcript_mode:
+  - "canonical"
+
 COSMIC_noncoding_locations:
   - "resources/COSMIC/mutations/noncoding/Cosmic_NonCodingVariants_Tsv_v103_GRCh38/Cosmic_NonCodingVariants_v103_GRCh38.tsv"
+
+COSMIC_event_annotation:
+  - "reference"
 
 GDC_clinical_locations:
   - "resources/GDC/CNAs/clinical.cohort.2026-01-28/clinical.tsv"
@@ -76,7 +96,7 @@ GDC_CNA_files_locations:
   - resources/GDC/CNAs/files/*/*.seg.v2.txt
 
 selected_samples_location_repliseqs:
-  - config/HMEC_selected_samples_repliseq
+  - "config/{repliseq_cell_line}_selected_samples_repliseq"
 
 selected_samples_location_atacseqs:
   - config/BREAST_selected_samples_atacseq
@@ -85,7 +105,7 @@ samples_to_exclude_location_atacseqs:
   - config/BREAST_samples_to_exclude_atacseq
 
 selected_samples_location_hics:
-  - config/MCF10A_selected_samples_hic
+  - "config/{hic_cell_line}_selected_samples_hic"
 
 hic_qc_script_locations:
   - "/hpcnfs/scratch/MS/ieo7429/hic_qc/hic_qc.py"
@@ -100,19 +120,20 @@ window_modes:
   - binned
 
 window_sizes:
- - 20000
+ - 500000
+ - 1000000
 
 steps:
  - 0
 
 tumor_types:
-  - BRCA
+  - LUAD
 
 genders:
-  - F
+  - ALL
 
 sample_types:
- - PrimaryCulture
+ - PrimaryTissue
 
 file_formats:
  - mnemonics
@@ -122,9 +143,6 @@ essentiality_cutoffs:
 
 num_assays_cutoffs:
   - 4
-
-COSMIC_sample_name_patterns:
-  - "TCGA"
 
 min_Num_Probes:
   - 50
@@ -139,7 +157,7 @@ num_cores_atacseqs:
   - 60
 
 num_cores_hics:
-  - 60
+  - 16
 
 java_mem_size_repliseqs:
   - 50G
@@ -154,7 +172,7 @@ cov_thrs:
   - 50
 
 smoothing_sizes:
-  - 500000
+  - 4000000
 
 max_insert_size_atacseqs:
   - 2000
@@ -179,3 +197,35 @@ q_val_thr_atacseqs:
 
 num_cores_Rs:
   - 10
+
+# Distance features: cap (bp) applied symmetrically around each locus, per chromosome (rule
+# cap_distance_feature). Config-only, NOT a wildcard: exactly one value, not encoded in file names.
+dist_caps:
+  - 10000000
+
+# data/distances/<subfolder> names of the distance features to cap. centromeres and telomeres can be
+# added too (same file format), but they are meant to encode large-scale position.
+capped_distance_features:
+  - OG
+  - TSG
+  - essential
+  - fragile_sites
+  - PC
+  - lncRNA
+  - miRNA
+  - rRNA
+
+GC_correction_atacseqs:
+  - "loess"        # "none" = come adesso
+  
+GC_span_atacseqs:
+  - 0.3            # più alto = curva più liscia
+
+GC_n_fit_atacseqs:
+  - 20000          # bin usati per stimare ogni curva
+
+blacklist_max_fraction:
+  - "0.5"
+# NOTE (29/10/2026): input del dataset esclusi (parametro solo da config): nessun ATAC tumore vs normale per il polmone
+dataset_excluded_inputs:
+  - DARs

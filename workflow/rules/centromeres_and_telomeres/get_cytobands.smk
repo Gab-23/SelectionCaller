@@ -4,10 +4,11 @@ rule get_cytobands:
     log:
         "logs/get_cytobands/{assembly_code}.log"
     shell:
-        # keep only chr1..chr22 (drop chrX/chrY/chrM and alt/random/patch contigs, whose
+        # keep chr1..chr22 and chrX (drop chrY/chrM and alt/random/patch contigs, whose
         # names contain "_"). Output is plain text (.txt, no .gz): the original command
         # already decompressed via gunzip before writing, the ".gz" in the filename was
         # just misleading, not an actual encoding - dropped rather than re-compressed.
+        # NOTE (26/10/2026): chrX now kept, consistently with clean_chrom_sizes (female cohort; X-linked drivers).
         # NOTE (fix): homologated with get_reference_genome's download-robustness fix - the
         # original piped `wget -qO- ... | gunzip | ...` directly, which both hides wget's own
         # errors (-q) and silently produces a truncated/corrupt intermediate if the download
@@ -18,6 +19,6 @@ rule get_cytobands:
         wget --tries=5 --timeout=60 --continue -O "$TMP_GZ" \
         https://hgdownload.soe.ucsc.edu/goldenPath/{wildcards.assembly_code}/database/cytoBand.txt.gz \
         2>{log}
-        gunzip -c "$TMP_GZ" | grep -vE '_|X|M|Y' > {output}
+        gunzip -c "$TMP_GZ" | grep -vE '_|M|Y' > {output}
         rm -f "$TMP_GZ"
         """

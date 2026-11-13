@@ -32,7 +32,7 @@
 set -uo pipefail  # NOT -e: one module's failure must not abort the others
 
 SNAKEFILE="${1:-workflow/snakefile_dataset_bin_level}"
-CONFIGFILE="${2:-config/config_dataset.yaml}"
+CONFIGFILE="${2:-config/config_dataset_BRCA.yaml}"
 OUTDIR="dags"
 SCRATCH_DIR=$(mktemp -d)
 trap 'rm -rf "$SCRATCH_DIR"' EXIT

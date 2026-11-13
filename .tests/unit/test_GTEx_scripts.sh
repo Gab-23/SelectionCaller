@@ -84,7 +84,7 @@ if run resources/GTEx/latest/gene_median_tpm.gct.gz; then fail "non-'v<N>' relea
 pass "release wildcard constrained to v<N>"
 
 # 8. no links in the configs (they hold local paths and parameters only)
-for c in "$REPO/config/config_dataset.yaml" "$REPO/.tests/integration/config/config_dataset.yaml"; do
+for c in "$REPO/config/config_dataset_BRCA.yaml" "$REPO/.tests/integration/config/config_dataset.yaml"; do
     ! grep -nE "https?://" "$c" || fail "link found in $c"
 done
 pass "no URLs in config files"
@@ -159,6 +159,48 @@ if Rscript "$REPO/workflow/scripts/process_GTEx.R" --input_path_gct="$P/toy.gct.
 fi
 grep -q "Ovary" "$P/err2.log" || fail "error message does not name the missing tissue"
 pass "process_GTEx.R: missing mapped tissue raises an error naming it"
+grep -q "GCT tissue columns available: .*Lung" "$P/err2.log" || fail "missing-tissue error does not list the available GCT columns"
+pass "process_GTEx.R: missing-tissue error lists the tissue columns the GCT does have"
+
+# Later GTEx releases (v10/v11) name tissue columns with underscore IDs ("Brain_Cortex") instead
+# of the v8 display names ("Brain - Cortex"). Same toy values, underscore-style header: the output
+# must be byte-identical to the v8-style run above (mapping keeps its v8-style names).
+head -n 2 "$P/toy.gct" > "$P/toy_v11.gct"
+printf 'Name\tDescription\tBreast_Mammary_Tissue\tLung\tKidney_Cortex\tBrain_Cortex\tBrain_Cerebellum\tBrain_Hippocampus\tHeart_Left_Ventricle\n' >> "$P/toy_v11.gct"
+tail -n +4 "$P/toy.gct" >> "$P/toy_v11.gct"
+gzip -c "$P/toy_v11.gct" > "$P/toy_v11.gct.gz"
+head -n 8 "$P/mapping.tsv" > "$P/mapping_ok.tsv"          # without the Ovary row added above
+Rscript "$REPO/workflow/scripts/process_GTEx.R" --input_path_gct="$P/toy_v11.gct.gz" \
+    --input_path_mapping="$P/mapping_ok.tsv" --output_path="$P/out_v11.tsv" 2> "$P/err_v11.log" \
+    || { cat "$P/err_v11.log"; fail "process_GTEx.R on underscore-style (v11) tissue names"; }
+cmp -s "$P/out.tsv" "$P/out_v11.tsv" || fail "underscore-style tissue names give a different output"
+grep -q "Breast...Mammary.Tissue -> Breast_Mammary_Tissue" "$P/err_v11.log" || fail "tissue matching not logged"
+pass "process_GTEx.R: underscore-style (v11) tissue names matched, output identical to v8-style names"
+
+# Every tissue of the real mapping (v8-style names) is found in an underscore-style header
+Rscript -e 'm <- read.delim(commandArgs(TRUE)[1], stringsAsFactors = FALSE)
+t <- unique(m$GTEx_tissue); hdr <- gsub("_+$", "", gsub("\\.+", "_", t))      # v11-style IDs
+g <- data.frame(Name = c("ENSG01.1", "ENSG02.1"), Description = c("A", "B"))
+for (h in hdr) g[[h]] <- c(1, 2)
+con <- gzfile(commandArgs(TRUE)[2], "w"); writeLines(c("#1.2", paste(2, length(hdr), sep = "\t")), con)
+write.table(g, con, sep = "\t", quote = FALSE, row.names = FALSE); close(con)' \
+    "$REPO/config/mapping_GTEx_TCGA" "$P/real_v11_header.gct.gz"
+Rscript "$REPO/workflow/scripts/process_GTEx.R" --input_path_gct="$P/real_v11_header.gct.gz" \
+    --input_path_mapping="$REPO/config/mapping_GTEx_TCGA" --output_path="$P/out_real.tsv" 2> "$P/err_real.log" \
+    || { tail -3 "$P/err_real.log"; fail "real mapping not matched against an underscore-style header"; }
+[ "$(head -1 "$P/out_real.tsv" | tr '\t' '\n' | tail -n +3 | wc -l)" == "23" ] || fail "real mapping: not 23 cohorts"
+pass "config/mapping_GTEx_TCGA: all 36 tissues matched against an underscore-style (v11) header, 23 cohorts"
+
+# Two GCT columns that only differ in punctuation -> explicit error, no guessing
+head -n 2 "$P/toy.gct" > "$P/toy_ambig.gct"
+printf 'Name\tDescription\tBreast - Mammary Tissue\tLung\tKidney - Cortex\tBrain - Cortex\tBrain_Cortex\tBrain - Hippocampus\tHeart - Left Ventricle\n' >> "$P/toy_ambig.gct"
+tail -n +4 "$P/toy.gct" >> "$P/toy_ambig.gct"; gzip -c "$P/toy_ambig.gct" > "$P/toy_ambig.gct.gz"
+if Rscript "$REPO/workflow/scripts/process_GTEx.R" --input_path_gct="$P/toy_ambig.gct.gz" \
+    --input_path_mapping="$P/mapping_ok.tsv" --output_path="$P/out_ambig.tsv" 2> "$P/err_ambig.log"; then
+    fail "ambiguous tissue columns accepted"
+fi
+grep -q "only differ in punctuation" "$P/err_ambig.log" || fail "ambiguous tissue columns error message"
+pass "process_GTEx.R: GCT columns that differ only in punctuation -> explicit error"
 
 # real mapping table shipped in config/ is well-formed
 Rscript -e 'm <- read.delim(commandArgs(TRUE)[1]); stopifnot(identical(colnames(m), c("GTEx_tissue","TCGA_cohort")), nrow(m) == 40, length(unique(m$TCGA_cohort)) == 23, !anyNA(m), !any(grepl("\r", unlist(m))))' \

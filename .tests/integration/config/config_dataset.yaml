@@ -51,13 +51,13 @@ GDC_manifest_locations:
 GDC_CNA_files_locations:
   - resources/GDC/CNAs/files/*/*.seg.v2.txt
 selected_samples_location_repliseqs:
-  - resources/repliseq_selected_samples.tsv
+  - "resources/{repliseq_cell_line}_selected_samples_repliseq_toy"
 selected_samples_location_atacseqs:
   - resources/BREAST_selected_samples_atacseq_toy
 samples_to_exclude_location_atacseqs:
   - resources/BREAST_samples_to_exclude_atacseq_toy
 selected_samples_location_hics:
-  - resources/MCF10A_selected_samples_hic_toy
+  - "resources/{hic_cell_line}_selected_samples_hic_toy"
 hic_qc_script_locations:
   - "resources/hic_qc/hic_qc.py"
 assembly_codes:
@@ -120,3 +120,16 @@ q_val_thr_atacseqs:
   - 1
 num_cores_Rs:
   - 2
+# Distance cap (rule cap_distance_feature). Toy genome with 200 bp bins: 1000 bp (5 bins) so the
+# cap actually bites on toy data (1 Mbp, the production value, would be a no-op here).
+dist_caps:
+  - 1000
+capped_distance_features:
+  - OG
+  - TSG
+  - essential
+  - fragile_sites
+  - PC
+  - lncRNA
+  - miRNA
+  - rRNA

@@ -18,3 +18,27 @@ train_*/
 *Regression
 burners/
 /go_enrichment_out
+*pilot*# dati e output (restano sul cluster)
+data/
+resources/
+results/
+analyses/
+archive/
+snapshots/
+logs/
+logs_pilot/
+.snakemake/
+# copie, cache, output dei job
+*.bak_*
+*_old
+__pycache__/
+*.pyc
+*.out
+outputs_*.txt
+# script superati o usati una sola volta (restano sul cluster, fuori dal repository)
+patch_*.py
+gene_level_drivers.py
+noise_ceiling.py
+context_weighted_sites.py
+residual_vs_raw_drivers.py
+test_gene_level_tails.py

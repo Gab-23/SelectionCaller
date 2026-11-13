@@ -1,21 +1,20 @@
 rule merge_coolers:
+    # NOTE (02/11/2026): {hic_cell_line} nel nome (uscita, controllo, log): una matrice unita per linea cellulare / tessuto.
+    # NOTE (02/11/2026, fix): si uniscono SOLO le matrici delle corse della linea (file dei campioni della linea, tramite
+    # get_matrices_outputs_hic), dichiarate come input. Prima un glob (cooler/*/<parametri>.cool) prendeva le matrici di
+    # TUTTE le corse presenti su disco: con piu' linee (es. MCF10A e polmone) le avrebbe unite insieme.
+    # Le corse della linea (repliche tecniche e donatori) vengono sommate, come prima.
     output:
-        "resources/hic/files/cooler/{assembly_code}_{mapq_thr}_{window_mode}_{window_size}_{step}.cool"
+        "resources/hic/files/cooler/{assembly_code}_{mapq_thr}_{window_mode}_{window_size}_{step}_{hic_cell_line}.cool"
     input:
-        check="resources/hic/checks/{assembly_code}_{mapq_thr}_{window_mode}_{window_size}_{step}_matrices"
+        coolers=get_matrices_outputs_hic,
+        check="resources/hic/checks/{assembly_code}_{mapq_thr}_{window_mode}_{window_size}_{step}_{hic_cell_line}_matrices"
     log:
-        "logs/merge_coolers/{assembly_code}_{mapq_thr}_{window_mode}_{window_size}_{step}.log"
+        "logs/merge_coolers/{assembly_code}_{mapq_thr}_{window_mode}_{window_size}_{step}_{hic_cell_line}.log"
     conda:
         "../../envs/hic_processing_env.yml"
     shell:
-        # NOTE (fix): the glob was "resources/hic/files/cooler/*/*.cool", which grabs every
-        # per-sample .cool file under ANY subdirectory, regardless of assembly_code/mapq_thr/
-        # window_mode/window_size/step - if this pipeline is ever run with more than one
-        # combination of these parameters (each has its own config list, like every other
-        # parameter in this codebase), this would merge .cool files from DIFFERENT parameter
-        # combinations together. Harmless with the current single-value config, but wrong in
-        # general. Fixed to only match this specific combination's files.
         """
-        COOLER_PATHS=$(ls resources/hic/files/cooler/*/{wildcards.assembly_code}_{wildcards.mapq_thr}_{wildcards.window_mode}_{wildcards.window_size}_{wildcards.step}.cool) 2>>{log}
-        cooler merge {output} $COOLER_PATHS 2>>{log}
+        echo "matrici unite ({wildcards.hic_cell_line}): {input.coolers}" >> {log}
+        cooler merge {output} {input.coolers} 2>>{log}
         """

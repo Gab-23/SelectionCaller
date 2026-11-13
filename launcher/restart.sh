@@ -51,7 +51,7 @@ FINDER="$SCRIPT_DIR/find_backbone_targets.py"
 # a sibling of the raw file in the very same directory (confirmed by reading
 # filter_CRISPR_models.smk, filter_CRISPR_probabilities.smk, filter_CRISPR_scores.smk,
 # filter_classification_COSMIC.smk, filter_samples_COSMIC.smk, get_bin_level_essentiality.smk
-# - see also config/config_dataset.yaml for the exact raw filenames used below). Protecting
+# - see also config/config_dataset_BRCA.yaml for the exact raw filenames used below). Protecting
 # the whole parent directory there would silently preserve stale derived files across a
 # --hard reset, and made --only-backbone skip a real, removable backbone-dependent file
 # during testing. resources/IntOGen and resources/GDC/CNAs/files are NOT mixed this way

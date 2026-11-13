@@ -1,0 +1,7 @@
+name: bedtools_samtools
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - bedtools
+  - samtools

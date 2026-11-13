@@ -1,6 +1,9 @@
 rule compute_library_size_repliseq:
+    # NOTE (30/10/2026): {repliseq_cell_line} nel nome (uscita, log, controllo in input): le dimensioni di libreria sono quelle
+    # dei campioni della linea cellulare (es. HMEC per il seno, T2P per il LUAD). Prima il file era unico per assembly/mapq e
+    # una linea sovrascriveva l'altra; e gli allineamenti .noblack.sorted.bam sono temp(), quindi non si poteva ricalcolarlo.
     output:
-        "resources/repliseq/files/library_size/{assembly_code}_{mapq_thr}"
+        "resources/repliseq/files/library_size/{assembly_code}_{mapq_thr}_{repliseq_cell_line}"
     input:
         # NOTE (fix): this used to depend only on the "check" marker file from the
         # all_sort_blacklisted_alignment_repliseq collector rule, while the actual
@@ -12,9 +15,9 @@ rule compute_library_size_repliseq:
         # per-sample bam files as inputs (reusing the same helper function the collector
         # rule itself uses) tells Snakemake to keep them alive until this rule has run too.
         bams=get_sort_noblacklisted_alignment_outputs_repliseq,
-        check="resources/repliseq/checks/{assembly_code}_{mapq_thr}_noblacklist_alignment_sorting"
+        check="resources/repliseq/checks/{assembly_code}_{mapq_thr}_{repliseq_cell_line}_noblacklist_alignment_sorting"
     log:
-        "logs/compute_library_size/{assembly_code}_{mapq_thr}.log"
+        "logs/compute_library_size/{assembly_code}_{mapq_thr}_{repliseq_cell_line}.log"
     conda:
         "../../envs/bwa_samtools.yml"
     shell:

@@ -10,7 +10,13 @@ min_Num_Probes                   <- as.numeric(args$min_Num_Probes)
 min_abs_Segment_Mean             <- as.numeric(args$min_abs_Segment_Mean)
 
 segmentation_file <- read.delim(input_path, header = F)
-colnames(segmentation_file) <- c("chr", "start", "end", "num_probes", "segment_mean")
+# NOTE (29/10/2026): l'aggregato ha ora una sesta colonna, l'identificativo del campione (aggregate_GDC_CNA_data), che serve
+# a contare i pazienti distinti per bin; viene mantenuta nel file filtrato. Accetta anche il vecchio formato a cinque colonne.
+if (ncol(segmentation_file) == 6) {
+    colnames(segmentation_file) <- c("chr", "start", "end", "num_probes", "segment_mean", "sample")
+} else {
+    colnames(segmentation_file) <- c("chr", "start", "end", "num_probes", "segment_mean")
+}
 
 segmentation_file.f <- segmentation_file[(segmentation_file$num_probes > min_Num_Probes) & 
                                          (abs(segmentation_file$segment_mean) > min_abs_Segment_Mean),]
@@ -94,4 +100,3 @@ write.table(x = segmentation_file.f,                                            
                 sep = "\t", 
                 row.names = F, 
                 col.names = F)
-

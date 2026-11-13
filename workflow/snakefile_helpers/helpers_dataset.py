@@ -38,6 +38,32 @@ def map_tt_acronym(mapping_file_location, tumor_type, cohort_project):
     except FileNotFoundError as err:
         print(f"{mapping_file_location} does not exist")
 
+def map_cell_line(mapping_file_location, tumor_type, column):
+    # NOTE (02/11/2026): valore della colonna `column` della mappatura per il tipo tumorale (linea cellulare / tessuto di
+    # un dato di riferimento, es. repliseq_cell_line, hic_cell_line); errore se la colonna manca o il valore e' vuoto.
+    mapping = pandas.read_csv(mapping_file_location, header = 0, sep = "\t")
+    if column not in mapping.columns:
+        raise ValueError(f"{mapping_file_location}: manca la colonna {column}")
+    values = mapping[mapping.common_name == tumor_type][column].values
+    if len(values) != 1 or pandas.isna(values[0]) or str(values[0]).strip() == "":
+        raise ValueError(f"{mapping_file_location}: {column} mancante o non unico per {tumor_type}")
+    return str(values[0]).strip()
+
+def map_hic_cell_line(mapping_file_location, tumor_type):
+    # NOTE (02/11/2026): linea cellulare / tessuto dell'Hi-C (colonna hic_cell_line, es. BRCA -> MCF10A, LUAD -> LUNG)
+    return map_cell_line(mapping_file_location, tumor_type, "hic_cell_line")
+
+def map_repliseq_cell_line(mapping_file_location, tumor_type):
+    # NOTE (30/10/2026): linea cellulare del Repli-seq per il tipo tumorale (colonna repliseq_cell_line della mappatura,
+    # es. BRCA -> MCF10A, LUAD -> T2P). Funzione separata da map_tt_acronym per non cambiarne il valore di ritorno.
+    mapping = pandas.read_csv(mapping_file_location, header = 0, sep = "\t")
+    if "repliseq_cell_line" not in mapping.columns:
+        raise ValueError(f"{mapping_file_location}: manca la colonna repliseq_cell_line")
+    values = mapping[mapping.common_name == tumor_type].repliseq_cell_line.values
+    if len(values) != 1 or pandas.isna(values[0]) or str(values[0]).strip() == "":
+        raise ValueError(f"{mapping_file_location}: repliseq_cell_line mancante o non unico per {tumor_type}")
+    return str(values[0]).strip()
+
 def map_gender(mapping_file_location, gender):
     try:
         mapping = pandas.read_csv(mapping_file_location, header = 0, sep = "\t")

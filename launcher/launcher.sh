@@ -3,8 +3,8 @@
 #SBATCH --partition=general
 #SBATCH --output=/hpcnfs/scratch/MS/ieo7429/SelectionCaller/snakemake_%j.out
 #SBATCH --time=48:00:00
-#SBATCH --cpus-per-task=10
-#SBATCH --mem=16G
+#SBATCH --cpus-per-task=20
+#SBATCH --mem=100G
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=ieo7429@ieo.it
 # NOTE: the #SBATCH values above are only defaults - override them per run on the

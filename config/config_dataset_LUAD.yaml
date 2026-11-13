@@ -1,0 +1,231 @@
+input_path_masks: 
+  - "config/non_existing_file"
+
+mapping_file_tt_locations:
+  - config/mapping_tissue_tumor_type
+
+mapping_file_gender_locations:
+  - config/mapping_gender
+
+# GTEx tissue -> TCGA cohort (PENNE Supplementary Table 9; GTEx names as R make.names())
+mapping_file_GTEx_locations:
+  - config/mapping_GTEx_TCGA
+
+sequencers_info_locations:
+  - config/sequencers_info
+
+ohnologs_locations:
+  - "resources/ohnologs_and_paralogs/origin/OhnologList.RData"
+
+paralogs_locations:
+  - "resources/ohnologs_and_paralogs/origin/ParalogList.RData"
+
+# Frozen inputs used by PENNE (origin of the raw releases unknown; CORUM cited as 3.0,
+# Giurgiu et al. 2019; Interactome INSIDER HQ interfaces, Meyer et al. 2018)
+CORUM_locations:
+  - "resources/protein_interactions/origin/HumanPCgenes_Subunits_allchr.RData"
+
+InteractomeINSIDER_locations:
+  - "resources/protein_interactions/origin/H_sapiens_interfacesHQ_genename.RData"
+
+haploinsufficiency_locations:
+  - "resources/haploinsufficiency/haploinsufficiency.csv"
+
+haplo_thrs:
+  - 0.2
+
+# GTEx release used for normal-tissue expression features (one at a time). Download
+# locations are defined in workflow/rules/GTEx/get_GTEx_median_TPM.smk.
+GTEx_releases:
+  - v11
+
+IntOGen_locations:
+  - resources/IntOGen/IntOGen-Drivers-20240920/Compendium_Cancer_Genes.tsv
+
+DepMap_models_locations:
+  - "resources/DepMap/models/Model.csv"
+
+DepMap_probabilities_locations:
+  - "resources/DepMap/probabilities/CRISPRGeneDependency.csv"
+
+DepMap_scores_locations:
+  - "resources/DepMap/scores/CRISPRGeneEffect.csv"
+
+COSMIC_sample_name_patterns:
+  - "TCGA"
+
+COSMIC_classification_locations:
+  - resources/COSMIC/classification/Cosmic_Classification_Tsv_v103_GRCh38/Cosmic_Classification_v103_GRCh38.tsv
+
+COSMIC_samples_locations:
+  - "resources/COSMIC/samples/Cosmic_Sample_Tsv_v103_GRCh38/Cosmic_Sample_v103_GRCh38.tsv"
+
+COSMIC_coding_locations:
+  - "resources/COSMIC/mutations/coding/Cosmic_GenomeScreensMutant_Tsv_v103_GRCh38/Cosmic_GenomeScreensMutant_v103_GRCh38.tsv"
+
+# Campioni ipermutati: esclusi se hanno piu' di questo numero di eventi CODIFICANTI
+# (campione x mutazione, sostituzioni e indel) nel file COSMIC filtrato. "none" = nessuna esclusione.
+# 3000 = criterio di Martincorena et al. 2017 (> 3000 mutazioni codificanti per campione).
+# Config-only (non entra nei nomi dei file): dopo un cambio usare --forcerun compute_coding_mutations_counts.
+COSMIC_hypermutator_max_mutations:
+  - "3000"
+
+# Trascritti usati per la classe delle mutazioni (mut_n_syn / mut_n_mis / mut_n_trunc / mut_n_other_coding):
+# "canonical" = trascritto con tag Ensembl_canonical nel GTF di GENCODE (gencode_versions);
+# "all" = classe piu' grave tra tutti i trascritti.
+# Config-only (non entra nei nomi dei file): dopo un cambio usare --forcerun compute_coding_mutations_counts.
+COSMIC_transcript_mode:
+  - "canonical"
+
+COSMIC_noncoding_locations:
+  - "resources/COSMIC/mutations/noncoding/Cosmic_NonCodingVariants_Tsv_v103_GRCh38/Cosmic_NonCodingVariants_v103_GRCh38.tsv"
+
+COSMIC_event_annotation:
+  - "reference"
+
+GDC_clinical_locations:
+  - "resources/GDC/CNAs/clinical.cohort.2026-01-28/clinical.tsv"
+
+GDC_sample_sheet_locations:
+  - "resources/GDC/CNAs/gdc_sample_sheet.2026-01-28.tsv"
+
+GDC_manifest_locations:
+  - "resources/GDC/CNAs/gdc_manifest.2026-01-28.170055.txt"
+
+GDC_CNA_files_locations:
+  - resources/GDC/CNAs/files/*/*.seg.v2.txt
+
+selected_samples_location_repliseqs:
+  - "config/{repliseq_cell_line}_selected_samples_repliseq"
+
+selected_samples_location_atacseqs:
+  - config/BREAST_selected_samples_atacseq
+
+samples_to_exclude_location_atacseqs:
+  - config/BREAST_samples_to_exclude_atacseq
+
+selected_samples_location_hics:
+  - "config/{hic_cell_line}_selected_samples_hic"
+
+hic_qc_script_locations:
+  - "/hpcnfs/scratch/MS/ieo7429/hic_qc/hic_qc.py"
+
+assembly_codes:
+ - hg38
+
+gencode_versions:
+ - 45
+
+window_modes:
+  - binned
+
+window_sizes:
+ - 20000
+ - 100000
+
+steps:
+ - 0
+
+tumor_types:
+  - LUAD
+
+genders:
+  - ALL
+
+sample_types:
+ - PrimaryTissue
+
+file_formats:
+ - mnemonics
+
+essentiality_cutoffs:
+  - 0.5
+
+num_assays_cutoffs:
+  - 4
+
+min_Num_Probes:
+  - 50
+
+min_abs_Segment_Means:
+  - 0.2
+
+num_cores_repliseqs:
+  - 60
+
+num_cores_atacseqs:
+  - 60
+
+num_cores_hics:
+  - 16
+
+java_mem_size_repliseqs:
+  - 50G
+
+java_mem_size_atacseqs:
+  - 50G
+
+mapq_thrs:
+  - 20
+
+cov_thrs:
+  - 50
+
+smoothing_sizes:
+  - 500000
+
+max_insert_size_atacseqs:
+  - 2000
+
+minSamples_atacseqs:
+  - 15
+
+minCounts_atacseqs:
+  - 200
+
+minCpm_atacseqs:
+  - 1
+
+SVs:
+  - 6
+
+min_length_atacseqs:
+  - 1
+
+q_val_thr_atacseqs:
+  - 1
+
+num_cores_Rs:
+  - 10
+
+# Distance features: cap (bp) applied symmetrically around each locus, per chromosome (rule
+# cap_distance_feature). Config-only, NOT a wildcard: exactly one value, not encoded in file names.
+dist_caps:
+  - 2000000
+
+# data/distances/<subfolder> names of the distance features to cap. centromeres and telomeres can be
+# added too (same file format), but they are meant to encode large-scale position.
+capped_distance_features:
+  - OG
+  - TSG
+  - essential
+  - fragile_sites
+  - PC
+  - lncRNA
+  - miRNA
+  - rRNA
+
+GC_correction_atacseqs:
+  - "loess"        # "none" = come adesso
+
+GC_span_atacseqs:
+  - 0.3            # più alto = curva più liscia
+  
+GC_n_fit_atacseqs:
+  - 20000          # bin usati per stimare ogni curva
+
+blacklist_max_fraction:
+  - "0.5"
+# NOTE (29/10/2026): input del dataset esclusi (parametro solo da config): nessun ATAC tumore vs normale per il polmone
+dataset_excluded_inputs:
+  - DARs

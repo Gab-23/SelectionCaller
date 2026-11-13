@@ -56,7 +56,7 @@ jobs:
 
       - name: Dry-run on the entire production DAG
         run: |
-          snakemake -n -s workflow/snakefile_dataset_bin_level --configfile config/config_dataset.yaml
+          snakemake -n -s workflow/snakefile_dataset_bin_level --configfile config/config_dataset_BRCA.yaml
 
       - name: Assembly guard (only hg38 accepted; hg19 is work in progress)
         # Same production config with assembly_codes switched to hg19 / hg18: the snakefile
@@ -64,7 +64,7 @@ jobs:
         # that would place GRCh38 COSMIC / GDC coordinates on hg19 bins.
         run: |
           for asm in hg19 hg18; do
-            sed "s/^ - hg38$/ - $asm/" config/config_dataset.yaml > /tmp/config_dataset_$asm.yaml
+            sed "s/^ - hg38$/ - $asm/" config/config_dataset_BRCA.yaml > /tmp/config_dataset_$asm.yaml
             grep -A1 '^assembly_codes' /tmp/config_dataset_$asm.yaml | grep -q "$asm"
             if snakemake -n -s workflow/snakefile_dataset_bin_level --configfile /tmp/config_dataset_$asm.yaml > /tmp/guard_$asm.log 2>&1; then
               echo "assembly_code $asm was accepted, expected an error"; exit 1
@@ -73,6 +73,19 @@ jobs:
               || { tail -20 /tmp/guard_$asm.log; echo "wrong failure for $asm"; exit 1; }
           done
           echo "OK: hg19 and hg18 refused with an explicit error"
+
+      - name: Distance-cap guard (dist_caps is config-only, not a wildcard)
+        # A second value would silently be ignored (the rule uses dist_caps[0]) and, since the
+        # cap is not in the file names, could not be told apart downstream: it must fail at parse time.
+        run: |
+          sed "s/^  - 1000000$/  - 1000000\n  - 500000/" config/config_dataset_BRCA.yaml > /tmp/config_dataset_two_caps.yaml
+          [ "$(grep -A2 '^dist_caps' /tmp/config_dataset_two_caps.yaml | grep -c '^  - ')" -eq 2 ]
+          if snakemake -n -s workflow/snakefile_dataset_bin_level --configfile /tmp/config_dataset_two_caps.yaml > /tmp/guard_caps.log 2>&1; then
+            echo "two dist_caps were accepted, expected an error"; exit 1
+          fi
+          grep -q "dist_caps is a config-only parameter" /tmp/guard_caps.log \
+            || { tail -20 /tmp/guard_caps.log; echo "wrong failure for two dist_caps"; exit 1; }
+          echo "OK: two dist_caps refused with an explicit error"
 
   unit-tests:
     name: Unit test on R scripts (toy data, no snakemake)
@@ -131,6 +144,7 @@ jobs:
           bash .tests/unit/test_genome_scripts.sh
           bash .tests/unit/test_explore_datatypes_scripts.sh
           bash .tests/unit/test_combine_dataset_scripts.sh
+          bash .tests/unit/test_cap_distance_feature_scripts.sh
           bash .tests/unit/test_repliseq_scripts.sh
           bash .tests/unit/test_atacseq_scripts.sh
           bash .tests/unit/test_hic_scripts.sh
@@ -303,11 +317,11 @@ jobs:
             data/haploinsufficiency/hg00_binned_200_0_v1_0.9 \
             resources/reference_data/genome/hg00.fa.bwt \
             resources/reference_data/genome/hg00.1.bt2 \
-            data/repliseq/hg00_binned_200_0_20_0_500000 \
+            data/repliseq/hg00_binned_200_0_20_0_500000_MCF10A \
             "results/plots/atacseq/exploratory/samples_barplot/hg00_binned_200_0_20_2_1_1_1_BRCA_Female_BRCA_female_f_breast_carcinoma.pdf" \
             "data/atacseq/hg00_binned_200_0_20_2_1_1_1_BRCA_female_50_0.2" \
-            "data/hic/hg00_20_binned_200_0.eigen" \
-            "data/feature_matrix/hg00_binned_200_0_20_0_500000_2_1_1_1_BRCA_female_50_0.2_f_breast_carcinoma_BRCA_Female_0.5_1_v1_BREAST_PrimaryCulture_noliftover_mnemonics_BRCA_0.9_BRCA_v8"
+            "data/hic/hg00_20_binned_200_0_MCF10A.eigen" \
+            "data/feature_matrix/hg00_binned_200_0_20_0_500000_MCF10A_MCF10A_2_1_1_1_BRCA_female_50_0.2_f_breast_carcinoma_BRCA_Female_0.5_1_v1_BREAST_PrimaryCulture_noliftover_mnemonics_BRCA_0.9_BRCA_v8"
           # NOTE: data/GC/... itself is deliberately excluded from this test's target list:
           # get_GC_content.R requires the Bioconductor BSgenome package specific to the real
           # assembly (e.g. BSgenome.Hsapiens.UCSC.hg38, ~800MB) and can therefore not be tested
@@ -347,11 +361,11 @@ jobs:
             data/haploinsufficiency/hg00_binned_200_0_v1_0.9 \
             resources/reference_data/genome/hg00.fa.bwt \
             resources/reference_data/genome/hg00.1.bt2 \
-            data/repliseq/hg00_binned_200_0_20_0_500000 \
+            data/repliseq/hg00_binned_200_0_20_0_500000_MCF10A \
             "results/plots/atacseq/exploratory/samples_barplot/hg00_binned_200_0_20_2_1_1_1_BRCA_Female_BRCA_female_f_breast_carcinoma.pdf" \
             "data/atacseq/hg00_binned_200_0_20_2_1_1_1_BRCA_female_50_0.2" \
-            "data/hic/hg00_20_binned_200_0.eigen" \
-            "data/feature_matrix/hg00_binned_200_0_20_0_500000_2_1_1_1_BRCA_female_50_0.2_f_breast_carcinoma_BRCA_Female_0.5_1_v1_BREAST_PrimaryCulture_noliftover_mnemonics_BRCA_0.9_BRCA_v8" ; do
+            "data/hic/hg00_20_binned_200_0_MCF10A.eigen" \
+            "data/feature_matrix/hg00_binned_200_0_20_0_500000_MCF10A_MCF10A_2_1_1_1_BRCA_female_50_0.2_f_breast_carcinoma_BRCA_Female_0.5_1_v1_BREAST_PrimaryCulture_noliftover_mnemonics_BRCA_0.9_BRCA_v8" ; do
             test -s "$f" || { echo "Missing or empty file: $f"; exit 1; }
           done
           echo "OK: all expected outputs are present and non-empty"
@@ -361,6 +375,36 @@ jobs:
             || { echo "GTEx / protein-interaction features are empty or all-NA on toy data"; exit 1; }
           echo "OK: GTEx / protein-interaction features contain matched genes"
 
+      - name: Verify distance capping (rule cap_distance_feature, dist_caps = 1000 bp in the toy
+              config) - capped copies exist for every listed feature, keep the raw binIDs and NAs,
+              never exceed the cap, and are what the feature matrix actually contains;
+              centromere/telomere distances (not listed) are not capped
+        run: |
+          set -e
+          CAP=1000
+          for f in \
+            OG/hg00_binned_200_0_v1_BRCA \
+            TSG/hg00_binned_200_0_v1_BRCA \
+            essential/hg00_binned_200_0_BRCA_Female_0.5_1_v1 \
+            fragile_sites/hg00_binned_200_0 \
+            PC/hg00_binned_200_0_v1 \
+            lncRNA/hg00_binned_200_0_v1 \
+            miRNA/hg00_binned_200_0_v1 \
+            rRNA/hg00_binned_200_0_v1 ; do
+            test -s "data/distances_capped/$f" || { echo "Missing or empty capped file: $f"; exit 1; }
+            test -s "results/plots/dataset/distances_capped/$f.pdf" || { echo "Missing or empty diagnostic plot: $f"; exit 1; }
+            Rscript -e "raw <- read.delim('data/distances/$f'); cap <- read.delim('data/distances_capped/$f'); \
+                        stopifnot(identical(raw\$binID, cap\$binID), identical(is.na(raw[[2]]), is.na(cap[[2]])), \
+                                  all(cap[[2]] <= $CAP, na.rm = TRUE), all(cap[[2]] == pmin(raw[[2]], $CAP), na.rm = TRUE))" \
+              || { echo "Capping is wrong for $f"; exit 1; }
+          done
+          [ ! -e data/distances_capped/centromeres ] && [ ! -e data/distances_capped/telomeres ] \
+            || { echo "centromere/telomere distances were capped, but they are not listed in capped_distance_features"; exit 1; }
+          Rscript -e "m <- read.delim('data/feature_matrix/hg00_binned_200_0_20_0_500000_MCF10A_MCF10A_2_1_1_1_BRCA_female_50_0.2_f_breast_carcinoma_BRCA_Female_0.5_1_v1_BREAST_PrimaryCulture_noliftover_mnemonics_BRCA_0.9_BRCA_v8'); \
+                      stopifnot(all(m\$dist.to.closest.OG <= $CAP, na.rm = TRUE), all(m\$dist.to.closest.gene_protein_coding <= $CAP, na.rm = TRUE))" \
+            || { echo "The feature matrix does not contain the capped distances"; exit 1; }
+          echo "OK: distance features capped at $CAP bp, NAs and binIDs preserved, capped values used in the feature matrix"
+
       - name: Verify the Hi-C cis-only per-chromosome chain ran correctly (checkpoint +
               {chrom} wildcard, added 2026-09) - not just that the final aggregated file
               exists, but that it was genuinely built from exactly the chromosomes the
@@ -369,16 +413,16 @@ jobs:
               as before this change)
         run: |
           set -e
-          test -s "data/hic/hg00_20_binned_200_0_chr1.eigen" || { echo "Missing per-chromosome eigen file for chr1"; exit 1; }
-          test -s "data/hic/hg00_20_binned_200_0_chr2.eigen" || { echo "Missing per-chromosome eigen file for chr2"; exit 1; }
-          N_CHROM_FILES=$(ls data/hic/hg00_20_binned_200_0_chr*.eigen | wc -l)
+          test -s "data/hic/hg00_20_binned_200_0_MCF10A_chr1.eigen" || { echo "Missing per-chromosome eigen file for chr1"; exit 1; }
+          test -s "data/hic/hg00_20_binned_200_0_MCF10A_chr2.eigen" || { echo "Missing per-chromosome eigen file for chr2"; exit 1; }
+          N_CHROM_FILES=$(ls data/hic/hg00_20_binned_200_0_MCF10A_chr*.eigen | wc -l)
           [ "$N_CHROM_FILES" -eq 2 ] || { echo "Expected exactly 2 per-chromosome eigen files (chr1, chr2), found $N_CHROM_FILES - the clean_chrom_sizes checkpoint may have resolved an unexpected chromosome list"; exit 1; }
           # the aggregated genome-wide file's data rows must equal the sum of the two
           # per-chromosome files' data rows (header-deduplicated concatenation, not a
           # coincidental byte-for-byte copy of just one of them)
-          N_AGG_DATA_ROWS=$(($(wc -l < "data/hic/hg00_20_binned_200_0.eigen") - 1))
-          N_CHR1_DATA_ROWS=$(($(wc -l < "data/hic/hg00_20_binned_200_0_chr1.eigen") - 1))
-          N_CHR2_DATA_ROWS=$(($(wc -l < "data/hic/hg00_20_binned_200_0_chr2.eigen") - 1))
+          N_AGG_DATA_ROWS=$(($(wc -l < "data/hic/hg00_20_binned_200_0_MCF10A.eigen") - 1))
+          N_CHR1_DATA_ROWS=$(($(wc -l < "data/hic/hg00_20_binned_200_0_MCF10A_chr1.eigen") - 1))
+          N_CHR2_DATA_ROWS=$(($(wc -l < "data/hic/hg00_20_binned_200_0_MCF10A_chr2.eigen") - 1))
           [ "$N_AGG_DATA_ROWS" -eq "$((N_CHR1_DATA_ROWS + N_CHR2_DATA_ROWS))" ] || { echo "Aggregated file's row count ($N_AGG_DATA_ROWS) != chr1 ($N_CHR1_DATA_ROWS) + chr2 ($N_CHR2_DATA_ROWS)"; exit 1; }
           echo "OK: Hi-C cis-only per-chromosome checkpoint chain produced exactly chr1+chr2, correctly aggregated"
 

@@ -22,7 +22,9 @@ del <- read.delim(input_path_del, header = F)
 colnames(del) <- c("chr", "start", "end", "binID", "del.frequency")
 del$del.frequency <- (del$del.frequency / num_patients)
 
-chr_levels <- 1:22
+# NOTE (26/10/2026): aggiunto il cromosoma X ai livelli (prima 1:22: l'X diventava NA nel fattore, quindi spariva dal
+# grafico; i file di output, che contengono solo binID e frequenza, non erano toccati).
+chr_levels <- c(1:22, "X")
 
 ampl.out <- ampl %>%
   dplyr::select(binID, ampl.frequency) %>%

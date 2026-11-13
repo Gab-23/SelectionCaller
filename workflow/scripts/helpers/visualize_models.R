@@ -1,6 +1,6 @@
 create_ordered_y <- function(data, blocking_col, fold_col) {
     folds <- sort(unique(data[[fold_col]]))
-    blocking_levels <- c("noblocking", "5", "10", "15", "20")
+    blocking_levels <- c("noblocking", "5", "10", "15", "20", "chromosome")
     # NOTE (fix, dplyr-only rewrite): tidyr::expand_grid(blocking=..., fold=...) fa variare
     # l'ULTIMO argomento piu' velocemente (blocking costante, fold che cicla) - comportamento
     # OPPOSTO a expand.grid() base, che varia il PRIMO argomento piu' velocemente. Invertendo

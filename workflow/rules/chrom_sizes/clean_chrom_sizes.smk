@@ -5,6 +5,8 @@ checkpoint clean_chrom_sizes:
     # esiste ancora al parsing dello Snakefile, quindi la lista va letta DOPO che questa regola
     # ha girato, non prima. Snakemake ricalcola il DAG a valle di un checkpoint una volta che
     # è stato eseguito.
+    # NOTE (26/10/2026): incluso il cromosoma X (prima escluso con 'X' nel filtro): la coorte e' femminile e sull'X ci
+    # sono driver noti (es. KDM6A). Esclusi solo i contig alternativi/random (nome con "_"), chrY e chrM.
     output:
         "resources/reference_data/chrom_sizes/{assembly_code}.clean.chrom.sizes"
     input:
@@ -13,5 +15,5 @@ checkpoint clean_chrom_sizes:
         "logs/clean_chrom_sizes/{assembly_code}.log"
     shell:
         """
-        cat {input} | grep -vE '_|X|M|Y' > {output} 2> {log}
+        cat {input} | grep -vE '_|M|Y' > {output} 2> {log}
         """

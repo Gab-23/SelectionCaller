@@ -31,3 +31,12 @@ grep -Fw -f resources/COSMIC/samples/final_samples_pre.tsv resources/COSMIC/samp
       
 grep -Fw -f resources/COSMIC/samples/f_breast_carcinoma resources/COSMIC/samples/Cosmic_Sample_Tsv_v103_GRCh38/Cosmic_Sample_v103_GRCh38.tsv | cut -f 14 | sort | uniq -c
    1094 f
+
+Pazienti COSMIC (mutazioni):   1087
+Pazienti GDC (CNA):            1075
+In entrambi:                   1075
+Solo COSMIC:                   12
+Solo GDC:                      0
+Frazione COSMIC coperta da GDC: 0.99
+Frazione GDC coperta da COSMIC: 1.00
+Jaccard:                       0.99

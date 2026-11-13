@@ -12,7 +12,13 @@ cohort_GDC                         <- args$cohort_GDC
 
 clinical <- read.delim(input_path_clinical, header = T)
 clinical_unique <- unique(clinical[,c("project.project_id","cases.case_id","cases.submitter_id","demographic.gender")])
-clinical.f <- clinical_unique[(clinical_unique$project.project_id == cohort_GDC) & (clinical_unique$demographic.gender == gender_GDC),]
+# NOTE (29/10/2026): gender_GDC = "ALL" -> nessun filtro sul sesso (come filter_samples_COSMIC.R e filter_CRISPR_models.R).
+# Con un sesso specifico ("female", "male") il risultato e' identico a prima.
+if (gender_GDC == "ALL") {
+    clinical.f <- clinical_unique[(clinical_unique$project.project_id == cohort_GDC),]
+} else {
+    clinical.f <- clinical_unique[(clinical_unique$project.project_id == cohort_GDC) & (clinical_unique$demographic.gender == gender_GDC),]
+}
 
 sample_sheet <- read.delim(input_path_sample_sheet, header = T)
 

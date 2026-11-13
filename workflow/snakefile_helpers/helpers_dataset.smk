@@ -134,7 +134,7 @@ rule all_sort_blacklisted_alignment_repliseq:
     input:
         get_sort_noblacklisted_alignment_outputs_repliseq
     output:
-        all_done="resources/repliseq/checks/{assembly_code}_{mapq_thr}_noblacklist_alignment_sorting"
+        all_done="resources/repliseq/checks/{assembly_code}_{mapq_thr}_{repliseq_cell_line}_noblacklist_alignment_sorting"
     shell:
         """
         echo {input} >> {output}
@@ -164,7 +164,7 @@ rule all_filter_coverage_repliseq:
     input:
         filter_coverage_outputs_repliseq
     output:
-        all_done="resources/repliseq/checks/{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}_{cov_thr}_coverage_filtering"
+        all_done="resources/repliseq/checks/{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}_{cov_thr}_{repliseq_cell_line}_coverage_filtering"
     shell:
         """
         echo {input} >> {output}
@@ -563,7 +563,7 @@ rule all_matrices_hic:
     input:
         get_matrices_outputs_hic
     output:
-        all_done="resources/hic/checks/{assembly_code}_{mapq_thr}_{window_mode}_{window_size}_{step}_matrices"
+        all_done="resources/hic/checks/{assembly_code}_{mapq_thr}_{window_mode}_{window_size}_{step}_{hic_cell_line}_matrices"
     shell:
         """
         echo {input} >> {output}

@@ -7,6 +7,10 @@ rule sort_pairs_hic:
         "logs/sort_pairs_hic/{assembly_code}_{SRA_id}.log"
     params:
         num_cores_hic=num_cores_hic
+    threads:
+        num_cores_hic
+    resources:
+        mem_mb=24000
     conda:
         "../../envs/hic_processing_env.yml"
     shell:

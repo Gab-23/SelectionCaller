@@ -19,7 +19,7 @@ output_path        <- args$output_path
 # --- GTEx matrix -------------------------------------------------------------------------
 # skip=2: GCT version line + dimensions line. check.names=TRUE (read.delim default) turns
 # "Breast - Mammary Tissue" into "Breast...Mammary.Tissue", the form used in the mapping
-# table (PENNE Supplementary Table 9).
+# table (PENNE Supplementary Table 9); tissue columns are then matched by tissue_key() below.
 gct <- read.delim(gzfile(input_path_gct), skip = 2, check.names = TRUE, stringsAsFactors = FALSE,
                   quote = "", comment.char = "")                                  # symbols may contain apostrophes
 if(!all(c("Name", "Description") %in% colnames(gct))){
@@ -33,16 +33,35 @@ if(!all(c("GTEx_tissue", "TCGA_cohort") %in% colnames(mapping))){
 }
 mapping <- mapping[!is.na(mapping$TCGA_cohort) & mapping$TCGA_cohort != "", ]
 
-# Fail loudly instead of silently dropping tissues (PENNE's merge() dropped them): a
-# renamed tissue in a new GTEx release would otherwise change a cohort's definition.
-missing_tissues <- setdiff(unique(mapping$GTEx_tissue), colnames(gct))
-if(length(missing_tissues) > 0){
-  stop(paste0("mapped GTEx tissues not found in the GCT file: ",
-              paste(missing_tissues, collapse = ", ")))
+# Match mapping tissues to GCT columns through a punctuation-independent key: GTEx releases
+# write tissue names differently (v8: "Brain - Anterior cingulate cortex (BA24)", read by R as
+# "Brain...Anterior.cingulate.cortex..BA24."; later releases use underscore IDs such as
+# "Brain_Anterior_cingulate_cortex_BA24"), so the mapping names (PENNE Supplementary Table 9,
+# v8 style) are compared on lowercase letters/digits only, separators collapsed to "_".
+tissue_key <- function(x) gsub("^_+|_+$", "", gsub("[^a-z0-9]+", "_", tolower(x)))
+
+tissue_cols <- setdiff(colnames(gct), c("Name", "Description"))
+gct_keys <- tissue_key(tissue_cols)
+if(any(duplicated(gct_keys))){
+  stop(paste0("GCT tissue columns that only differ in punctuation, cannot be matched unambiguously: ",
+              paste(tissue_cols[gct_keys %in% gct_keys[duplicated(gct_keys)]], collapse = ", ")))
 }
 
 tissues <- unique(mapping$GTEx_tissue)
-expr <- as.matrix(gct[, tissues, drop = FALSE])
+gct_col_of_tissue <- tissue_cols[match(tissue_key(tissues), gct_keys)]
+
+# Fail loudly instead of silently dropping tissues (PENNE's merge() dropped them): a
+# renamed tissue in a new GTEx release would otherwise change a cohort's definition.
+missing_tissues <- tissues[is.na(gct_col_of_tissue)]
+if(length(missing_tissues) > 0){
+  stop(paste0("mapped GTEx tissues not found in the GCT file: ", paste(missing_tissues, collapse = ", "),
+              "\nGCT tissue columns available: ", paste(tissue_cols, collapse = ", ")))
+}
+message("GTEx tissues matched to GCT columns: ",
+        paste(paste0(tissues, " -> ", gct_col_of_tissue)[tissues != gct_col_of_tissue], collapse = "; "))
+
+expr <- as.matrix(gct[, gct_col_of_tissue, drop = FALSE])
+colnames(expr) <- tissues                                                          # mapping names from here on
 storage.mode(expr) <- "numeric"
 
 # Collapse duplicated gene IDs by maximum (PENNE: group_by(Name) + max)

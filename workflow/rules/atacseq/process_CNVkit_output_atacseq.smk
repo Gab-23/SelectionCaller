@@ -18,7 +18,9 @@ rule process_CNVkit_output_atacseq:
         # them would conflict with Snakemake's same-wildcards-per-rule-output requirement, see
         # run_CNVkit_atacseq.smk). The "check" input above already guarantees cnvkit.py batch
         # has completed - and therefore that this file physically exists - before this rule runs.
-        cns="resources/atacseq/files/cnvkit/{SRA_id}/{SRA_id}_{assembly_code}_{mapq_thr}.fixed.cns"
+        # NOTE (fix 26/10/2026): the .cns is now read from the per-resolution directory written by run_CNVkit_atacseq /
+        # run_CNVkit_atacseq_normal (before, all resolutions shared one directory and overwrote each other's files).
+        cns="resources/atacseq/files/cnvkit/{SRA_id}/{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}/{SRA_id}_{assembly_code}_{mapq_thr}.fixed.cns"
     log:
         "logs/process_CNVkit_output/{SRA_id}_{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}.log"
     shell:

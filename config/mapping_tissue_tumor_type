@@ -1,2 +1,3 @@
-common_name	tissue_type_Roadmap	tumor_type_IntOGen	TCGA_cohort_IntOGen	oncotree_code_DepMap	COSMIC_parameters	tumor_type_GDC	cohort_GDC	GTEx_cohort
-BRCA	BREAST	BRCA	TCGA_WXS_BRCA	BRCA	breast_carcinoma	BRCA	TCGA-BRCA	BRCA
+common_name	tissue_type_Roadmap	tumor_type_IntOGen	TCGA_cohort_IntOGen	oncotree_code_DepMap	COSMIC_parameters	tumor_type_GDC	cohort_GDC	GTEx_cohort	repliseq_cell_line	hic_cell_line
+BRCA	BREAST	BRCA	TCGA_WXS_BRCA	BRCA	breast_carcinoma	BRCA	TCGA-BRCA	BRCA	MCF10A	MCF10A
+LUAD	LUNG	LUAD	TCGA_WXS_LUAD	LUAD	lung_carcinoma_adenocarcinoma	LUAD	TCGA-LUAD	LUAD	T2P	LUNG

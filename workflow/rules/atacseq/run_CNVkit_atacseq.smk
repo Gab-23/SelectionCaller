@@ -22,19 +22,25 @@ rule run_CNVkit_atacseq:
         "logs/run_CNVkit/{assembly_code}_{window_mode}_{window_size}_{step}_{SRA_tumor_id}_{mapq_thr}.log"
     params:
         num_cores_atacseq=num_cores_atacseq,
-        path_dir="resources/atacseq/files/cnvkit/",
+        # NOTE (fix 26/10/2026): one output directory PER RESOLUTION. Before, every binning wrote CNVkit's intermediate
+        # files (*.targetcoverage.cnn, reference, *.cns) into the same per-sample directory with names that do not
+        # contain the resolution, so two resolutions running in parallel overwrote each other's files (confirmed:
+        # "bins do not match" with coverage files of 141858 vs 28398 rows in the same directory).
+        path_dir=lambda wildcards: (f"resources/atacseq/files/cnvkit/{wildcards.SRA_tumor_id}/"
+                                    f"{wildcards.assembly_code}_{wildcards.window_mode}_{wildcards.window_size}_{wildcards.step}_{wildcards.mapq_thr}"),
         normal_paths_atacseq=lambda wildcards, input: " ".join(input.normal_bams)
     conda:
         "../../envs/cnvkit_env.yml"
     shell:
         """
+        mkdir -p {params.path_dir}
         cnvkit.py batch {input.tumor_bam} -n {params.normal_paths_atacseq} \
         --fasta {input.genome} \
         --method wgs \
         --target-avg-size {wildcards.window_size} \
         --targets {input.backbone} \
         --processes {params.num_cores_atacseq} \
-        -d {params.path_dir}/{wildcards.SRA_tumor_id} 2>{log}
+        -d {params.path_dir} 2>{log}
 
         touch {output}
         """

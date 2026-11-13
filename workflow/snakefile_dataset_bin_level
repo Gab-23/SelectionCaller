@@ -88,8 +88,15 @@ def get_filtered_deduplicated_alignment_outputs_repliseq(wildcards):
 def get_remove_blacklisted_alignment_outputs_repliseq(wildcards):
     return expand(rules.remove_blacklisted_from_bam_repliseq.output, SRA_id=SRA_ids_repliseq, **wildcards)
 
+def _repliseq_ids(wildcards):
+    # NOTE (30/10/2026): SRA_id della linea cellulare del wildcard (file dei campioni di quella linea); senza il wildcard,
+    # quelli della configurazione (SRA_ids_repliseq)
+    if "repliseq_cell_line" in wildcards.keys():
+        return get_SRA_ids(selected_samples_location_repliseq.format(repliseq_cell_line=wildcards.repliseq_cell_line))
+    return SRA_ids_repliseq
+
 def get_sort_noblacklisted_alignment_outputs_repliseq(wildcards):
-    return expand(rules.sort_noblacklist_bam_repliseq.output, SRA_id=SRA_ids_repliseq, **wildcards)
+    return expand(rules.sort_noblacklist_bam_repliseq.output, SRA_id=_repliseq_ids(wildcards), **wildcards)
 
 def get_index_noblacklisted_alignment_outputs_repliseq(wildcards):
     return expand(rules.index_noblacklist_bam_repliseq.output, SRA_id=SRA_ids_repliseq, **wildcards)
@@ -98,7 +105,7 @@ def get_coverage_outputs_repliseq(wildcards):
     return expand(rules.compute_coverage_repliseq.output, SRA_id=SRA_ids_repliseq, **wildcards)
 
 def filter_coverage_outputs_repliseq(wildcards):
-    return expand(rules.filter_coverage_repliseq.output, SRA_id=SRA_ids_repliseq, **wildcards)
+    return expand(rules.filter_coverage_repliseq.output, SRA_id=_repliseq_ids(wildcards), **wildcards)
 
 ####
 
@@ -236,8 +243,15 @@ def get_pairs_stats_outputs_hic(wildcards):
 def get_pairs_multiqc_outputs_hic(wildcards):
     return expand(rules.compute_multiqc_hic.output, SRA_id=SRA_ids_hic, **wildcards)
 
+def _hic_ids(wildcards):
+    # NOTE (02/11/2026): SRA_id della linea del wildcard (file dei campioni di quella linea); senza il wildcard, quelli
+    # della configurazione (SRA_ids_hic)
+    if "hic_cell_line" in wildcards.keys():
+        return get_SRA_ids(selected_samples_location_hic.format(hic_cell_line=wildcards.hic_cell_line))
+    return SRA_ids_hic
+
 def get_matrices_outputs_hic(wildcards):
-    return expand(rules.compute_matrices_hic.output, SRA_id=SRA_ids_hic, **wildcards)
+    return expand(rules.compute_matrices_hic.output, SRA_id=_hic_ids(wildcards), **wildcards)
 
 ####
 
@@ -384,9 +398,22 @@ if len(GDC_CNA_files_locations) > 1:
     raise ValueError("ERROR, multiple GDC_CNA_files_locations selected")
 
 selected_samples_location_repliseq = _single(selected_samples_location_repliseqs, "selected_samples_location_repliseqs")
+# NOTE (30/10/2026): linea cellulare del Repli-seq dalla mappatura (colonna repliseq_cell_line) per il tumor_type del config.
+# selected_samples_location_repliseq e' un MODELLO con il segnaposto {repliseq_cell_line} (usato cosi' come input in
+# process_repliseq); selected_samples_file_repliseq e' il file risolto per la linea, da cui si leggono gli SRA_id.
+if "{repliseq_cell_line}" not in selected_samples_location_repliseq:
+    raise ValueError("selected_samples_location_repliseqs deve contenere il segnaposto {repliseq_cell_line}, es. config/{repliseq_cell_line}_selected_samples_repliseq")
+repliseq_cell_line = map_repliseq_cell_line(mapping_file_tt_location, _single(tumor_types, "tumor_types"))
+selected_samples_file_repliseq = selected_samples_location_repliseq.format(repliseq_cell_line=repliseq_cell_line)
 selected_samples_location_atacseq = _single(selected_samples_location_atacseqs, "selected_samples_location_atacseqs")
 samples_to_exclude_location_atacseq = _single(samples_to_exclude_location_atacseqs, "samples_to_exclude_location_atacseqs")
 selected_samples_location_hic = _single(selected_samples_location_hics, "selected_samples_location_hics")
+# NOTE (02/11/2026): linea / tessuto dell'Hi-C dalla mappatura (colonna hic_cell_line) per il tumor_type del config;
+# selected_samples_location_hic e' un MODELLO con il segnaposto {hic_cell_line}.
+if "{hic_cell_line}" not in selected_samples_location_hic:
+    raise ValueError("selected_samples_location_hics deve contenere il segnaposto {hic_cell_line}, es. config/{hic_cell_line}_selected_samples_hic")
+hic_cell_line = map_hic_cell_line(mapping_file_tt_location, _single(tumor_types, "tumor_types"))
+selected_samples_file_hic = selected_samples_location_hic.format(hic_cell_line=hic_cell_line)
 hic_qc_script_location = _single(hic_qc_script_locations, "hic_qc_script_locations")
 
 assembly_code = _single(assembly_codes, "assemblies")
@@ -464,9 +491,9 @@ num_cores_R = _single(num_cores_Rs, "num_cores_Rs")
 tissue_type_Roadmap, tumor_type_IntOGen, cohort_IntOGen, oncotree_code_DepMap, COSMIC_parameters, tumor_type_GDC, cohort_GDC, GTEx_cohort = map_tt_acronym(mapping_file_tt_location, tumor_type, "TCGA")
 gender_COSMIC, gender_DepMap, gender_GDC = map_gender(mapping_file_gender_location, gender)
 
-SRA_ids_repliseq = get_SRA_ids(selected_samples_location_repliseq)
+SRA_ids_repliseq = get_SRA_ids(selected_samples_file_repliseq)
 SRA_ids_atacseq = get_SRA_ids(selected_samples_location_atacseq)
-SRA_ids_hic = get_SRA_ids(selected_samples_location_hic)
+SRA_ids_hic = get_SRA_ids(selected_samples_file_hic)
 
 SRA_tumor_ids_atacseq = get_SRA_condition_ids(selected_samples_location_atacseq, "tumor")
 SRA_normal_ids_atacseq = get_SRA_condition_ids(selected_samples_location_atacseq, "NAT")
@@ -485,7 +512,7 @@ _helpers_module.SRA_normal_ids_atacseq = SRA_normal_ids_atacseq
 
 normal_paths_atacseq = [f"resources/atacseq/files/bam/{SRA_normal_id_atacseq}/{SRA_normal_id_atacseq}_{assembly_code}_{mapq_thr}.fixed.bam" for SRA_normal_id_atacseq in SRA_normal_ids_atacseq]
 
-is_patterned_hic = get_is_patterned(sequencers_info_location, "HiSeq_3000")
+is_patterned_hic = get_is_patterned(sequencers_info_location, "HiSeq_2000")
 is_patterned_repliseq = get_is_patterned(sequencers_info_location, "HiSeq_4000")
 is_patterned_atacseq = get_is_patterned(sequencers_info_location, ["HiSeq_6000", "HiSeq_X_Ten"])
 
@@ -542,6 +569,7 @@ include: "rules/gencode/get_gencode_annotation.smk"
 include: "rules/gencode/get_TSSs.smk"
 include: "rules/gencode/sort_TSSs.smk"
 include: "rules/gencode/split_gtf.smk"
+include: "rules/genes/compute_cds_overlap.smk"
 
 ####
 
@@ -610,6 +638,10 @@ include: "rules/COSMIC/sort_collapse_mutations.smk"
 include: "rules/COSMIC/get_coding_mutations_description.smk"
 include: "rules/COSMIC/sort_coding_mutations.smk"
 include: "rules/COSMIC/compute_coding_mutations_overlap.smk"
+include: "rules/COSMIC/compute_coding_mutations_counts.smk"
+# Esposizione per classe di mutazione (sites_*): DOPO compute_coding_mutations_counts.smk, perche' usa
+# TRANSCRIPT_MODE definito li' (cosi' conteggi e siti usano sempre gli stessi trascritti).
+include: "rules/COSMIC/compute_coding_sites.smk"
 include: "rules/COSMIC/compute_noncoding_mutations_overlap.smk"
 
 ####
@@ -739,6 +771,7 @@ include: "rules/HiC/aggregate_hic_eigen.smk"
 ####
 
 include: "rules/dataset/explore_datatypes.smk"
+include: "rules/dataset/cap_distance_feature.smk"
 include: "rules/dataset/combine_dataset.smk"
 #   combine_dataset.R and the rule have been fully reviewed, fixed (5 confirmed bugs, see
 #   README) and unit-tested with toy data covering every input/output. Both blockers
@@ -755,6 +788,9 @@ include: "rules/dataset/combine_dataset.smk"
 #   written. Deprioritized per explicit instruction (smoothing not currently needed).
 
 ####
+
+# NOTE (29/10/2026): con "DARs" in dataset_excluded_inputs (config) i target ATAC di rule all non vengono chiesti
+ATAC_EXCLUDED = "DARs" in set(config.get("dataset_excluded_inputs", None) or [])
 
 rule all:
     input:
@@ -875,6 +911,17 @@ rule all:
             assembly_code=assembly_code, window_mode=window_mode, window_size=window_sizes, step=steps,
             gender_COSMIC=gender_COSMIC, COSMIC_parameters=COSMIC_parameters
         ),
+        expand(
+            "data/num_overlaps/mutations/coding_counts/{assembly_code}_{window_mode}_{window_size}_{step}_{gender_COSMIC}_{COSMIC_parameters}_v{gencode_version}",
+            assembly_code=assembly_code, window_mode=window_mode, window_size=window_sizes, step=steps,
+            gender_COSMIC=gender_COSMIC, COSMIC_parameters=COSMIC_parameters, gencode_version=gencode_version
+        ),
+        # esposizione per classe di mutazione (sostituzioni singole possibili per bin)
+        expand(
+            "data/num_overlaps/mutations/coding_sites/{assembly_code}_{window_mode}_{window_size}_{step}_v{gencode_version}",
+            assembly_code=assembly_code, window_mode=window_mode, window_size=window_sizes, step=steps,
+            gencode_version=gencode_version
+        ),
 
         # ---- Phase 6: GDC_CNA module (amplification/deletion frequency) ----
         expand(
@@ -948,22 +995,25 @@ rule all:
 
         # ---- Phase 10: RepliSeq module ----
         expand(
-            "data/repliseq/{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}_{cov_thr}_{smoothing_size}",
+            "data/repliseq/{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}_{cov_thr}_{smoothing_size}_{repliseq_cell_line}",
             assembly_code=assembly_code, window_mode=window_mode, window_size=window_sizes, step=steps,
-            mapq_thr=mapq_thr, cov_thr=cov_thr, smoothing_size=smoothing_size
+            mapq_thr=mapq_thr, cov_thr=cov_thr, smoothing_size=smoothing_size, repliseq_cell_line=repliseq_cell_line
         ),
 
         # ---- Phase 12: Hi-C module ----
         expand(
-            "data/hic/{assembly_code}_{mapq_thr}_{window_mode}_{window_size}_{step}.eigen",
+            "data/hic/{assembly_code}_{mapq_thr}_{window_mode}_{window_size}_{step}_{hic_cell_line}.eigen",
             assembly_code=assembly_code, mapq_thr=mapq_thr, window_mode=window_mode,
-            window_size=window_sizes, step=steps
+            window_size=window_sizes, step=steps, hic_cell_line=hic_cell_line
         ),
 
         # ---- Phase 11: ATAC-seq module (alignment through CNVkit-scaled counts, cohort
         #      exploration, and bin-level DARs; peak-calling/Genrich chain not active per
         #      explicit confirmation - see README) ----
-        expand(
+        (expand(
+            # NOTE (fix 20/10/2026): il target precedente (samples_per_study/..._{SVs}.pdf) non
+            # corrisponde a nessun output di explore_cohort_atacseq; a 20 kb passava solo perche'
+            # il file esisteva gia' da un run vecchio. Ora punta a un output reale della regola.
             "results/plots/atacseq/exploratory/samples_barplot/{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}_{minSamples_atacseq}_{minCounts_atacseq}_{minCpm_atacseq}_{SVs}_{oncotree_code_DepMap}_{gender_DepMap}_{tumor_type_GDC}_{gender_GDC}_{gender_COSMIC}_{COSMIC_parameters}.pdf",
             assembly_code=assembly_code, window_mode=window_mode, window_size=window_sizes, step=steps,
             mapq_thr=mapq_thr, minSamples_atacseq=minSamples_atacseq, minCounts_atacseq=minCounts_atacseq,
@@ -971,22 +1021,22 @@ rule all:
             oncotree_code_DepMap=oncotree_code_DepMap, gender_DepMap=gender_DepMap,
             tumor_type_GDC=tumor_type_GDC, gender_GDC=gender_GDC,
             gender_COSMIC=gender_COSMIC, COSMIC_parameters=COSMIC_parameters
-        ),
-        expand(
+        ) if not ATAC_EXCLUDED else []),
+        (expand(
             "data/atacseq/{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}_{minSamples_atacseq}_{minCounts_atacseq}_{minCpm_atacseq}_{SVs}_{tumor_type_GDC}_{gender_GDC}_{min_Num_Probes}_{min_abs_Segment_Mean}",
             assembly_code=assembly_code, window_mode=window_mode, window_size=window_sizes, step=steps,
             mapq_thr=mapq_thr, minSamples_atacseq=minSamples_atacseq, minCounts_atacseq=minCounts_atacseq,
             minCpm_atacseq=minCpm_atacseq, SVs=SVs, tumor_type_GDC=tumor_type_GDC, gender_GDC=gender_GDC,
             min_Num_Probes=min_Num_Probes, min_abs_Segment_Mean=min_abs_Segment_Means
-        ),
+        ) if not ATAC_EXCLUDED else []),
 
         # ---- Phase 9/12: dataset module (explore_datatypes + combine_dataset, now fully
         #      active since both ATAC-seq DARs and RepliSeq are ready; smooth_dataset not
         #      implemented, see comments above) ----
         expand(
-            "data/feature_matrix/{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}_{cov_thr}_{smoothing_size}_{minSamples_atacseq}_{minCounts_atacseq}_{minCpm_atacseq}_{SVs}_{tumor_type_GDC}_{gender_GDC}_{min_Num_Probes}_{min_abs_Segment_Mean}_{gender_COSMIC}_{COSMIC_parameters}_{oncotree_code_DepMap}_{gender_DepMap}_{essentiality_cutoff}_{num_assays_cutoff}_v{gencode_version}_{tissue_type_Roadmap}_{sample_type}_{liftover_str}_{file_format}_{tumor_type_IntOGen}_{haplo_thr}_{GTEx_cohort}_{GTEx_release}",
+            "data/feature_matrix/{assembly_code}_{window_mode}_{window_size}_{step}_{mapq_thr}_{cov_thr}_{smoothing_size}_{repliseq_cell_line}_{hic_cell_line}_{minSamples_atacseq}_{minCounts_atacseq}_{minCpm_atacseq}_{SVs}_{tumor_type_GDC}_{gender_GDC}_{min_Num_Probes}_{min_abs_Segment_Mean}_{gender_COSMIC}_{COSMIC_parameters}_{oncotree_code_DepMap}_{gender_DepMap}_{essentiality_cutoff}_{num_assays_cutoff}_v{gencode_version}_{tissue_type_Roadmap}_{sample_type}_{liftover_str}_{file_format}_{tumor_type_IntOGen}_{haplo_thr}_{GTEx_cohort}_{GTEx_release}",
             assembly_code=assembly_code, window_mode=window_mode, window_size=window_sizes, step=steps,
-            mapq_thr=mapq_thr, cov_thr=cov_thr, smoothing_size=smoothing_size,
+            mapq_thr=mapq_thr, cov_thr=cov_thr, smoothing_size=smoothing_size, repliseq_cell_line=repliseq_cell_line, hic_cell_line=hic_cell_line,
             minSamples_atacseq=minSamples_atacseq, minCounts_atacseq=minCounts_atacseq,
             minCpm_atacseq=minCpm_atacseq, SVs=SVs, tumor_type_GDC=tumor_type_GDC, gender_GDC=gender_GDC,
             min_Num_Probes=min_Num_Probes, min_abs_Segment_Mean=min_abs_Segment_Means,
@@ -999,6 +1049,8 @@ rule all:
             GTEx_cohort=GTEx_cohort, GTEx_release=GTEx_release
         ),
         expand(
+            # NOTE (fix 20/10/2026): tolti {tumor_type_GDC}_{gender_GDC}, che l'output di
+            # explore_datatypes non contiene (stesso motivo del target sopra).
             "results/plots/datatypes/GC_landscape/{assembly_code}_{window_mode}_{window_size}_{step}_{oncotree_code_DepMap}_{gender_DepMap}_{gender_COSMIC}_{COSMIC_parameters}_v{gencode_version}_{tumor_type_IntOGen}_{essentiality_cutoff}_{num_assays_cutoff}.pdf",
             assembly_code=assembly_code, window_mode=window_mode, window_size=window_sizes, step=steps,
             oncotree_code_DepMap=oncotree_code_DepMap, gender_DepMap=gender_DepMap,
@@ -1023,9 +1075,9 @@ wildcard_constraints:
     gender_DepMap = "(Male|Female|ALL)",
     essentiality_cutoff = "\\d+(\\.\\d+)?",
     num_assays_cutoff = "[0-9]+",
-    gender_COSMIC = "[a-z]+",
+    gender_COSMIC = "([a-z]+|ALL)",
     COSMIC_parameters = "[a-z_]+",
-    gender_GDC="[a-z]+",
+    gender_GDC="([a-z]+|ALL)",
     tumor_type_GDC="[A-Z]+",
     min_Num_Probes="[0-9]+",
     min_abs_Segment_Mean="\\d+(\\.\\d+)?",
@@ -1033,4 +1085,8 @@ wildcard_constraints:
     SRA_id="[A-Z]+[0-9]+",
     mapq_thr="[0-9]+",
     cov_thr="[0-9]+",
-    smoothing_size="[0-9]+"
+    smoothing_size="[0-9]+",
+    repliseq_cell_line="[A-Za-z0-9]+",
+    hic_cell_line="[A-Za-z0-9]+",
+    dist_feature="[A-Za-z_]+",
+    dist_name="[^/]+"

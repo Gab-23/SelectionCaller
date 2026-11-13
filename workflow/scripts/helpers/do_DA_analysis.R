@@ -1,4 +1,9 @@
-do_DA_analysis <- function(counts, library_sizes, mm){
+do_DA_analysis <- function(counts, library_sizes, mm, gc = NULL, gc_correction = "none", gc_span = 0.3, gc_n_fit = 20000){
+# gc_correction: "none" (previous behaviour, unchanged) | "loess" (per-sample GC offset, see compute_GC_offset.R)
+# gc:            data.frame with binID, GC_content (required when gc_correction != "none")
+
+if (!gc_correction %in% c("none", "loess")) stop("do_DA_analysis: gc_correction must be 'none' or 'loess', got '", gc_correction, "'")
+if (gc_correction != "none" && is.null(gc)) stop("do_DA_analysis: gc_correction = '", gc_correction, "' requires gc")
 
 rownames(counts) <- counts$binID
 counts$binID <- NULL
@@ -15,7 +20,12 @@ stopifnot(                                                                      
 )                                                                               # nothing was actually enforcing it (same class of issue as the
                                                                                  # binID-alignment check in do_get_counts_analysis.R).
 
-topTags <- edg2ATAC(counts, mm, libsize, "conditiontumor")
+gc_offset <- NULL                                                               # NEW: optional per-sample GC offset
+if (gc_correction == "loess") {
+    gc_offset <- compute_GC_offset(counts, libsize, gc, span = gc_span, n_fit = gc_n_fit)
+}
+
+topTags <- edg2ATAC(counts, mm, libsize, "conditiontumor", gc_offset = gc_offset)
 topTags$binID <- rownames(topTags)
 rownames(topTags) <- NULL
 
@@ -39,7 +49,8 @@ out.list <- list(topTags = topTags,
                  p_diagnostics = p_diagnostics,
                  p_volcano = p_volcano,
                  p_landscape = p_landscape,
-                 p_CNA_comparison = p_CNA_comparison)
+                 p_CNA_comparison = p_CNA_comparison,
+                 gc_offset = gc_offset)                                         # NEW: NULL when gc_correction = "none"
 
 return(out.list)
 
