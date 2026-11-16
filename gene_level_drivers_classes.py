@@ -21,6 +21,9 @@ Per ogni gene g e classe c (sinonime, missense, troncanti) e per le non sinonime
   PUNTEGGIO  residuo = -log10 P(X >= O), X ~ binomiale negativa (media E, dispersione theta stimata con il metodo dei
              momenti sui geni con atteso, escluso l'1% piu' estremo: nessuna lista di driver usata). Coda calcolata
              in modo esatto (funzione beta incompleta; somma in scala log quando va in underflow).
+  NOTE 16/11/2026: STANDARD non-synonymous score = Fisher combination of the missense and truncating p-values
+             (gene_scores_nonsyn_fisher.tsv, target "nonsyn_fisher" in gene_level_metrics.tsv); the sum of the classes
+             ("nonsyn") is kept for comparison. theta of every score is estimated without the driver list.
 CONTROLLI DI COERENZA con la pipeline (stampati e salvati): (1) eventi per bin e classe = mut_n_* del dataset;
 (2) siti per bin e classe (unione dei trascritti, classe piu' grave) = sites_* del dataset.
 Valutazione: AP (pari merito come un unico gradino), AUROC, IC con bootstrap sui geni, stesso universo per osservato e
@@ -349,6 +352,26 @@ for c in CLASSES:
 Ov = SC["mis"]["O"] + SC["trunc"]["O"]; Ev = SC["mis"]["E"] + SC["trunc"]["E"]
 r_, th = score_block("nonsyn", Ov.to_numpy(float), Ev.to_numpy(float))
 SC["nonsyn"] = pd.DataFrame({"O": Ov, "E": Ev, "residual": r_}, index=genes)
+# NOTE (16/11/2026): Fisher combination of missense and truncating, the STANDARD non-synonymous score (decided by Gab
+# on 16/11/2026). The sum of classes ("nonsyn" above) is kept next to it for comparison. Same definition as
+# "fisher (model)" in combine_classes_test.py:
+#   p_c      = NB upper tail of class c with the model expectation (= 10^-residual of class c, label-free theta);
+#   p_fisher = P(chi2 with 4 df >= -2 (ln p_mis + ln p_trunc)); residual = -log10 p_fisher.
+# Assumptions: p_mis and p_trunc independent and uniform under the null. Counts are discrete, so the NB tail p-values are
+# conservative (P(X >= O) is not uniform, especially for small E): the combined p is approximate (calibration to be
+# checked on the synonymous null). p-values are floored at 1e-300 (as in combine_classes_test.py), so genes with
+# p < 1e-300 in both classes tie at the top. A gene without a score in either class gets no Fisher score (NaN).
+# Saved as gene_scores_nonsyn_fisher.tsv; "O" = missense + truncating events, used only for the "observed" baseline.
+p_mis = np.power(10.0, -SC["mis"]["residual"]).clip(lower=1e-300)
+p_trunc = np.power(10.0, -SC["trunc"]["residual"]).clip(lower=1e-300)
+fisher_stat = -2 * (np.log(p_mis) + np.log(p_trunc))
+p_fisher = pd.Series(stats.chi2.sf(fisher_stat, 4), index=genes)       # NaN propagates when a class has no score
+SC["nonsyn_fisher"] = pd.DataFrame({"O": SC["mis"]["O"] + SC["trunc"]["O"],
+                                    "O_mis": SC["mis"]["O"], "E_mis": SC["mis"]["E"], "p_mis": p_mis,
+                                    "O_trunc": SC["trunc"]["O"], "E_trunc": SC["trunc"]["E"], "p_trunc": p_trunc,
+                                    "p_fisher": p_fisher, "residual": -np.log10(p_fisher.clip(lower=1e-300))}, index=genes)
+log(f"nonsyn_fisher: genes with a Fisher score {int(p_fisher.notna().sum())} of {len(genes)} "
+    f"(missing = no score in missense or truncating)")
 
 # =================== valutazione ===================
 def read_list(path, names):
@@ -433,14 +456,19 @@ for name in ["syn", "mis", "trunc", "nonsyn"]:
     sc_model = None; tops = {}
     for en, Ev in Es.items():
         Ev = np.where(np.isfinite(Ev) & (Ev > 0), Ev, np.nan); good = np.isfinite(Ev)
+        # NOTE (16/11/2026): theta used for the SCORE is estimated on ALL genes with an expectation (as score_block),
+        # without the driver list: before, it was the theta of the non-drivers, so the scores (and the variants saved
+        # in gene_scores_variants_<class>.tsv) depended on the evaluation labels. theta_nondrivers is kept only as a
+        # diagnostic of fit (higher = less unexplained variation), not used in any score.
         th = theta_mom(Ov[good & nd], Ev[good & nd])
-        scr = np.full(len(sub), np.nan); scr[good] = nb_upper_score(Ov[good], Ev[good], th)
+        th_score = theta_mom(Ov[good], Ev[good])
+        scr = np.full(len(sub), np.nan); scr[good] = nb_upper_score(Ov[good], Ev[good], th_score)
         VAR.setdefault(name, {})[en] = pd.Series(scr.copy(), index=sub.index); scr = bottom(scr)
         top = order(scr); tops[en] = list(sub.index[top[:30]])
         rho = pd.Series(scr[nd]).corr(pd.Series(kb[nd]), method="spearman")
         cmp_rows.append(dict(target=name, expectation=en, n_genes=len(sub), n_drivers=int(l.sum()), AP=ap(scr, l), AUROC=auroc(scr, l),
                              drivers_top20=int(l[top[:20]].sum()), drivers_top100=int(l[top[:100]].sum()),
-                             theta_nondrivers=th, poisson_dev_nondrivers=pois_dev(Ov[good & nd], Ev[good & nd]),
+                             theta_nondrivers=th, theta_score=th_score, poisson_dev_nondrivers=pois_dev(Ov[good & nd], Ev[good & nd]),
                              spearman_length_nondrivers=rho))
     base = [r for r in cmp_rows if r["target"] == name and r["expectation"] == "sites"][0]["poisson_dev_nondrivers"]
     for r in cmp_rows:
@@ -460,8 +488,10 @@ for name in ["syn", "mis", "trunc", "nonsyn"]:
 #          modello regionale per i non codificanti)
 # Le sinonime non sono valutate con +syn (sarebbe circolare).
 from sklearn.linear_model import PoissonRegressor
-def shrink(On, En, nd):
-    ok = np.isfinite(En) & (En > 0); th = theta_mom(On[ok & nd], En[ok & nd])
+# NOTE (16/11/2026): the shrinkage theta is estimated on ALL genes with an expectation (before: non-drivers only, i.e.
+# the multiplier depended on the evaluation labels).
+def shrink(On, En):
+    ok = np.isfinite(En) & (En > 0); th = theta_mom(On[ok], En[ok])
     th = 1e6 if not np.isfinite(th) else th
     return np.where(ok, (On + th) / (En + th), 1.0), th
 genes_all = SC["syn"].index
@@ -473,7 +503,7 @@ On_nc = O_NC.reindex(genes_all).fillna(0).to_numpy(float)
 nd_all = ~genes_all.isin(drivers)
 pr = PoissonRegressor(alpha=0, max_iter=1000).fit(Xnc[nd_all], On_nc[nd_all])
 En_nc = pr.predict(Xnc)
-m_nc, th_nc = shrink(On_nc, En_nc, nd_all)
+m_nc, th_nc = shrink(On_nc, En_nc)
 log(f"\nINFORMAZIONE LOCALE: eventi non codificanti nei geni {int(On_nc.sum())}; theta non codificanti {th_nc:.3g}")
 base_syn = {"model": SC["syn"]["E"].to_numpy(float),
             "length": On_syn.sum() / np.nansum(kb_all) * kb_all}
@@ -482,8 +512,9 @@ if WG is not None:
     base_syn["wsites"] = On_syn.sum() / ws_syn.sum() * ws_syn
 m_syn = {}
 for bn, Eb in base_syn.items():
-    m_syn[bn], th_s = shrink(On_syn, Eb, nd_all); log(f"theta sinonime (base {bn}): {th_s:.3g}")
+    m_syn[bn], th_s = shrink(On_syn, Eb); log(f"theta sinonime (base {bn}): {th_s:.3g}")
 loc_rows = []
+EXPV = {}                                                         # NOTE (16/11/2026): +syn expectations per class (E')
 for name in ["mis", "trunc", "nonsyn"]:
     df = SC[name]; ok = np.isfinite(df["E"].to_numpy(float)); sub = df[ok]
     idx = genes_all.get_indexer(sub.index); l = sub.index.isin(drivers); nd = ~l
@@ -497,12 +528,17 @@ for name in ["mis", "trunc", "nonsyn"]:
         for loc, mult in (("", np.ones(len(sub))), ("+syn", m_syn[bn][idx]), ("+nc", m_nc[idx])):
             Ev = Eb * mult; Ev = Ev * Ov.sum() / np.nansum(Ev) if bn in ("length", "wsites") else Ev    # come nel confronto tra attesi
             good = np.isfinite(Ev) & (Ev > 0); th = theta_mom(Ov[good & nd], Ev[good & nd])
-            scr = np.full(len(sub), np.nan); scr[good] = nb_upper_score(Ov[good], Ev[good], th)
+            # NOTE (16/11/2026): score with theta on ALL genes (label-free); th (non-drivers) stays a diagnostic only
+            th_score = theta_mom(Ov[good], Ev[good])
+            scr = np.full(len(sub), np.nan); scr[good] = nb_upper_score(Ov[good], Ev[good], th_score)
             if loc: VAR.setdefault(name, {})[bn + loc] = pd.Series(scr.copy(), index=sub.index)
+            # NOTE (16/11/2026): also keep the +syn-corrected expectation E' (exactly the Ev scored above, NaN where it
+            # is not usable), so that combinations needing E (e.g. the LRT in combine_classes_test.py) can use +syn.
+            if loc == "+syn": EXPV.setdefault(name, {})[bn + loc] = pd.Series(np.where(good, Ev, np.nan), index=sub.index)
             scr = bottom(scr); top = order(scr)
             loc_rows.append(dict(target=name, expectation=bn + loc, AP=ap(scr, l), AUROC=auroc(scr, l),
                                  drivers_top20=int(l[top[:20]].sum()), drivers_top100=int(l[top[:100]].sum()),
-                                 theta_nondrivers=th, poisson_dev_nondrivers=pois_dev(Ov[good & nd], Ev[good & nd])))
+                                 theta_nondrivers=th, theta_score=th_score, poisson_dev_nondrivers=pois_dev(Ov[good & nd], Ev[good & nd])))
 LOC = pd.DataFrame(loc_rows)
 for name in LOC.target.unique():
     b = LOC[(LOC.target == name) & (LOC.expectation == "length")]["poisson_dev_nondrivers"].iloc[0]
@@ -519,6 +555,15 @@ CMP = pd.DataFrame(cmp_rows); CMP.to_csv(f"{a.out_dir}/expectations_comparison.t
 for name, d in VAR.items():
     V = pd.DataFrame(d).reindex(SC[name].index); V.insert(0, "O", SC[name]["O"]); V["is_driver"] = V.index.isin(drivers)
     V.to_csv(f"{a.out_dir}/gene_scores_variants_{name}.tsv", sep="\t")
+# NOTE (16/11/2026): +syn-corrected expectations per gene (E'), in a SEPARATE file so that the readers of
+# gene_scores_variants_<class>.tsv (compare_with_dndscv.py, venn_drivers_vs_dndscv.py, combine_classes_test.py) are
+# unchanged. Same genes and order as gene_scores_<class>.tsv; columns O, E_<expectation> (e.g. E_model+syn,
+# E_length+syn); NaN = gene without a usable expectation. Synonymous are not corrected by +syn (circular): no file.
+for name, d in EXPV.items():
+    X = pd.DataFrame({f"E_{k}": v for k, v in d.items()}).reindex(SC[name].index)
+    X.insert(0, "O", SC[name]["O"]); X["is_driver"] = X.index.isin(drivers)
+    X.to_csv(f"{a.out_dir}/gene_expected_variants_{name}.tsv", sep="\t")
+    log(f"saved gene_expected_variants_{name}.tsv: {X.shape[0]} genes, {int(X.iloc[:, 1].notna().sum())} with {X.columns[1]}")
 log("\nCONFRONTO TRA ATTESI (stessa statistica, stesso universo: geni con l'atteso del modello)")
 log(CMP.round(3).to_string(index=False))
 
