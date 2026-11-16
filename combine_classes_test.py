@@ -16,6 +16,8 @@ Metodi (p = coda superiore della binomiale negativa per classe, cioe' 10^-punteg
            theta_c: metodo dei momenti come nello script dei driver (1% dei geni piu' estremi escluso).
 Attesi: "model" (atteso del nostro background) per tutti i metodi; "model+syn" solo per fisher e minp, perche' i file
 salvano il punteggio di model+syn ma non il suo atteso corretto (per lrt con +syn va salvato l'atteso nello script dei driver).
+NOTE (16/11/2026): if the gene-level run saved E' (gene_expected_variants_<class>.tsv) the LRT is also run with
+model+syn ("lrt (model+syn)"); otherwise it is skipped with a message.
 Uso: python combine_classes_test.py --ours_dir <...>/drivers_gene_level --dndscv <sel_cv_...tsv> --label "BRCA 20kb" --out_dir DIR
 """
 import argparse, os
@@ -54,17 +56,34 @@ for base, src in (("model", lambda c: G[c]["residual"]), ("model+syn", lambda c:
     mnp = (np.minimum(pm, pt) * 2).clip(upper=1)
     S[f"fisher ({base})"] = -np.log10(fis.clip(lower=1e-300)); S[f"minp ({base})"] = -np.log10(mnp.clip(lower=1e-300))
     S[f"sum of classes ({base})"] = (G["nonsyn"]["residual"] if base == "model" else VAR["nonsyn"]["model+syn"]).reindex(U)
-# LRT con l'atteso del modello
-lrt = pd.Series(0.0, index=U); has = pd.Series(True, index=U)
-for c in ("mis", "trunc"):
-    O = G[c]["O"].reindex(U).astype(float); E = G[c]["E"].reindex(U).astype(float)
-    th = theta_mom(G[c]["O"], G[c]["E"]); print(f"theta {c} (momenti, come lo script dei driver): {th:.3g}")
-    ok = E.notna() & (E > 0); has &= ok
-    o, e = O[ok].to_numpy(), E[ok].to_numpy(); pos = o > e
-    stat = np.zeros(len(o)); stat[pos] = 2 * (nb_logpmf(o[pos], o[pos], th) - nb_logpmf(o[pos], e[pos], th))
-    lrt[ok] += np.maximum(stat, 0)
-lrt[~has] = np.nan
-S["lrt (model)"] = -np.log10(pd.Series(stats.chi2.sf(lrt, 2), index=U).clip(lower=1e-300)).where(has)
+# NOTE (16/11/2026): the LRT is now a function, run with the model expectation (as before) and, when the gene-level run
+# saved it (gene_expected_variants_<class>.tsv, since 16/11/2026), with the +syn-corrected expectation E'.
+# theta_c: method of moments on ALL genes with that expectation (label-free), as in the gene-level script.
+def lrt_score(expected):                                        # expected[c] = Series of E (or E') per gene, class c
+    lrt = pd.Series(0.0, index=U); has = pd.Series(True, index=U)
+    for c in ("mis", "trunc"):
+        O_all = G[c]["O"].astype(float); E_all = expected[c].reindex(O_all.index).astype(float)
+        th = theta_mom(O_all, E_all); print(f"theta {c}: {th:.3g}")
+        O = O_all.reindex(U); E = E_all.reindex(U)
+        ok = E.notna() & (E > 0); has &= ok
+        o, e = O[ok].to_numpy(), E[ok].to_numpy(); pos = o > e
+        stat = np.zeros(len(o)); stat[pos] = 2 * (nb_logpmf(o[pos], o[pos], th) - nb_logpmf(o[pos], e[pos], th))
+        lrt[ok] += np.maximum(stat, 0)
+    lrt[~has] = np.nan
+    return -np.log10(pd.Series(stats.chi2.sf(lrt, 2), index=U).clip(lower=1e-300)).where(has)
+print("LRT (model):")
+S["lrt (model)"] = lrt_score({c: G[c]["E"] for c in ("mis", "trunc")})
+exp_files = {c: f"{a.ours_dir}/gene_expected_variants_{c}.tsv" for c in ("mis", "trunc")}
+if all(os.path.exists(f) for f in exp_files.values()):
+    EXPV = {c: pd.read_csv(f, sep="\t", index_col=0) for c, f in exp_files.items()}
+    for c in EXPV:
+        if "E_model+syn" not in EXPV[c].columns:
+            raise SystemExit(f"{exp_files[c]}: column E_model+syn missing (columns: {list(EXPV[c].columns)})")
+    print("LRT (model+syn):")
+    S["lrt (model+syn)"] = lrt_score({c: EXPV[c]["E_model+syn"] for c in ("mis", "trunc")})
+else:
+    print(f"NOTE: gene_expected_variants_<class>.tsv not found in {a.ours_dir} (gene-level run older than 16/11/2026): "
+          "lrt (model+syn) skipped")
 S["dNdScv"] = -np.log10(D.loc[U, "pallsubs_cv"].astype(float).clip(lower=1e-300))
 
 rows = []

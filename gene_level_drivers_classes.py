@@ -180,9 +180,7 @@ for tx, d in G.groupby("tx"):
             bc = np.bincount(bins[m]); nz = np.nonzero(bc)[0]
             gene_sites += [(tx_gene[tx], int(b_), c, int(bc[b_])) for b_ in nz]
 log(f"trascritti esclusi (ORF non multipla di 3, basi non ACGT, cromosoma assente): {n_bad}")
-_ex = G[G["type"] == "exon"].assign(bp=lambda d_: d_["end"] - d_["start"] + 1)
-GENE_STRUCT = pd.DataFrame({"n_exons": _ex.groupby("tx").size(), "exon_kb": _ex.groupby("tx")["bp"].sum() / 1000})
-GENE_STRUCT["gene"] = GENE_STRUCT.index.map(tx_gene); GENE_STRUCT = GENE_STRUCT.groupby("gene").max()
+# NOTE (16/11/2026): GENE_STRUCT (exons per gene, used only by the "+nc" variant) removed together with "+nc".
 GS = pd.DataFrame(gene_sites, columns=["gene", "bin", "cls", "sites"]); del gene_sites
 GC = pd.DataFrame(gene_cds, columns=["gene", "bin", "bp"]); del gene_cds
 # siti per bin come nella pipeline: unione dei trascritti, classe piu' grave, una volta per sostituzione
@@ -259,13 +257,10 @@ for gene, parts in GK.items():
 eg = pd.concat(eg_rows).groupby(["COSMIC_SAMPLE_ID", "mut_id", "gene"])["sev"].max().reset_index() if eg_rows else \
      pd.DataFrame(columns=["COSMIC_SAMPLE_ID", "mut_id", "gene", "sev"])
 O = pd.DataFrame({c: eg[eg["sev"] == sv].groupby("gene").size() for c, sv in (("syn", 2), ("mis", 4), ("trunc", 5))}).fillna(0)
-# eventi NON codificanti del gene (introni vicini agli esoni, UTR), per l'informazione locale "+nc": restano definiti dalle
-# righe COSMIC sul canonico (non ci sono siti per loro); per i geni senza il canonico in COSMIC sono 0 (limite noto).
-Rc = R[R["canon"]]; Rg = Rc[Rc["snv"] & Rc["tx"].isin(use)].copy(); Rg["gene"] = Rg["tx"].map(tx_gene)
-eg_nc = Rg.groupby(["COSMIC_SAMPLE_ID", "mut_id", "gene"])["sev"].max().reset_index()
-O_NC = eg_nc[eg_nc["sev"] == 1].groupby("gene").size()
+# NOTE (16/11/2026): non-coding events per gene (O_NC, used only by the "+nc" variant) removed together with "+nc"
+# (decided by Gab: +nc was worse everywhere and its expectation was fitted on non-drivers only).
 del GENOME
-del R, Rc, Rg
+del R
 
 # =================== controlli di coerenza con la pipeline ===================
 D = pd.read_csv(a.dataset, sep="\t", dtype={"binID": str}).set_index("binID")
@@ -481,13 +476,12 @@ for name in ["syn", "mis", "trunc", "nonsyn"]:
 # ---- informazione LOCALE (specifica delle mutazioni), come fanno gli strumenti dedicati ----
 # Per ogni gene, un fattore moltiplicativo m_g stimato da eventi NEUTRALI dello stesso gene, con contrazione verso 1
 # (gamma-Poisson): m_g = (O_neutri + theta) / (E_neutri + theta), dove E_neutri e' l'atteso dei neutri dal modello di
-# riferimento e theta la loro dispersione nei non driver. Pochi eventi -> m vicino a 1; molti -> m segue i dati.
+# riferimento e theta la loro dispersione su TUTTI i geni con atteso (NOTE 16/11/2026: prima nei non driver).
+# Pochi eventi -> m vicino a 1; molti -> m segue i dati.
 #   +syn : neutri = sinonime del gene (come dNdScv); atteso = atteso delle sinonime (stessa base: model o length)
-#   +nc  : neutri = eventi in introni vicini agli esoni e UTR del gene (come la "regional non-coding rate" di
-#          Lawrence et al.); atteso = regressione di Poisson su n. di esoni, kb di esoni e kb di ORF (non c'e' un
-#          modello regionale per i non codificanti)
+# NOTE (16/11/2026): the "+nc" variant (neutral = non-coding events of the gene, expectation from a Poisson regression on
+# gene structure fitted on non-drivers) has been removed.
 # Le sinonime non sono valutate con +syn (sarebbe circolare).
-from sklearn.linear_model import PoissonRegressor
 # NOTE (16/11/2026): the shrinkage theta is estimated on ALL genes with an expectation (before: non-drivers only, i.e.
 # the multiplier depended on the evaluation labels).
 def shrink(On, En):
@@ -497,14 +491,6 @@ def shrink(On, En):
 genes_all = SC["syn"].index
 On_syn = SC["syn"]["O"].to_numpy(float)
 kb_all = pd.Series(CDS_KB).reindex(genes_all).to_numpy(float)
-st = GENE_STRUCT.reindex(genes_all)
-Xnc = np.c_[np.log1p(st["n_exons"].fillna(1)), np.log1p(st["exon_kb"].fillna(0)), np.log1p(np.nan_to_num(kb_all))]
-On_nc = O_NC.reindex(genes_all).fillna(0).to_numpy(float)
-nd_all = ~genes_all.isin(drivers)
-pr = PoissonRegressor(alpha=0, max_iter=1000).fit(Xnc[nd_all], On_nc[nd_all])
-En_nc = pr.predict(Xnc)
-m_nc, th_nc = shrink(On_nc, En_nc)
-log(f"\nINFORMAZIONE LOCALE: eventi non codificanti nei geni {int(On_nc.sum())}; theta non codificanti {th_nc:.3g}")
 base_syn = {"model": SC["syn"]["E"].to_numpy(float),
             "length": On_syn.sum() / np.nansum(kb_all) * kb_all}
 if WG is not None:
@@ -525,7 +511,7 @@ for name in ["mis", "trunc", "nonsyn"]:
         wg_ = WG[WG["cls"].isin(cl_)].groupby("gene")["wsites"].sum().reindex(sub.index).fillna(0).to_numpy(float)
         bases["wsites"] = Ov.sum() / wg_.sum() * wg_
     for bn, Eb in bases.items():
-        for loc, mult in (("", np.ones(len(sub))), ("+syn", m_syn[bn][idx]), ("+nc", m_nc[idx])):
+        for loc, mult in (("", np.ones(len(sub))), ("+syn", m_syn[bn][idx])):          # NOTE (16/11/2026): "+nc" removed
             Ev = Eb * mult; Ev = Ev * Ov.sum() / np.nansum(Ev) if bn in ("length", "wsites") else Ev    # come nel confronto tra attesi
             good = np.isfinite(Ev) & (Ev > 0); th = theta_mom(Ov[good & nd], Ev[good & nd])
             # NOTE (16/11/2026): score with theta on ALL genes (label-free); th (non-drivers) stays a diagnostic only
@@ -549,7 +535,7 @@ log(LOC.round(3).to_string(index=False))
 
 CMP = pd.DataFrame(cmp_rows); CMP.to_csv(f"{a.out_dir}/expectations_comparison.tsv", sep="\t", index=False)
 # NOTE (28/10/2026): punteggi per gene di TUTTI gli attesi delle due tabelle (constant, length, sites, [wsites], model, e le
-# varianti +syn / +nc), per poterli confrontare con dNdScv (compare_with_dndscv.py --ours_variants). Stessi geni dei
+# varianti +syn; +nc rimossa il 16/11/2026), per poterli confrontare con dNdScv (compare_with_dndscv.py --ours_variants). Stessi geni dei
 # gene_scores_<classe>.tsv; NaN = gene senza punteggio per quell'atteso (le tabelle usano solo i geni con l'atteso del
 # modello, quindi anche le varianti senza covariate sono NaN fuori da quell'insieme: stesso svantaggio del modello).
 for name, d in VAR.items():

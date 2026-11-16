@@ -10,6 +10,10 @@
 ## ("hg19" = matrice di default, indicizzata per NOME del gene; "none" = senza covariate, cioe' il modello
 ## "esposizione + sinonime del gene" senza regressione sulle covariate). Oppure --cv_file <TSV> (gene_name + covariate)
 ## con --cv_label <nome>: covariate proprie, per esempio il nostro background (make_dndscv_covariate.py).
+## NOTE (16/11/2026): --sm <model> = substitution model of dNdScv: 192r_3w (default, trinucleotide context, as before),
+## 12r_3w (12 substitution types, no context), 2r_3w (transitions/transversions only). With a model other than the
+## default the output files get the suffix _sm<model> (e.g. sel_cv_hg19_hg38_epigenome_pcawg_sm12r_3w.tsv), so the
+## default outputs are never overwritten. Used to measure how much the sequence context contributes to dNdScv.
 args <- R.utils::commandArgs(trailingOnly = TRUE, asValues = TRUE)
 suppressMessages(library(dndscv))
 dir.create(args$out_dir, showWarnings = FALSE, recursive = TRUE)
@@ -38,7 +42,13 @@ if (!is.null(args$cv_file)) {
 } else {
     cv_arg <- if (cv == "none") NULL else cv
 }
-res <- dndscv(mut, refdb = args$refcds, cv = cv_arg, max_coding_muts_per_sample = 3000)
+## NOTE (16/11/2026): substitution model (--sm), checked against the models shipped with dNdScv
+sm <- if (is.null(args$sm)) "192r_3w" else args$sm
+allowed_sm <- c("192r_3w", "12r_3w", "2r_3w")
+if (!(sm %in% allowed_sm)) stop(sprintf("--sm %s is not supported: use one of %s", sm, paste(allowed_sm, collapse = ", ")))
+if (sm != "192r_3w") cv <- paste0(cv, "_sm", sm)          # suffix in the output names: default outputs untouched
+message(sprintf("substitution model: %s; output label: %s", sm, cv))
+res <- dndscv(mut, refdb = args$refcds, cv = cv_arg, sm = sm, max_coding_muts_per_sample = 3000)
 write.table(res$sel_cv, file.path(args$out_dir, paste0("sel_cv_", cv, ".tsv")), sep = "\t", quote = FALSE, row.names = FALSE)
 write.table(res$globaldnds, file.path(args$out_dir, paste0("globaldnds_", cv, ".tsv")), sep = "\t", quote = FALSE, row.names = FALSE)
 message(sprintf("geni con q (tutte le sostituzioni) < 0.1: %d", sum(res$sel_cv$qallsubs_cv < 0.1, na.rm = TRUE)))
