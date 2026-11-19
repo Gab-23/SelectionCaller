@@ -1,0 +1,319 @@
+"""
+PILOT - identity of the predictors: occurrence (O) vs selection (S), per omic, with the pilot's XGBoost models.
+
+Idea (Gab, 19/11/2026):
+  1. Prior labels O / S per feature and per omic from domain knowledge (--labels), taken as ground truth.
+  2. Redundancy: hierarchical clustering of the features in Spearman space (distance 1 - |rho|, complete linkage,
+     cut at --redundancy_rho: every pair inside a cluster has |rho| >= that value). Each cluster is represented by its
+     medoid (the member with the highest mean |rho| to the other members). A cluster whose members have different
+     labels for an omic ("mixed") is labelled O for that omic ("occurrence until proven selection").
+  3. Swap test: for each omic, an O-only model (all O clusters) and an S-only model (all S clusters). For each cluster A
+     of the model, A is removed, and then replaced by each cluster B of the other class.
+  4. Every swap is decomposed as   d_swap = d_remove(A) + d_add(B | A removed)   (deltas of held-out deviance
+     explained), so that the distortion due to losing A is separated from the one due to adding B.
+     How the deltas become a confidence score is NOT implemented here: this script only writes the deltas.
+
+Models: the same XGBoost regressors as pilot_omics_background.py --loss glm (fixed hyperparameters, 300 trees), with
+the family of each omic: CNA binomial (fraction of patients), ATAC gaussian (logFC), mutation classes Poisson with
+offset log(possible sites of the class). NOTE (19/11/2026): first sketched with a penalized GLM; switched to XGBoost
+on Gab's request. Every fit is repeated with --seeds (XGBoost subsampling is random: on toy data a single seed moved
+d_swap by up to 0.02).
+CV: interleaved blocks with buffer (INTERLEAVED_KFOLD_IDXS), one model for the whole genome, same folds for every fit of
+an omic. Metric: deviance explained on the pooled out-of-fold predictions, against the null fitted on the training folds.
+
+Feature set: the same as pilot_omics_background.py (no alteration columns, no exposure columns, no cds_bp, no
+dist.to.closest.OG / TSG which stay for validation; distance NAs capped at 2 Mb; features with >= 50% NA dropped;
+Hi-C eigenvectors oriented by GC per chromosome). Constant features are dropped (logged).
+
+Inputs
+  --dataset   feature matrix (data/feature_matrix/<dataset_name>)
+  --labels    TSV: column 'feature' + one column per omic (values O, S or B = both; B is treated as O, "occurrence until
+              proven selection", and kept as B in clusters.tsv). Every feature of the feature set needs a
+              label for every requested omic; unknown features in the file are reported and ignored.
+Outputs (in --out_dir)
+  clusters.tsv            feature, cluster, representative, mean |rho| to the cluster, per-omic feature and cluster labels
+  base_models.tsv         per omic, class and seed: number of clusters, held-out deviance explained of the full model
+  swap_deltas.tsv         one row per (omic, model class, removed cluster A, added cluster B, seed):
+                          dev_base, dev_removed, dev_swapped, d_remove, d_add, d_swap (paired: same seed in all three fits)
+  swap_deltas_summary.tsv the same without the seed: mean and sd over seeds of d_remove, d_add, d_swap
+  removal_deltas.tsv      one row per (omic, model class, removed cluster A, seed): dev_base, dev_removed, d_remove
+  label_template.tsv      only with --write_label_template: the feature set with its clusters and empty label columns
+
+Usage (cluster, pilot env; start with the 1 Mb dataset: the number of fits is 2 * n_O * n_S + n_O + n_S + 2 per omic)
+  python pilot_predictor_identity.py --dataset <feature_matrix> --write_label_template --out_dir identity_out
+  python pilot_predictor_identity.py --dataset <feature_matrix> --labels <labels.tsv> --out_dir identity_out \
+      --omics cna_ampl cna_del mut_mis --bin_size 1000000
+"""
+import argparse, os, sys, time
+import numpy as np, pandas as pd
+import xgboost as xgb
+from scipy.cluster.hierarchy import linkage, fcluster
+from scipy.spatial.distance import squareform
+
+sys.path.insert(0, os.getcwd())
+try:
+    from workflow.scripts.helpers.INTERLEAVED_KFOLD_IDXS import INTERLEAVED_KFOLD_IDXS
+except ImportError:
+    sys.exit("workflow/scripts/helpers/INTERLEAVED_KFOLD_IDXS.py is needed: run from the root of the repository.")
+
+p = argparse.ArgumentParser()
+p.add_argument("--dataset", required=True)
+p.add_argument("--labels", default=None, help="TSV: feature + one column per omic with O / S / B (B treated as O)")
+p.add_argument("--write_label_template", action="store_true", help="write label_template.tsv (feature set + clusters) and stop")
+p.add_argument("--out_dir", default="identity_out")
+p.add_argument("--omics", nargs="+", default=["cna_ampl", "cna_del", "atac", "mut_syn", "mut_mis", "mut_trunc"])
+p.add_argument("--redundancy_rho", type=float, default=0.5, help="cut of the tree: |rho| >= this inside a cluster (complete linkage)")
+p.add_argument("--n_splits", type=int, default=5)
+p.add_argument("--block_bins", type=int, default=100, help="size of the interleaved blocks (bins)")
+p.add_argument("--max_buffer_bins", type=int, default=100, help="cap of the buffer estimated from the target autocorrelation (bins)")
+p.add_argument("--min_exonic_bp", type=float, default=500, help="mutation bins: at least this many coding bp (as in the pilot)")
+p.add_argument("--n_trees", type=int, default=300, help="boosting rounds (as in the pilot)")
+p.add_argument("--n_jobs", type=int, default=4)
+p.add_argument("--seeds", type=int, nargs="+", default=[1, 2, 3],
+               help="XGBoost seeds (subsample / colsample): every fit is repeated with each seed and the deltas are computed "
+                    "seed by seed (paired: base, removal and swap with the same seed)")
+a = p.parse_args()
+os.makedirs(a.out_dir, exist_ok=True)
+t0 = time.time()
+def log(msg): print(f"[{time.time() - t0:.0f}s] {msg}", flush=True)
+
+# ============================ data and feature set (same rules as pilot_omics_background.py) ============================
+D = pd.read_csv(a.dataset, sep="\t")
+D["chr"] = D["binID"].str.split("_").str[0]
+D["idx"] = D["binID"].str.split("_").str[1].astype(int)
+chrom_order = lambda v: int(v) if str(v).isdigit() else 100 + ord(str(v)[0])
+D = D.sort_values(["chr", "idx"], key=lambda s: s.map(chrom_order) if s.name == "chr" else s).reset_index(drop=True)
+
+ALT = [c for c in D.columns if c in ("ampl.frequency", "del.frequency", "logFC", "FDR")
+       or c.startswith(("length_coding", "length_noncoding", "mut_n_"))]
+VALIDATION_ONLY = [c for c in ("dist.to.closest.OG", "dist.to.closest.TSG") if c in D.columns]
+EXPOSURE = [c for c in D.columns if c.startswith(("sites_", "wsites_"))]
+EXONIC = ["cds_bp"] if "cds_bp" in D.columns else []
+FEATS = [c for c in D.columns if c not in ALT + VALIDATION_ONLY + EXPOSURE + EXONIC + ["binID", "chr", "idx"]]
+for c in [c for c in FEATS if c.startswith("dist")]:
+    D[c] = D[c].fillna(2e6)                                   # NA on a whole chromosome = no gene of that list: cap
+too_many_na = [c for c in FEATS if D[c].isna().mean() >= 0.5]
+constant = [c for c in FEATS if c not in too_many_na and D[c].nunique() <= 1]
+FEATS = [c for c in FEATS if c not in too_many_na + constant]
+log(f"{len(D)} bins, {len(FEATS)} features; dropped: {len(too_many_na)} with >= 50% NA {too_many_na}, "
+    f"{len(constant)} constant {constant}")
+
+# Hi-C eigenvectors: arbitrary sign per chromosome -> oriented so that their correlation with GC is positive (as the pilot)
+eig = [c for c in FEATS if c.startswith("eigen_")]
+if eig and "GC_content" in FEATS:
+    n_flip = 0
+    for ch, rows in D.groupby("chr").groups.items():
+        for c in eig:
+            r = D.loc[rows, c].corr(D.loc[rows, "GC_content"], method="spearman")
+            if pd.notna(r) and r < 0:
+                D.loc[rows, c] = -D.loc[rows, c]; n_flip += 1
+    log(f"Hi-C eigenvectors oriented by GC: {n_flip} signs flipped (eigenvector x chromosome)")
+
+# ============================ step 2: redundancy clusters (shared by all omics) ============================
+# Spearman on all bins of the dataset (pairwise complete), so the clusters are the same for every omic; only the labels
+# change between omics.
+rho = D[FEATS].corr(method="spearman").abs()
+if rho.isna().any().any():
+    bad = rho.columns[rho.isna().any()].tolist()
+    sys.exit(f"Spearman correlation undefined for {bad} (no overlapping non-NA bins?): check these columns")
+dist = 1 - rho.to_numpy(copy=True); np.fill_diagonal(dist, 0)
+tree = linkage(squareform(dist, checks=False), method="complete")
+cluster_id = fcluster(tree, t=1 - a.redundancy_rho, criterion="distance")
+CL = pd.DataFrame({"feature": FEATS, "cluster": cluster_id})
+# medoid: the member with the highest mean |rho| to the OTHER members (scale-free, same space as the tree)
+mean_rho = {}
+for k, members in CL.groupby("cluster")["feature"]:
+    m = list(members)
+    for f in m:
+        others = [g for g in m if g != f]
+        mean_rho[f] = rho.loc[f, others].mean() if others else 1.0
+CL["mean_abs_rho_in_cluster"] = CL["feature"].map(mean_rho)
+rep = CL.loc[CL.groupby("cluster")["mean_abs_rho_in_cluster"].idxmax(), ["cluster", "feature"]]
+CL["representative"] = CL["cluster"].map(dict(zip(rep["cluster"], rep["feature"])))
+CL["cluster_size"] = CL["cluster"].map(CL["cluster"].value_counts())
+log(f"redundancy clusters (complete linkage, |rho| >= {a.redundancy_rho}): {CL['cluster'].nunique()} clusters from "
+    f"{len(FEATS)} features; largest: {CL['cluster_size'].max()} features")
+
+if a.write_label_template:
+    T = CL.sort_values(["cluster", "feature"])[["feature", "cluster", "representative"]].copy()
+    for om in a.omics: T[om] = ""
+    T.to_csv(f"{a.out_dir}/label_template.tsv", sep="\t", index=False)
+    log(f"written {a.out_dir}/label_template.tsv: fill the omic columns with O / S / B and pass it with --labels")
+    sys.exit(0)
+
+# ============================ step 1: prior labels ============================
+if not a.labels:
+    sys.exit("--labels is required (or use --write_label_template to create the file to fill)")
+L = pd.read_csv(a.labels, sep="\t", dtype=str)
+missing_cols = [c for c in ["feature"] + a.omics if c not in L.columns]
+if missing_cols:
+    sys.exit(f"{a.labels}: columns missing: {missing_cols} (needed: feature + one column per requested omic)")
+L = L.set_index("feature")
+unknown = sorted(set(L.index) - set(FEATS))
+if unknown:
+    print(f"NOTE: {len(unknown)} features of {a.labels} are not in the feature set and are ignored: {unknown}")
+not_labelled = [f for f in FEATS if f not in L.index]
+if not_labelled:
+    sys.exit(f"{a.labels}: {len(not_labelled)} features of the feature set have no row: {not_labelled}")
+for om in a.omics:
+    vals = L.loc[FEATS, om].str.strip().str.upper()
+    bad = vals[~vals.isin(["O", "S", "B"])]
+    if len(bad):
+        sys.exit(f"{a.labels}, column {om}: labels must be O, S or B; wrong or empty for {len(bad)} features: "
+                 f"{bad.index.tolist()[:20]}")
+    # NOTE (19/11/2026): B (both) is treated as O, as the mixed clusters ("occurrence until proven selection", Gab)
+    CL[f"prior_{om}"] = CL["feature"].map(vals)
+    n_B = int((vals == "B").sum())
+    if n_B:
+        log(f"{om}: {n_B} features labelled B, treated as O: {vals.index[vals == 'B'].tolist()}")
+    vals = vals.replace("B", "O")
+    CL[f"label_{om}"] = CL["feature"].map(vals)
+    # cluster label: unanimous label, otherwise O ("occurrence until proven selection")
+    per_cluster = CL.groupby("cluster")[f"label_{om}"].agg(lambda s: s.iloc[0] if s.nunique() == 1 else "MIXED")
+    mixed = per_cluster[per_cluster == "MIXED"].index
+    CL[f"cluster_label_{om}"] = CL["cluster"].map(per_cluster.replace("MIXED", "O"))
+    CL[f"mixed_{om}"] = CL["cluster"].isin(mixed)
+    if len(mixed):
+        parts = []
+        for k in mixed:
+            members = CL[CL["cluster"] == k]
+            parts.append(f"cluster {k}: " + ", ".join(f"{f}={lab}" for f, lab in zip(members["feature"], members[f"label_{om}"])))
+        detail = "; ".join(parts)
+        log(f"{om}: {len(mixed)} mixed clusters labelled O -> {detail}")
+CL.to_csv(f"{a.out_dir}/clusters.tsv", sep="\t", index=False)
+
+# ============================ targets, families, models ============================
+TARGETS = {"cna_ampl": ("ampl.frequency", "binomial", None), "cna_del": ("del.frequency", "binomial", None),
+           "atac": ("logFC", "gaussian", None), "mut_syn": ("mut_n_syn", "poisson", "sites_syn"),
+           "mut_mis": ("mut_n_mis", "poisson", "sites_mis"), "mut_trunc": ("mut_n_trunc", "poisson", "sites_trunc")}
+XGB_OBJ = {"gaussian": "reg:squarederror", "poisson": "count:poisson", "binomial": "binary:logistic"}
+
+def deviance(y, mu, family):
+    """Deviance (up to multiplicative constants, which cancel in the ratio) - same as pilot_omics_background.py."""
+    if family == "gaussian":
+        return np.sum((y - mu) ** 2)
+    if family == "poisson":
+        mu = np.clip(mu, 1e-12, None)
+        return 2 * np.sum(np.where(y > 0, y * np.log(np.where(y > 0, y, 1) / mu), 0.0) - (y - mu))
+    mu = np.clip(mu, 1e-9, 1 - 1e-9)                          # binomial on a fraction of patients
+    t1 = np.where(y > 0, y * np.log(np.where(y > 0, y, 1) / mu), 0.0)
+    t0 = np.where(y < 1, (1 - y) * np.log(np.where(y < 1, 1 - y, 1) / (1 - mu)), 0.0)
+    return 2 * np.sum(t1 + t0)
+
+def corr_len(y, max_lag=3000):
+    """Lag (bins) at which the autocorrelation of y drops below 0.5 - buffer of the CV, as in the pilot."""
+    y = y - y.mean(); v = np.dot(y, y)
+    if v == 0: return 1
+    for lag in range(1, min(max_lag, len(y) - 1)):
+        if np.dot(y[:-lag], y[lag:]) / v < 0.5: return lag
+    return max_lag
+
+# NOTE (19/11/2026): models = the same XGBoost regressors as pilot_omics_background.py (--loss glm): same objective per
+# family and same fixed hyperparameters, 300 trees; NaN handled natively by XGBoost (no imputation, no scaling).
+XGB_PARAMS = dict(max_depth=5, eta=0.05, subsample=0.8, colsample_bytree=0.8, min_child_weight=10, tree_method="hist")
+
+class OmicCV:
+    """Folds, base margins and null model of one omic, computed once and reused by every fit."""
+    def __init__(self, d, y, family, offset, reps):
+        self.y, self.family, self.reps = y, family, reps
+        chroms = d["chr"].to_numpy()
+        ell = int(np.median([corr_len(y[chroms == c]) for c in np.unique(chroms)]))
+        self.buffer = min(ell, a.max_buffer_bins)
+        self.folds = INTERLEAVED_KFOLD_IDXS(d["binID"].to_numpy(), a.n_splits, a.block_bins, self.buffer, MIN_TRAIN_FRACTION=0.05)
+        self.X = d[reps].to_numpy(float)
+        off = np.zeros(len(y)) if offset is None else offset
+        self.parts, null = [], np.full(len(y), np.nan)
+        for k, (tr, te) in self.folds.items():
+            margin = None
+            if family == "poisson":                          # start from the mean rate of the training fold (see the pilot)
+                margin = off + np.log(max(y[tr].sum(), 1e-12) / np.exp(off[tr]).sum())
+                null[te] = np.exp(off[te]) * y[tr].sum() / np.exp(off[tr]).sum()
+            else:
+                null[te] = y[tr].mean()
+            self.parts.append((tr, te, None if margin is None else margin[tr], None if margin is None else margin[te]))
+        self.d_null = deviance(y, null, family)
+
+    def dev_expl(self, features):
+        """Held-out deviance explained of XGBoost on these representatives, one value per seed (array aligned with
+        a.seeds). Empty list = null model = 0 for every seed."""
+        if not features:
+            return np.zeros(len(a.seeds))
+        cols = [self.reps.index(f) for f in features]
+        out = []
+        for seed in a.seeds:
+            pred = np.full(len(self.y), np.nan)
+            params = dict(XGB_PARAMS, objective=XGB_OBJ[self.family], nthread=a.n_jobs, seed=seed)
+            for tr, te, mtr, mte in self.parts:
+                dtr = xgb.DMatrix(self.X[np.ix_(tr, cols)], label=self.y[tr], base_margin=mtr)
+                dte = xgb.DMatrix(self.X[np.ix_(te, cols)], base_margin=mte)
+                booster = xgb.train(params, dtr, num_boost_round=a.n_trees)
+                pred[te] = booster.predict(dte)
+            out.append(1 - deviance(self.y, pred, self.family) / self.d_null)
+        return np.array(out)
+
+# ============================ steps 3-4: base models, removals, swaps ============================
+base_rows, removal_rows, swap_rows = [], [], []
+for om in a.omics:
+    col, family, expo = TARGETS[om]
+    if col not in D.columns or (expo and expo not in D.columns):
+        sys.exit(f"{om}: column {col if col not in D.columns else expo} missing in {a.dataset}")
+    d = D
+    if family == "poisson":                                   # same bins as the pilot: enough CDS and sites of the class
+        if not EXONIC: sys.exit(f"{om}: column cds_bp missing in {a.dataset}")
+        n0 = len(d); d = d[(d["cds_bp"] >= a.min_exonic_bp) & (d[expo] > 0)]
+        log(f"{om}: {n0 - len(d)} bins removed (cds_bp < {a.min_exonic_bp:g} or no {expo})")
+    n0 = len(d); d = d[d[col].notna()]
+    if len(d) < n0: log(f"{om}: {n0 - len(d)} bins removed (NA in {col})")
+    y = d[col].to_numpy(float)
+    if family == "binomial" and (y.min() < 0 or y.max() > 1):
+        sys.exit(f"{om}: {col} must be a fraction in [0, 1] for the binomial family (range {y.min()} .. {y.max()})")
+    offset = np.log(d[expo].to_numpy(float)) if family == "poisson" else None
+
+    reps_by_class = {}
+    for cls in ("O", "S"):
+        reps_by_class[cls] = sorted(CL.loc[CL[f"cluster_label_{om}"] == cls, "representative"].unique())
+    if not reps_by_class["O"] or not reps_by_class["S"]:
+        log(f"{om}: SKIPPED, one class has no cluster (O: {len(reps_by_class['O'])}, S: {len(reps_by_class['S'])})")
+        continue
+    reps = reps_by_class["O"] + reps_by_class["S"]
+    nO, nS = len(reps_by_class["O"]), len(reps_by_class["S"])
+    cv = OmicCV(d, y, family, offset, reps)
+    log(f"{om} [{family}]: {len(y)} bins, buffer {cv.buffer} bins, clusters O={nO} S={nS}, "
+        f"fits to run: {2 * nO * nS + nO + nS + 2} (x {a.n_splits} folds x {len(a.seeds)} seeds)")
+    cluster_of = dict(zip(CL["feature"], CL["cluster"]))
+
+    for cls, other in (("O", "S"), ("S", "O")):
+        base = reps_by_class[cls]
+        dev_base = cv.dev_expl(base)                             # one value per seed
+        for i, seed in enumerate(a.seeds):
+            base_rows.append(dict(omic=om, model_class=cls, seed=seed, n_clusters=len(base), n_bins=len(y),
+                                  buffer_bins=cv.buffer, dev_expl=dev_base[i]))
+        log(f"  {om} {cls}-only model: deviance explained {dev_base.mean():.4f} (sd over seeds {dev_base.std(ddof=1) if len(a.seeds) > 1 else 0:.4f}; "
+            f"{len(base)} clusters)")
+        for A in base:
+            without_A = [f for f in base if f != A]
+            dev_removed = cv.dev_expl(without_A)
+            for i, seed in enumerate(a.seeds):
+                removal_rows.append(dict(omic=om, model_class=cls, out_cluster=cluster_of[A], out_rep=A, seed=seed,
+                                         dev_base=dev_base[i], dev_removed=dev_removed[i], d_remove=dev_removed[i] - dev_base[i]))
+            for B in reps_by_class[other]:
+                dev_swapped = cv.dev_expl(without_A + [B])
+                for i, seed in enumerate(a.seeds):             # paired deltas: same seed for base, removal and swap
+                    swap_rows.append(dict(omic=om, model_class=cls, out_cluster=cluster_of[A], out_rep=A,
+                                          in_cluster=cluster_of[B], in_rep=B, seed=seed, dev_base=dev_base[i],
+                                          dev_removed=dev_removed[i], dev_swapped=dev_swapped[i],
+                                          d_remove=dev_removed[i] - dev_base[i], d_add=dev_swapped[i] - dev_removed[i],
+                                          d_swap=dev_swapped[i] - dev_base[i]))
+        log(f"  {om} {cls}-only model: {len(base)} removals and {len(base) * len(reps_by_class[other])} swaps done")
+
+pd.DataFrame(base_rows).to_csv(f"{a.out_dir}/base_models.tsv", sep="\t", index=False)
+pd.DataFrame(removal_rows).to_csv(f"{a.out_dir}/removal_deltas.tsv", sep="\t", index=False)
+SW = pd.DataFrame(swap_rows); SW.to_csv(f"{a.out_dir}/swap_deltas.tsv", sep="\t", index=False)
+# summary over seeds: mean and sd of every delta (sd = how much of a delta is XGBoost randomness)
+keys = ["omic", "model_class", "out_cluster", "out_rep", "in_cluster", "in_rep"]
+SUM = SW.groupby(keys)[["d_remove", "d_add", "d_swap"]].agg(["mean", "std"])
+SUM.columns = [f"{c}_{s}" for c, s in SUM.columns]
+SUM = SUM.reset_index(); SUM["n_seeds"] = len(a.seeds)
+SUM.to_csv(f"{a.out_dir}/swap_deltas_summary.tsv", sep="\t", index=False)
+log(f"written base_models.tsv, removal_deltas.tsv, swap_deltas.tsv (per seed), swap_deltas_summary.tsv (mean/sd over "
+    f"{len(a.seeds)} seeds), clusters.tsv in {a.out_dir}")
