@@ -113,9 +113,14 @@ if eig and "GC_content" in FEATS:
 # Spearman on all bins of the dataset (pairwise complete), so the clusters are the same for every omic; only the labels
 # change between omics.
 rho = D[FEATS].corr(method="spearman").abs()
-if rho.isna().any().any():
-    bad = rho.columns[rho.isna().any()].tolist()
-    sys.exit(f"Spearman correlation undefined for {bad} (no overlapping non-NA bins?): check these columns")
+# NOTE (19/11/2026): an undefined |rho| (e.g. at 1 Mb dist.to.closest.gene_protein_coding is constant = 0 on every bin
+# where the gene-level features are non-NA) is set to 0 = not redundant, the same rule as pilot_omics_background.py
+# (.corr().abs().fillna(0)); with complete linkage such a pair can never share a cluster. Logged pair by pair.
+undefined = [(f, g) for i, f in enumerate(FEATS) for g in FEATS[i + 1:] if pd.isna(rho.loc[f, g])]
+if undefined:
+    log(f"{len(undefined)} feature pairs with undefined Spearman correlation, set to |rho| = 0: "
+        + ", ".join(f"{f} ~ {g}" for f, g in undefined))
+    rho = rho.fillna(0)
 dist = 1 - rho.to_numpy(copy=True); np.fill_diagonal(dist, 0)
 tree = linkage(squareform(dist, checks=False), method="complete")
 cluster_id = fcluster(tree, t=1 - a.redundancy_rho, criterion="distance")
