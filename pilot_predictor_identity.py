@@ -12,6 +12,10 @@ Idea (Gab, 19/11/2026):
   4. Every swap is decomposed as   d_swap = d_remove(A) + d_add(B | A removed)   (deltas of held-out deviance
      explained), so that the distortion due to losing A is separated from the one due to adding B.
      How the deltas become a confidence score is NOT implemented here: this script only writes the deltas.
+  5. NOTE (19/11/2026): each cluster B of the other class is also added to the FULL model of the class (A present):
+     d_add_full(B) = dev(class + B) - dev(class). Then  shared(A, B) = d_add(B | A removed) - d_add_full(B)
+     separates "B stands in for A" (B adds value only when A is missing: A and B share information about the target)
+     from "B brings its own signal" (B adds the same with or without A).
 
 Models: the same XGBoost regressors as pilot_omics_background.py --loss glm (fixed hyperparameters, 300 trees), with
 the family of each omic: CNA binomial (fraction of patients), ATAC gaussian (logFC), mutation classes Poisson with
@@ -34,12 +38,14 @@ Outputs (in --out_dir)
   clusters.tsv            feature, cluster, representative, mean |rho| to the cluster, per-omic feature and cluster labels
   base_models.tsv         per omic, class and seed: number of clusters, held-out deviance explained of the full model
   swap_deltas.tsv         one row per (omic, model class, removed cluster A, added cluster B, seed):
-                          dev_base, dev_removed, dev_swapped, d_remove, d_add, d_swap (paired: same seed in all three fits)
-  swap_deltas_summary.tsv the same without the seed: mean and sd over seeds of d_remove, d_add, d_swap
+                          dev_base, dev_removed, dev_swapped, d_remove, d_add, d_swap, d_add_full, shared
+                          (paired: same seed in every fit)
+  swap_deltas_summary.tsv the same without the seed: mean and sd over seeds of d_remove, d_add, d_swap, d_add_full, shared
+  addition_deltas.tsv     one row per (omic, model class, added cluster B, seed): dev_base, dev_full_plus_B, d_add_full
   removal_deltas.tsv      one row per (omic, model class, removed cluster A, seed): dev_base, dev_removed, d_remove
   label_template.tsv      only with --write_label_template: the feature set with its clusters and empty label columns
 
-Usage (cluster, pilot env; start with the 1 Mb dataset: the number of fits is 2 * n_O * n_S + n_O + n_S + 2 per omic)
+Usage (cluster, pilot env; start with the 1 Mb dataset: the number of fits is 2 * n_O * n_S + 2 * (n_O + n_S) + 2 per omic)
   python pilot_predictor_identity.py --dataset <feature_matrix> --write_label_template --out_dir identity_out
   python pilot_predictor_identity.py --dataset <feature_matrix> --labels <labels.tsv> --out_dir identity_out \
       --omics cna_ampl cna_del mut_mis --bin_size 1000000
@@ -257,7 +263,7 @@ class OmicCV:
         return np.array(out)
 
 # ============================ steps 3-4: base models, removals, swaps ============================
-base_rows, removal_rows, swap_rows = [], [], []
+base_rows, removal_rows, swap_rows, addition_rows = [], [], [], []
 for om in a.omics:
     col, family, expo = TARGETS[om]
     if col not in D.columns or (expo and expo not in D.columns):
@@ -284,7 +290,7 @@ for om in a.omics:
     nO, nS = len(reps_by_class["O"]), len(reps_by_class["S"])
     cv = OmicCV(d, y, family, offset, reps)
     log(f"{om} [{family}]: {len(y)} bins, buffer {cv.buffer} bins, clusters O={nO} S={nS}, "
-        f"fits to run: {2 * nO * nS + nO + nS + 2} (x {a.n_splits} folds x {len(a.seeds)} seeds)")
+        f"fits to run: {2 * nO * nS + 2 * (nO + nS) + 2} (x {a.n_splits} folds x {len(a.seeds)} seeds)")
     cluster_of = dict(zip(CL["feature"], CL["cluster"]))
 
     for cls, other in (("O", "S"), ("S", "O")):
@@ -295,6 +301,15 @@ for om in a.omics:
                                   buffer_bins=cv.buffer, dev_expl=dev_base[i]))
         log(f"  {om} {cls}-only model: deviance explained {dev_base.mean():.4f} (sd over seeds {dev_base.std(ddof=1) if len(a.seeds) > 1 else 0:.4f}; "
             f"{len(base)} clusters)")
+        # NOTE (19/11/2026): every cluster B of the other class added to the FULL model (nothing removed): its own added
+        # value, the reference for d_add(B | A removed) -> shared(A, B)
+        dev_full_plus = {}
+        for B in reps_by_class[other]:
+            dev_full_plus[B] = cv.dev_expl(base + [B])
+            for i, seed in enumerate(a.seeds):
+                addition_rows.append(dict(omic=om, model_class=cls, in_cluster=cluster_of[B], in_rep=B, seed=seed,
+                                          dev_base=dev_base[i], dev_full_plus_B=dev_full_plus[B][i],
+                                          d_add_full=dev_full_plus[B][i] - dev_base[i]))
         for A in base:
             without_A = [f for f in base if f != A]
             dev_removed = cv.dev_expl(without_A)
@@ -308,17 +323,21 @@ for om in a.omics:
                                           in_cluster=cluster_of[B], in_rep=B, seed=seed, dev_base=dev_base[i],
                                           dev_removed=dev_removed[i], dev_swapped=dev_swapped[i],
                                           d_remove=dev_removed[i] - dev_base[i], d_add=dev_swapped[i] - dev_removed[i],
-                                          d_swap=dev_swapped[i] - dev_base[i]))
-        log(f"  {om} {cls}-only model: {len(base)} removals and {len(base) * len(reps_by_class[other])} swaps done")
+                                          d_swap=dev_swapped[i] - dev_base[i],
+                                          d_add_full=dev_full_plus[B][i] - dev_base[i],
+                                          shared=(dev_swapped[i] - dev_removed[i]) - (dev_full_plus[B][i] - dev_base[i])))
+        log(f"  {om} {cls}-only model: {len(reps_by_class[other])} additions to the full model, {len(base)} removals and "
+            f"{len(base) * len(reps_by_class[other])} swaps done")
 
 pd.DataFrame(base_rows).to_csv(f"{a.out_dir}/base_models.tsv", sep="\t", index=False)
 pd.DataFrame(removal_rows).to_csv(f"{a.out_dir}/removal_deltas.tsv", sep="\t", index=False)
+pd.DataFrame(addition_rows).to_csv(f"{a.out_dir}/addition_deltas.tsv", sep="\t", index=False)
 SW = pd.DataFrame(swap_rows); SW.to_csv(f"{a.out_dir}/swap_deltas.tsv", sep="\t", index=False)
 # summary over seeds: mean and sd of every delta (sd = how much of a delta is XGBoost randomness)
 keys = ["omic", "model_class", "out_cluster", "out_rep", "in_cluster", "in_rep"]
-SUM = SW.groupby(keys)[["d_remove", "d_add", "d_swap"]].agg(["mean", "std"])
+SUM = SW.groupby(keys)[["d_remove", "d_add", "d_swap", "d_add_full", "shared"]].agg(["mean", "std"])
 SUM.columns = [f"{c}_{s}" for c, s in SUM.columns]
 SUM = SUM.reset_index(); SUM["n_seeds"] = len(a.seeds)
 SUM.to_csv(f"{a.out_dir}/swap_deltas_summary.tsv", sep="\t", index=False)
-log(f"written base_models.tsv, removal_deltas.tsv, swap_deltas.tsv (per seed), swap_deltas_summary.tsv (mean/sd over "
+log(f"written base_models.tsv, removal_deltas.tsv, addition_deltas.tsv, swap_deltas.tsv (per seed), swap_deltas_summary.tsv (mean/sd over "
     f"{len(a.seeds)} seeds), clusters.tsv in {a.out_dir}")
