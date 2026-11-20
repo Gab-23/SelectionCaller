@@ -26,7 +26,8 @@ CV: interleaved blocks with buffer (INTERLEAVED_KFOLD_IDXS), one model for the w
 an omic. Metric: deviance explained on the pooled out-of-fold predictions, against the null fitted on the training folds.
 
 Feature set: the same as pilot_omics_background.py (no alteration columns, no exposure columns, no cds_bp, no
-dist.to.closest.OG / TSG which stay for validation; distance NAs capped at 2 Mb; features with >= 50% NA dropped;
+dist.to.closest.OG / TSG which stay for validation; distance NAs capped at 2 Mb; optionally (--gene_na_to_zero,
+20/11/2026) NA of gene-level features set to 0; features with >= 50% NA dropped;
 Hi-C eigenvectors oriented by GC per chromosome). Constant features are dropped (logged).
 
 Inputs
@@ -78,6 +79,9 @@ p.add_argument("--n_jobs", type=int, default=4)
 p.add_argument("--seeds", type=int, nargs="+", default=[1, 2, 3],
                help="XGBoost seeds (subsample / colsample): every fit is repeated with each seed and the deltas are computed "
                     "seed by seed (paired: base, removal and swap with the same seed)")
+p.add_argument("--gene_na_to_zero", action="store_true",
+               help="NOTE (20/11/2026): set NA to 0 in the gene-level features (no gene in the bin) before the >= 50%% NA "
+                    "filter (default off = previous behaviour)")
 a = p.parse_args()
 os.makedirs(a.out_dir, exist_ok=True)
 t0 = time.time()
@@ -96,6 +100,24 @@ VALIDATION_ONLY = [c for c in ("dist.to.closest.OG", "dist.to.closest.TSG") if c
 EXPOSURE = [c for c in D.columns if c.startswith(("sites_", "wsites_"))]
 EXONIC = ["cds_bp"] if "cds_bp" in D.columns else []
 FEATS = [c for c in D.columns if c not in ALT + VALIDATION_ONLY + EXPOSURE + EXONIC + ["binID", "chr", "idx"]]
+# NOTE (20/11/2026): with --gene_na_to_zero, NA of the gene-level features (= no gene, or no gene with that annotation, in
+# the bin) becomes 0 BEFORE the >= 50% NA filter, so that at 20 kb they are not dropped (Gab, 20/11/2026). Post-hoc here
+# for time reasons; TODO: move it to a preprocessing rule of the ML pipeline (the dataset files are never modified).
+# Checked on BRCA 20 kb / 1 Mb and LUAD 1 Mb: the count features (n_*_bin, complex_density, n_*_trans) are NA only in
+# bins without protein-coding genes (0 = exact); ohnolog/paralog means and totals are NA also where the bin has genes but
+# none with ohnologs/paralogs (observed minimum 1, so 0 = "none" is exact); ess_score (0 = non-essential in DepMap),
+# haploinsufficiency_score (observed minimum 0.2) and GTEx_* (centred values: 0 = average, NOT "absent") are
+# approximations. ChromHMM, Hi-C eigenvectors and replication timing are NOT filled: their NA = missing measurement.
+GENE_LEVEL_NA_TO_ZERO = [c for c in FEATS
+                         if c in ("ess_score", "haploinsufficiency_score", "complex_density", "n_complex_partners_trans",
+                                  "n_PPIs_trans", "n_ohnolog_bin", "n_paralogs_bin")
+                         or c.startswith(("GTEx_", "mean_n_ohnologs", "total_n_ohnologs", "mean_n_paralogs",
+                                          "total_n_paralogs"))]
+if a.gene_na_to_zero:
+    n_filled = {c: int(D[c].isna().sum()) for c in GENE_LEVEL_NA_TO_ZERO}
+    for c in GENE_LEVEL_NA_TO_ZERO:
+        D[c] = D[c].fillna(0)
+    log(f"--gene_na_to_zero: NA set to 0 in {len(GENE_LEVEL_NA_TO_ZERO)} gene-level features (NA count per feature): {n_filled}")
 for c in [c for c in FEATS if c.startswith("dist")]:
     D[c] = D[c].fillna(2e6)                                   # NA on a whole chromosome = no gene of that list: cap
 too_many_na = [c for c in FEATS if D[c].isna().mean() >= 0.5]
