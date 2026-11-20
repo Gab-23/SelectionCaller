@@ -16,6 +16,9 @@ Idea (Gab, 19/11/2026):
      d_add_full(B) = dev(class + B) - dev(class). Then  shared(A, B) = d_add(B | A removed) - d_add_full(B)
      separates "B stands in for A" (B adds value only when A is missing: A and B share information about the target)
      from "B brings its own signal" (B adds the same with or without A).
+  6. NOTE (20/11/2026): --label_shuffle_seed permutes the cluster labels (same permutation for every omic, class sizes
+     in clusters kept): one randomization of the null for the concordance test. Many seeds are run as a SLURM array by
+     run_identity_randomizations.sh and gathered by collect_identity_randomizations.py. The test itself is not here.
 
 Models: the same XGBoost regressors as pilot_omics_background.py --loss glm (fixed hyperparameters, 300 trees), with
 the family of each omic: CNA binomial (fraction of patients), ATAC gaussian (logFC), mutation classes Poisson with
@@ -82,6 +85,9 @@ p.add_argument("--seeds", type=int, nargs="+", default=[1, 2, 3],
 p.add_argument("--gene_na_to_zero", action="store_true",
                help="NOTE (20/11/2026): set NA to 0 in the gene-level features (no gene in the bin) before the >= 50%% NA "
                     "filter (default off = previous behaviour)")
+p.add_argument("--label_shuffle_seed", type=int, default=None,
+               help="NOTE (20/11/2026): permute the cluster labels with this seed (null of the concordance test; one "
+                    "permutation shared by all omics, class sizes in clusters kept). Default: true labels")
 a = p.parse_args()
 os.makedirs(a.out_dir, exist_ok=True)
 t0 = time.time()
@@ -213,6 +219,25 @@ for om in a.omics:
             parts.append(f"cluster {k}: " + ", ".join(f"{f}={lab}" for f, lab in zip(members["feature"], members[f"label_{om}"])))
         detail = "; ".join(parts)
         log(f"{om}: {len(mixed)} mixed clusters labelled O -> {detail}")
+
+# NOTE (20/11/2026): label randomization (Gab, 20/11/2026), the null of the concordance test. The CLUSTER labels (after
+# the mixed -> O rule) are permuted among clusters: the class sizes in clusters stay those of the truth, the clusters
+# themselves (label-free) do not change. ONE permutation shared by all omics: it depends only on --label_shuffle_seed and
+# on the cluster ids, so separate jobs (one per omic) with the same seed get the same shuffle. The true labels stay in
+# clusters.tsv as true_cluster_label_<omic>; label_<omic> / prior_<omic> (feature level) are left as they were.
+if a.label_shuffle_seed is not None:
+    cluster_ids = np.sort(CL["cluster"].unique())
+    permuted_ids = np.random.default_rng(a.label_shuffle_seed).permutation(cluster_ids)
+    source_of = dict(zip(cluster_ids, permuted_ids))           # cluster k takes the true label of cluster source_of[k]
+    for om in a.omics:
+        true_label = CL.groupby("cluster")[f"cluster_label_{om}"].first()
+        CL[f"true_cluster_label_{om}"] = CL[f"cluster_label_{om}"]
+        CL[f"cluster_label_{om}"] = CL["cluster"].map(lambda k: true_label[source_of[k]])
+        per_cluster = CL.groupby("cluster")[[f"true_cluster_label_{om}", f"cluster_label_{om}"]].first()
+        n_changed = int((per_cluster.iloc[:, 0] != per_cluster.iloc[:, 1]).sum())
+        log(f"{om}: cluster labels shuffled (seed {a.label_shuffle_seed}): {n_changed} of {len(per_cluster)} clusters "
+            f"changed class; sizes O={int((per_cluster.iloc[:, 1] == 'O').sum())} S={int((per_cluster.iloc[:, 1] == 'S').sum())} "
+            f"(true: O={int((per_cluster.iloc[:, 0] == 'O').sum())} S={int((per_cluster.iloc[:, 0] == 'S').sum())})")
 CL.to_csv(f"{a.out_dir}/clusters.tsv", sep="\t", index=False)
 
 # ============================ targets, families, models ============================
