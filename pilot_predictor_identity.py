@@ -19,6 +19,9 @@ Idea (Gab, 19/11/2026):
   6. NOTE (20/11/2026): --label_shuffle_seed permutes the cluster labels (same permutation for every omic, class sizes
      in clusters kept): one randomization of the null for the concordance test. Many seeds are run as a SLURM array by
      run_identity_randomizations.sh and gathered by collect_identity_randomizations.py. The test itself is not here.
+  7. NOTE (20/11/2026): O+S model (all clusters) and its null: the same model with the S block circularly shifted
+     within each chromosome (--n_shift repeats): does S add to O in combination, beyond what any S-like block would?
+     --full_models_only runs only the base models and this block (no swap test), for setups whose swaps already exist.
 
 Models: the same XGBoost regressors as pilot_omics_background.py --loss glm (fixed hyperparameters, 300 trees), with
 the family of each omic: CNA binomial (fraction of patients), ATAC gaussian (logFC), mutation classes Poisson with
@@ -47,6 +50,9 @@ Outputs (in --out_dir)
   swap_deltas_summary.tsv the same without the seed: mean and sd over seeds of d_remove, d_add, d_swap, d_add_full, shared
   addition_deltas.tsv     one row per (omic, model class, added cluster B, seed): dev_base, dev_full_plus_B, d_add_full
   removal_deltas.tsv      one row per (omic, model class, removed cluster A, seed): dev_base, dev_removed, d_remove
+  full_models.tsv         NOTE (20/11/2026): one row per (omic, model, shift_rep, seed): model "O+S" (all clusters,
+                          shift_rep -1) or "O+S_shifted" (S block circularly shifted, --n_shift repeats); dev_O, dev_S,
+                          dev_expl, gain_over_O = dev_expl - dev_O (paired by seed)
   label_template.tsv      only with --write_label_template: the feature set with its clusters and empty label columns
 
 Usage (cluster, pilot env; start with the 1 Mb dataset: the number of fits is 2 * n_O * n_S + 2 * (n_O + n_S) + 2 per omic)
@@ -88,6 +94,13 @@ p.add_argument("--gene_na_to_zero", action="store_true",
 p.add_argument("--label_shuffle_seed", type=int, default=None,
                help="NOTE (20/11/2026): permute the cluster labels with this seed (null of the concordance test; one "
                     "permutation shared by all omics, class sizes in clusters kept). Default: true labels")
+p.add_argument("--n_shift", type=int, default=20,
+               help="NOTE (20/11/2026): circular shifts of the S block for the null of the O+S model (0 = O+S model only)")
+p.add_argument("--shift_seed", type=int, default=1, help="seed of the circular shifts (same shifts for every omic run)")
+p.add_argument("--full_models_only", action="store_true",
+               help="NOTE (20/11/2026): fit only the base models (O-only, S-only) and the O+S model with its shifted-S "
+                    "null; skip the swap test (removals, additions, swaps) and write only base_models.tsv, "
+                    "full_models.tsv and clusters.tsv. Use a separate --out_dir from the full runs")
 a = p.parse_args()
 os.makedirs(a.out_dir, exist_ok=True)
 t0 = time.time()
@@ -291,19 +304,22 @@ class OmicCV:
             self.parts.append((tr, te, None if margin is None else margin[tr], None if margin is None else margin[te]))
         self.d_null = deviance(y, null, family)
 
-    def dev_expl(self, features):
+    def dev_expl(self, features, X=None):
         """Held-out deviance explained of XGBoost on these representatives, one value per seed (array aligned with
-        a.seeds). Empty list = null model = 0 for every seed."""
+        a.seeds). Empty list = null model = 0 for every seed.
+        NOTE (20/11/2026): X = optional feature matrix replacing self.X (same columns: self.reps), used by the
+        circular-shift null of the O+S model; same folds, margins and null model."""
         if not features:
             return np.zeros(len(a.seeds))
+        X_used = self.X if X is None else X
         cols = [self.reps.index(f) for f in features]
         out = []
         for seed in a.seeds:
             pred = np.full(len(self.y), np.nan)
             params = dict(XGB_PARAMS, objective=XGB_OBJ[self.family], nthread=a.n_jobs, seed=seed)
             for tr, te, mtr, mte in self.parts:
-                dtr = xgb.DMatrix(self.X[np.ix_(tr, cols)], label=self.y[tr], base_margin=mtr)
-                dte = xgb.DMatrix(self.X[np.ix_(te, cols)], base_margin=mte)
+                dtr = xgb.DMatrix(X_used[np.ix_(tr, cols)], label=self.y[tr], base_margin=mtr)
+                dte = xgb.DMatrix(X_used[np.ix_(te, cols)], base_margin=mte)
                 booster = xgb.train(params, dtr, num_boost_round=a.n_trees)
                 pred[te] = booster.predict(dte)
             out.append(1 - deviance(self.y, pred, self.family) / self.d_null)
@@ -311,6 +327,7 @@ class OmicCV:
 
 # ============================ steps 3-4: base models, removals, swaps ============================
 base_rows, removal_rows, swap_rows, addition_rows = [], [], [], []
+full_rows = []                                                  # NOTE (20/11/2026): O+S model and its shifted-S null
 for om in a.omics:
     col, family, expo = TARGETS[om]
     if col not in D.columns or (expo and expo not in D.columns):
@@ -337,17 +354,22 @@ for om in a.omics:
     nO, nS = len(reps_by_class["O"]), len(reps_by_class["S"])
     cv = OmicCV(d, y, family, offset, reps)
     log(f"{om} [{family}]: {len(y)} bins, buffer {cv.buffer} bins, clusters O={nO} S={nS}, "
-        f"fits to run: {2 * nO * nS + 2 * (nO + nS) + 2} (x {a.n_splits} folds x {len(a.seeds)} seeds)")
+        f"fits to run: {(0 if a.full_models_only else 2 * nO * nS + 2 * (nO + nS)) + 2 + 1 + a.n_shift} "
+        f"(x {a.n_splits} folds x {len(a.seeds)} seeds)")
     cluster_of = dict(zip(CL["feature"], CL["cluster"]))
 
+    dev_base_of = {}                                            # per class, one value per seed (reused by the O+S block)
     for cls, other in (("O", "S"), ("S", "O")):
         base = reps_by_class[cls]
         dev_base = cv.dev_expl(base)                             # one value per seed
+        dev_base_of[cls] = dev_base
         for i, seed in enumerate(a.seeds):
             base_rows.append(dict(omic=om, model_class=cls, seed=seed, n_clusters=len(base), n_bins=len(y),
                                   buffer_bins=cv.buffer, dev_expl=dev_base[i]))
         log(f"  {om} {cls}-only model: deviance explained {dev_base.mean():.4f} (sd over seeds {dev_base.std(ddof=1) if len(a.seeds) > 1 else 0:.4f}; "
             f"{len(base)} clusters)")
+        if a.full_models_only:                                   # NOTE (20/11/2026): base models only, no swap test
+            continue
         # NOTE (19/11/2026): every cluster B of the other class added to the FULL model (nothing removed): its own added
         # value, the reference for d_add(B | A removed) -> shared(A, B)
         dev_full_plus = {}
@@ -376,7 +398,48 @@ for om in a.omics:
         log(f"  {om} {cls}-only model: {len(reps_by_class[other])} additions to the full model, {len(base)} removals and "
             f"{len(base) * len(reps_by_class[other])} swaps done")
 
+    # NOTE (20/11/2026): O+S full model (Gab, 20/11/2026): does S add to O only in combination (S clusters together, or
+    # S with O) although single S clusters add ~nothing? Null: the same O+S model with the S columns circularly shifted
+    # TOGETHER (one offset per chromosome shared by all S columns, 10-90% of the chromosome, as the pilot's floor and
+    # decoys): keeps the values, the correlations inside S, the spatial autocorrelation and the number of columns, and
+    # breaks only the alignment of S with the target and with O. Within-chromosome shift: what S explains through
+    # chromosome identity alone stays in the null. Same folds, margins and seeds as every other fit (paired).
+    all_reps = reps_by_class["O"] + reps_by_class["S"]
+    dev_OS = cv.dev_expl(all_reps)
+    for i, seed in enumerate(a.seeds):
+        full_rows.append(dict(omic=om, model="O+S", shift_rep=-1, seed=seed, dev_O=dev_base_of["O"][i],
+                              dev_S=dev_base_of["S"][i], dev_expl=dev_OS[i], gain_over_O=dev_OS[i] - dev_base_of["O"][i]))
+    s_cols = [cv.reps.index(f) for f in reps_by_class["S"]]
+    shift_rng = np.random.default_rng(a.shift_seed)            # per omic: the same shifts whatever --omics lists
+    chroms_om = d["chr"].to_numpy()
+    dev_shifted_all = []
+    for r in range(a.n_shift):
+        idx = np.arange(len(chroms_om))
+        for c in np.unique(chroms_om):                         # bins are sorted by position inside each chromosome
+            m = np.where(chroms_om == c)[0]; n = len(m)
+            idx[m] = np.roll(m, int(shift_rng.integers(int(.1 * n), max(int(.1 * n) + 1, int(.9 * n)))))
+        X_shifted = cv.X.copy()
+        X_shifted[:, s_cols] = cv.X[idx][:, s_cols]            # the whole S block moves together; O untouched
+        dev_shifted = cv.dev_expl(all_reps, X=X_shifted)
+        dev_shifted_all.append(dev_shifted)
+        for i, seed in enumerate(a.seeds):
+            full_rows.append(dict(omic=om, model="O+S_shifted", shift_rep=r, seed=seed, dev_O=dev_base_of["O"][i],
+                                  dev_S=dev_base_of["S"][i], dev_expl=dev_shifted[i],
+                                  gain_over_O=dev_shifted[i] - dev_base_of["O"][i]))
+    msg = (f"  {om} O+S model: deviance explained {dev_OS.mean():.4f} (gain over O-only "
+           f"{(dev_OS - dev_base_of['O']).mean():+.4f})")
+    if a.n_shift:
+        null_gain = np.array(dev_shifted_all).mean(axis=1) - dev_base_of["O"].mean()   # one value per shift (mean over seeds)
+        n_ge = int((null_gain >= (dev_OS - dev_base_of["O"]).mean()).sum())
+        msg += (f"; S shifted ({a.n_shift} shifts): gain {null_gain.mean():+.4f} (range {null_gain.min():+.4f} .. "
+                f"{null_gain.max():+.4f}); shifts with gain >= observed: {n_ge}")
+    log(msg)
+
 pd.DataFrame(base_rows).to_csv(f"{a.out_dir}/base_models.tsv", sep="\t", index=False)
+pd.DataFrame(full_rows).to_csv(f"{a.out_dir}/full_models.tsv", sep="\t", index=False)
+if a.full_models_only:                                          # NOTE (20/11/2026): no swap tables (none computed)
+    log(f"--full_models_only: written base_models.tsv, full_models.tsv, clusters.tsv in {a.out_dir} (no swap test)")
+    sys.exit(0)
 pd.DataFrame(removal_rows).to_csv(f"{a.out_dir}/removal_deltas.tsv", sep="\t", index=False)
 pd.DataFrame(addition_rows).to_csv(f"{a.out_dir}/addition_deltas.tsv", sep="\t", index=False)
 SW = pd.DataFrame(swap_rows); SW.to_csv(f"{a.out_dir}/swap_deltas.tsv", sep="\t", index=False)
