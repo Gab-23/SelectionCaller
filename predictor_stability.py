@@ -24,10 +24,12 @@ distance NAs capped at 2 Mb; optional --gene_na_to_zero; features with >= 50% NA
 Hi-C eigenvectors oriented by GC per chromosome). rho uses the bins where the feature is not NA; a chromosome with fewer
 than --min_bins usable bins, or where the feature is constant, gives no value for that feature (logged).
 Labels: --labels (config/predictor_identity_labels.tsv), column of each omic; O, S and B shown separately.
+NOTE (23/11/2026): --labels is optional (Gab, 23/11/2026: pool all predictors and ignore the prior labels): without it
+every feature is in one group ("all") and the figures show the distribution over all predictors together.
 
 Inputs
   --dataset COHORT BIN_SIZE PATH   repeated, one per feature matrix (e.g. BRCA 1000000 data/feature_matrix/<name>)
-  --labels                         feature + one column per omic (O / S / B)
+  --labels                         optional: feature + one column per omic (O / S / B); without it, label "all"
 Outputs (in --out_dir)
   correlations.tsv          resolution, cohort, chrom, omic, feature, n_bins, rho
   shifted_correlations.tsv  the same with shift_rep (circularly shifted target)
@@ -37,7 +39,7 @@ Outputs (in --out_dir)
   predictor_stability_<omic>.pdf/.png  one row per resolution: left, mean |rho| vs sd(rho) per feature, coloured by
                             label (grey: shifted target); right, distribution of norm_sd per label (log scale)
 Usage (cluster, pilot env, from the root of the repository)
-  python predictor_stability.py --labels config/predictor_identity_labels.tsv --gene_na_to_zero --out_dir analyses/v4/predictor_stability \
+  python predictor_stability.py --gene_na_to_zero --out_dir analyses/v4/predictor_stability_pooled \
       --dataset BRCA 1000000 data/feature_matrix/<BRCA 1 Mb> --dataset LUAD 1000000 data/feature_matrix/<LUAD 1 Mb> \
       --dataset BRCA 20000 data/feature_matrix/<BRCA 20 kb> ...
 """
@@ -48,7 +50,7 @@ import matplotlib; matplotlib.use("Agg"); import matplotlib.pyplot as plt
 
 p = argparse.ArgumentParser()
 p.add_argument("--dataset", nargs=3, action="append", metavar=("COHORT", "BIN_SIZE", "PATH"), required=True)
-p.add_argument("--labels", required=True)
+p.add_argument("--labels", default=None, help="NOTE (23/11/2026): optional; without it all features are pooled (label 'all')")
 p.add_argument("--omics", nargs="+", default=["mut_syn", "mut_mis", "mut_trunc"])
 p.add_argument("--min_exonic_bp", type=float, default=500, help="bins with at least this many coding bp (as in the pilot)")
 p.add_argument("--min_bins", type=int, default=20, help="minimum usable bins of a chromosome for a rho value")
@@ -70,10 +72,12 @@ TARGETS = {"mut_syn": ("mut_n_syn", "sites_syn"), "mut_mis": ("mut_n_mis", "site
 unknown_omics = [om for om in a.omics if om not in TARGETS]
 if unknown_omics:
     sys.exit(f"--omics: only mutation classes are supported ({list(TARGETS)}); got {unknown_omics}")
-L = pd.read_csv(a.labels, sep="\t", dtype=str).set_index("feature")
-missing_cols = [om for om in a.omics if om not in L.columns]
-if missing_cols:
-    sys.exit(f"{a.labels}: no label column for {missing_cols}")
+L = None                                                        # NOTE (23/11/2026): no --labels = all features pooled
+if a.labels:
+    L = pd.read_csv(a.labels, sep="\t", dtype=str).set_index("feature")
+    missing_cols = [om for om in a.omics if om not in L.columns]
+    if missing_cols:
+        sys.exit(f"{a.labels}: no label column for {missing_cols}")
 chrom_order = lambda v: int(v) if str(v).isdigit() else 100 + ord(str(v)[0])
 res_name = lambda b: f"{b // 1000000} Mb" if b >= 1000000 else f"{b // 1000} kb"
 
@@ -133,7 +137,7 @@ for cohort, bin_size, path in a.dataset:
     D["idx"] = D["binID"].str.split("_").str[1].astype(int)
     D = D.sort_values(["chr", "idx"], key=lambda s: s.map(chrom_order) if s.name == "chr" else s).reset_index(drop=True)
     feats = feature_set(D)
-    not_labelled = [f for f in feats if f not in L.index]
+    not_labelled = [f for f in feats if f not in L.index] if L is not None else []
     if not_labelled:
         sys.exit(f"{a.labels}: {len(not_labelled)} features of {path} have no row: {not_labelled}")
     for om in a.omics:
@@ -190,8 +194,9 @@ S = C.groupby(keys)["rho"].apply(summarise).unstack().reset_index()
 SS = CS.groupby(keys + ["shift_rep"])["rho"].apply(summarise).unstack().reset_index()
 shift_mean = SS.groupby(keys)[["mean_abs_rho", "sd_rho", "norm_sd"]].mean().add_suffix("_shift").reset_index()
 S = S.merge(shift_mean, on=keys, how="left")
-S["label"] = [L.loc[f, om].strip().upper() for f, om in zip(S["feature"], S["omic"])]
-SS["label"] = [L.loc[f, om].strip().upper() for f, om in zip(SS["feature"], SS["omic"])]
+label_of = lambda f, om: L.loc[f, om].strip().upper() if L is not None else "all"
+S["label"] = [label_of(f, om) for f, om in zip(S["feature"], S["omic"])]
+SS["label"] = [label_of(f, om) for f, om in zip(SS["feature"], SS["omic"])]
 n_max = S.groupby(["resolution", "omic"])["n_values"].transform("max")
 fewer = S[S["n_values"] < n_max]
 if len(fewer):
@@ -202,7 +207,7 @@ S.to_csv(f"{a.out_dir}/stability.tsv", sep="\t", index=False)
 SS.to_csv(f"{a.out_dir}/stability_shifted.tsv", sep="\t", index=False)
 
 # ============================ figures: one per omic, one row per resolution ============================
-LABEL_COLOR = {"O": "#2a78d6", "S": "#eb6834", "B": "#1baf7a"}
+LABEL_COLOR = {"O": "#2a78d6", "S": "#eb6834", "B": "#1baf7a"} if L is not None else {"all": "#2a78d6"}
 SHIFT_COLOR = "#a0a0a0"
 OMIC_NAME = {"mut_syn": "Synonymous mutations", "mut_mis": "Missense mutations", "mut_trunc": "Truncating mutations"}
 resolutions = sorted(S["resolution"].unique())
