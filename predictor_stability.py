@@ -37,7 +37,7 @@ Outputs (in --out_dir)
   predictor_stability_<omic>.pdf/.png  one row per resolution: left, mean |rho| vs sd(rho) per feature, coloured by
                             label (grey: shifted target); right, distribution of norm_sd per label (log scale)
 Usage (cluster, pilot env, from the root of the repository)
-  python predictor_stability.py --labels config/predictor_identity_labels.tsv --out_dir analyses/v4/predictor_stability \
+  python predictor_stability.py --labels config/predictor_identity_labels.tsv --gene_na_to_zero --out_dir analyses/v4/predictor_stability \
       --dataset BRCA 1000000 data/feature_matrix/<BRCA 1 Mb> --dataset LUAD 1000000 data/feature_matrix/<LUAD 1 Mb> \
       --dataset BRCA 20000 data/feature_matrix/<BRCA 20 kb> ...
 """
