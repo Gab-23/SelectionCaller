@@ -22,6 +22,10 @@ Idea (Gab, 19/11/2026):
   7. NOTE (20/11/2026): O+S model (all clusters) and its null: the same model with the S block circularly shifted
      within each chromosome (--n_shift repeats): does S add to O in combination, beyond what any S-like block would?
      --full_models_only runs only the base models and this block (no swap test), for setups whose swaps already exist.
+  8. NOTE (23/11/2026): --full_model_importance: drop-cluster importance in the O+S model (all clusters):
+     d_remove_full(A) = dev(all - A) - dev(all), per seed. It measures what a cluster carries that NO other cluster carries,
+     whatever its label (label-free apart from the column order). Used to anchor the labels on synonymous mutations
+     (Gab, 23/11/2026): a cluster that predicts neutral occurrence beyond all the others is occurrence-like.
 
 Models: the same XGBoost regressors as pilot_omics_background.py --loss glm (fixed hyperparameters, 300 trees), with
 the family of each omic: CNA binomial (fraction of patients), ATAC gaussian (logFC), mutation classes Poisson with
@@ -53,6 +57,8 @@ Outputs (in --out_dir)
   full_models.tsv         NOTE (20/11/2026): one row per (omic, model, shift_rep, seed): model "O+S" (all clusters,
                           shift_rep -1) or "O+S_shifted" (S block circularly shifted, --n_shift repeats); dev_O, dev_S,
                           dev_expl, gain_over_O = dev_expl - dev_O (paired by seed)
+  full_model_importance.tsv  NOTE (23/11/2026): only with --full_model_importance: one row per (omic, cluster, seed):
+                          dev_full (O+S model), dev_without (O+S model without that cluster), d_remove_full, cluster label
   label_template.tsv      only with --write_label_template: the feature set with its clusters and empty label columns
 
 Usage (cluster, pilot env; start with the 1 Mb dataset: the number of fits is 2 * n_O * n_S + 2 * (n_O + n_S) + 2 per omic)
@@ -101,6 +107,9 @@ p.add_argument("--full_models_only", action="store_true",
                help="NOTE (20/11/2026): fit only the base models (O-only, S-only) and the O+S model with its shifted-S "
                     "null; skip the swap test (removals, additions, swaps) and write only base_models.tsv, "
                     "full_models.tsv and clusters.tsv. Use a separate --out_dir from the full runs")
+p.add_argument("--full_model_importance", action="store_true",
+               help="NOTE (23/11/2026): also remove each cluster from the O+S model (all clusters) and write "
+                    "full_model_importance.tsv (one fit per cluster per seed)")
 a = p.parse_args()
 os.makedirs(a.out_dir, exist_ok=True)
 t0 = time.time()
@@ -328,6 +337,7 @@ class OmicCV:
 # ============================ steps 3-4: base models, removals, swaps ============================
 base_rows, removal_rows, swap_rows, addition_rows = [], [], [], []
 full_rows = []                                                  # NOTE (20/11/2026): O+S model and its shifted-S null
+importance_rows = []                                            # NOTE (23/11/2026): drop-cluster importance in the O+S model
 for om in a.omics:
     col, family, expo = TARGETS[om]
     if col not in D.columns or (expo and expo not in D.columns):
@@ -354,7 +364,7 @@ for om in a.omics:
     nO, nS = len(reps_by_class["O"]), len(reps_by_class["S"])
     cv = OmicCV(d, y, family, offset, reps)
     log(f"{om} [{family}]: {len(y)} bins, buffer {cv.buffer} bins, clusters O={nO} S={nS}, "
-        f"fits to run: {(0 if a.full_models_only else 2 * nO * nS + 2 * (nO + nS)) + 2 + 1 + a.n_shift} "
+        f"fits to run: {(0 if a.full_models_only else 2 * nO * nS + 2 * (nO + nS)) + 2 + 1 + a.n_shift + (nO + nS if a.full_model_importance else 0)} "
         f"(x {a.n_splits} folds x {len(a.seeds)} seeds)")
     cluster_of = dict(zip(CL["feature"], CL["cluster"]))
 
@@ -409,6 +419,17 @@ for om in a.omics:
     for i, seed in enumerate(a.seeds):
         full_rows.append(dict(omic=om, model="O+S", shift_rep=-1, seed=seed, dev_O=dev_base_of["O"][i],
                               dev_S=dev_base_of["S"][i], dev_expl=dev_OS[i], gain_over_O=dev_OS[i] - dev_base_of["O"][i]))
+    # NOTE (23/11/2026): drop-cluster importance in the O+S model (--full_model_importance): what each cluster carries
+    # beyond ALL the other clusters, both classes included; same folds, margins and seeds as dev_OS (paired)
+    if a.full_model_importance:
+        label_of = dict(zip(CL["representative"], CL[f"cluster_label_{om}"]))
+        for A in all_reps:
+            dev_without = cv.dev_expl([f for f in all_reps if f != A])
+            for i, seed in enumerate(a.seeds):
+                importance_rows.append(dict(omic=om, cluster=cluster_of[A], representative=A,
+                                            cluster_label=label_of[A], seed=seed, dev_full=dev_OS[i],
+                                            dev_without=dev_without[i], d_remove_full=dev_without[i] - dev_OS[i]))
+        log(f"  {om} O+S model: drop-cluster importance done for {len(all_reps)} clusters")
     s_cols = [cv.reps.index(f) for f in reps_by_class["S"]]
     shift_rng = np.random.default_rng(a.shift_seed)            # per omic: the same shifts whatever --omics lists
     chroms_om = d["chr"].to_numpy()
@@ -437,6 +458,8 @@ for om in a.omics:
 
 pd.DataFrame(base_rows).to_csv(f"{a.out_dir}/base_models.tsv", sep="\t", index=False)
 pd.DataFrame(full_rows).to_csv(f"{a.out_dir}/full_models.tsv", sep="\t", index=False)
+if a.full_model_importance:                                     # NOTE (23/11/2026)
+    pd.DataFrame(importance_rows).to_csv(f"{a.out_dir}/full_model_importance.tsv", sep="\t", index=False)
 if a.full_models_only:                                          # NOTE (20/11/2026): no swap tables (none computed)
     log(f"--full_models_only: written base_models.tsv, full_models.tsv, clusters.tsv in {a.out_dir} (no swap test)")
     sys.exit(0)
