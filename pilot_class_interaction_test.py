@@ -32,6 +32,8 @@ per contrast (logged).
 
 Inputs : --dataset  feature matrix (TSV, binID + features + mut_n_* + sites_*)
          --labels   config/predictor_identity_labels.tsv (columns feature, group, mut_syn, mut_mis, mut_trunc), for annotation
+         --exposure_file (optional, NOTE 24/11/2026) bin_weighted_sites.tsv of context_weighted_sites.py: wsites_* replace
+                    sites_* in every offset above (context-weighted exposure)
 Outputs (--out_dir):
   effects.tsv          feature, role (feature / positive_control), prior labels, effect (supply / selection_mis /
                        selection_trunc), estimate, se_boot, ci_low, ci_high, p, q, n_bins, n_dropped_na
@@ -54,6 +56,11 @@ p.add_argument("--n_boot", type=int, default=1000)
 p.add_argument("--n_placebo", type=int, default=100)
 p.add_argument("--n_boot_placebo", type=int, default=200)
 p.add_argument("--seed", type=int, default=1)
+# NOTE (24/11/2026): --exposure_file = bin_weighted_sites.tsv of context_weighted_sites.py (binID, wsites_syn, wsites_mis,
+# wsites_trunc: possible substitutions weighted by the cohort's 96-context synonymous rates). With it, every offset uses
+# wsites_* instead of sites_* (diagnostic of the sequence-context confound, mutations only). Without it nothing changes.
+p.add_argument("--exposure_file", default=None,
+               help="optional bin_weighted_sites.tsv (wsites_*): context-weighted exposure in every offset")
 a = p.parse_args()
 os.makedirs(a.out_dir, exist_ok=True)
 t0 = time.time()
@@ -72,12 +79,32 @@ missing = [c for c in needed if c not in D.columns]
 if missing:
     raise SystemExit(f"ERROR: {a.dataset} lacks the mutation columns {missing}: use a feature matrix with COSMIC classes.")
 
+# NOTE (24/11/2026): exposure used in the offsets: expo_<class> = sites_<class> (default) or wsites_<class> (--exposure_file).
+# The expo_* columns are never features (prefix excluded below).
+if a.exposure_file:
+    X = pd.read_csv(a.exposure_file, sep="\t")
+    missing = [c for c in ["binID", "wsites_syn", "wsites_mis", "wsites_trunc"] if c not in X.columns]
+    if missing:
+        raise SystemExit(f"ERROR: {a.exposure_file} lacks the columns {missing} (expected the output of context_weighted_sites.py)")
+    D = D.merge(X[["binID", "wsites_syn", "wsites_mis", "wsites_trunc"]], on="binID", how="left")
+    no_value = D["sites_syn"].gt(0) & D["wsites_syn"].isna()
+    if no_value.any():
+        raise SystemExit(f"ERROR: {int(no_value.sum())} bins with coding sites have no wsites in {a.exposure_file}: "
+                         f"different backbone or resolution? e.g. {D.loc[no_value, 'binID'].head(5).tolist()}")
+    for c in ("syn", "mis", "trunc"):
+        D[f"expo_{c}"] = D[f"wsites_{c}"].fillna(0)
+    log(f"exposure: context-weighted sites from {a.exposure_file}")
+else:
+    for c in ("syn", "mis", "trunc"):
+        D[f"expo_{c}"] = D[f"sites_{c}"]
+    log("exposure: unweighted sites_* of the dataset")
+
 ALT = [c for c in D.columns if c in ("ampl.frequency", "del.frequency", "logFC", "FDR")
        or c.startswith(("length_coding", "length_noncoding", "mut_n_"))]
 CONTROLS = [c for c in ("dist.to.closest.OG", "dist.to.closest.TSG") if c in D.columns]
 if len(CONTROLS) < 2:
     log(f"WARNING: positive controls found: {CONTROLS} (expected dist.to.closest.OG and dist.to.closest.TSG)")
-EXPOSURE = [c for c in D.columns if c.startswith(("sites_", "wsites_"))]
+EXPOSURE = [c for c in D.columns if c.startswith(("sites_", "wsites_", "expo_"))]
 EXONIC = ["cds_bp"] if "cds_bp" in D.columns else []
 FEATS = [c for c in D.columns if c not in ALT + CONTROLS + EXPOSURE + EXONIC + ["binID", "chr", "idx"]]
 GENE_LEVEL_NA_TO_ZERO = [c for c in FEATS
@@ -179,7 +206,7 @@ def bh(pvals):
     return out
 
 # ============================ tests ============================
-CONTRASTS = {"mis": ("mut_n_mis", "sites_mis"), "trunc": ("mut_n_trunc", "sites_trunc")}
+CONTRASTS = {"mis": ("mut_n_mis", "expo_mis"), "trunc": ("mut_n_trunc", "expo_trunc")}
 rows_out, placebo_rows = [], []
 for feat in FEATS + CONTROLS:
     role = "positive_control" if feat in CONTROLS else "feature"
@@ -199,10 +226,10 @@ for feat in FEATS + CONTROLS:
         continue
 
     # ---- supply: Poisson on synonymous ----
-    keep = ok_feat & (D["sites_syn"].to_numpy() > 0)
+    keep = ok_feat & (D["expo_syn"].to_numpy() > 0)
     sub = D.loc[keep]
     z = rank_normal(sub[feat].to_numpy())
-    y = sub["mut_n_syn"].to_numpy(float); off = np.log(sub["sites_syn"].to_numpy(float))
+    y = sub["mut_n_syn"].to_numpy(float); off = np.log(sub["expo_syn"].to_numpy(float))
     blocks = make_blocks(sub["chr"].to_numpy(), a.block_bins)
     est = fit_glm_slope(z, off, "poisson", y)
     boot = bootstrap_slope(lambda r: fit_glm_slope(z[r], off[r], "poisson", y[r]), blocks, a.n_boot, rng)
@@ -211,12 +238,12 @@ for feat in FEATS + CONTROLS:
 
     # ---- selection: binomial of class C vs synonymous ----
     for cname, (ycol, scol) in CONTRASTS.items():
-        keep = ok_feat & (D["sites_syn"].to_numpy() > 0) & (D[scol].to_numpy() > 0) \
+        keep = ok_feat & (D["expo_syn"].to_numpy() > 0) & (D[scol].to_numpy() > 0) \
                & ((D[ycol] + D["mut_n_syn"]).to_numpy() > 0)
         sub = D.loc[keep]
         z = rank_normal(sub[feat].to_numpy())
         yc = sub[ycol].to_numpy(float); ntot = yc + sub["mut_n_syn"].to_numpy(float)
-        off = np.log(sub[scol].to_numpy(float) / sub["sites_syn"].to_numpy(float))
+        off = np.log(sub[scol].to_numpy(float) / sub["expo_syn"].to_numpy(float))
         blocks = make_blocks(sub["chr"].to_numpy(), a.block_bins)
         est = fit_glm_slope(z, off, "binomial", yc, ntot)
         boot = bootstrap_slope(lambda r: fit_glm_slope(z[r], off[r], "binomial", yc[r], ntot[r]), blocks, a.n_boot, rng)
