@@ -126,7 +126,12 @@ def fit_glm_slope(z, offset, family, y, n=None, max_iter=50, tol=1e-10):
             prob = 1 / (1 + np.exp(-eta)); grad_w = y - n * prob; w = n * prob * (1 - prob)
         score = X.T @ grad_w
         info = X.T @ (X * w[:, None])
-        step = np.linalg.solve(info, score)
+        # NOTE (24/11/2026): a bootstrap resample can make the information matrix singular (e.g. z constant on the
+        # drawn blocks): the replicate is returned as NaN and counted in n_boot_failed instead of stopping the run.
+        try:
+            step = np.linalg.solve(info, score)
+        except np.linalg.LinAlgError:
+            return np.nan
         b = b + step
         if np.max(np.abs(step)) < tol:
             return b[1]
@@ -182,6 +187,16 @@ for feat in FEATS + CONTROLS:
     n_na = int((~ok_feat).sum())
     if n_na:
         log(f"{feat}: {n_na} bins with NA dropped for this feature")
+    # NOTE (24/11/2026): a feature constant on the bins that carry coding sites cannot be tested (first run crashed on
+    # dist.to.closest.gene_protein_coding: at 1 Mb every bin with coding sites overlaps a protein-coding gene, distance 0).
+    # It is logged and written with effect 'not_testable' instead of being fitted.
+    has_sites = ok_feat & (D["sites_syn"].to_numpy() > 0)
+    if D.loc[has_sites, feat].nunique() <= 1:
+        log(f"WARNING: {feat} is constant on the {int(has_sites.sum())} bins with coding sites "
+            f"(value {D.loc[has_sites, feat].iloc[0]}): not testable, skipped")
+        rows_out.append(dict(feature=feat, role=role, effect="not_testable", n_bins=int(has_sites.sum()),
+                             n_dropped_na=n_na))
+        continue
 
     # ---- supply: Poisson on synonymous ----
     keep = ok_feat & (D["sites_syn"].to_numpy() > 0)
@@ -230,7 +245,7 @@ for col in ["group", "mut_syn", "mut_mis", "mut_trunc"]:
     E[f"prior_{col}" if col != "group" else "group"] = E["feature"].map(L[col]) if col in L.columns else np.nan
 # BH per effect, over the model features only (controls are reported but not part of the family)
 E["q"] = np.nan
-for eff, g in E[E.role == "feature"].groupby("effect"):
+for eff, g in E[(E.role == "feature") & (E.effect != "not_testable")].groupby("effect"):
     E.loc[g.index, "q"] = bh(g["p"].to_numpy())
 n_failed = int(E["n_boot_failed"].sum())
 if n_failed:
