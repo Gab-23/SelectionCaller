@@ -187,6 +187,12 @@ def summarise(est, boot):
     """estimate, SE, 95% percentile CI, two-sided p from est / SE (normal). NaN replicates (no convergence) are logged."""
     good = boot[np.isfinite(boot)]
     n_bad = len(boot) - len(good)
+    # NOTE (24/11/2026): at 100 kb dist.to.closest.gene_protein_coding is 0 in all bins with coding sites but ONE: every
+    # resample without that bin fails and the quantiles of an empty array crashed the run. With < 90% successful
+    # replicates the bootstrap is not trusted: SE, CI and p are NaN (row kept, n_boot_failed says why) and a warning is
+    # logged by the caller. When every fit converges (all 1 Mb runs so far) nothing changes.
+    if len(good) < 0.9 * len(boot):
+        return dict(estimate=est, se_boot=np.nan, ci_low=np.nan, ci_high=np.nan, p=np.nan, n_boot_failed=n_bad)
     se = good.std(ddof=1)
     pval = 2 * norm.sf(abs(est) / se) if se > 0 else np.nan
     return dict(estimate=est, se_boot=se, ci_low=np.quantile(good, 0.025), ci_high=np.quantile(good, 0.975),
@@ -272,17 +278,24 @@ for col in ["group", "mut_syn", "mut_mis", "mut_trunc"]:
     E[f"prior_{col}" if col != "group" else "group"] = E["feature"].map(L[col]) if col in L.columns else np.nan
 # BH per effect, over the model features only (controls are reported but not part of the family)
 E["q"] = np.nan
-for eff, g in E[(E.role == "feature") & (E.effect != "not_testable")].groupby("effect"):
+# NOTE (24/11/2026): rows with p = NaN (bootstrap not trusted, see summarise) are left out of BH (q stays NaN).
+for eff, g in E[(E.role == "feature") & (E.effect != "not_testable") & E["p"].notna()].groupby("effect"):
     E.loc[g.index, "q"] = bh(g["p"].to_numpy())
 n_failed = int(E["n_boot_failed"].sum())
 if n_failed:
     log(f"WARNING: {n_failed} bootstrap fits did not converge (excluded from SE/CI), see column n_boot_failed")
+untrusted = E[(E.effect != "not_testable") & E["p"].isna()]
+if len(untrusted):
+    log(f"WARNING: {len(untrusted)} tests with < 90% converged bootstrap replicates: SE/CI/p set to NaN: "
+        + ", ".join(f"{f} ({e}, {int(n)} failed)" for f, e, n in zip(untrusted.feature, untrusted.effect, untrusted.n_boot_failed)))
 E.to_csv(f"{a.out_dir}/effects.tsv", sep="\t", index=False)
 
 P = pd.DataFrame(placebo_rows)
 P.to_csv(f"{a.out_dir}/placebo.tsv", sep="\t", index=False)
-PS = P.groupby("feature").agg(n_placebo=("p", "size"), fpr_05=("p", lambda s: float((s < 0.05).mean())),
+# NOTE (24/11/2026): false-positive rate over the splits with a defined p only (NaN = bootstrap not trusted)
+PS = P.groupby("feature").agg(n_placebo=("p", "count"), fpr_05=("p", lambda s: float((s.dropna() < 0.05).mean())),
                               mean_gamma=("estimate", "mean"), sd_gamma=("estimate", "std")).reset_index()
 PS.to_csv(f"{a.out_dir}/placebo_summary.tsv", sep="\t", index=False)
-log(f"placebo: overall false-positive rate at p < 0.05 = {(P['p'] < 0.05).mean():.3f} (expected 0.05)")
+log(f"placebo: overall false-positive rate at p < 0.05 = {(P['p'].dropna() < 0.05).mean():.3f} (expected 0.05; "
+    f"{int(P['p'].isna().sum())} splits without a trusted p)")
 log(f"written {a.out_dir}/effects.tsv, placebo.tsv, placebo_summary.tsv")
