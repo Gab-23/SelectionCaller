@@ -30,6 +30,18 @@ NUOVO (20/10/2026):
                  correlazione con GC_content sia positiva). Provvisorio: da togliere
                  (--orient_eigen none) quando l'orientamento sara' fatto in pipeline.
 
+NOTE (25/11/2026): --enrich_top_frac / --enrich_share = ENRICHED TRAINING for the mutation classes (is selection washed out by
+                 the genome-wide supply signal?): in every training fold the top bins by rate (events / exposure) are always
+                 kept and the other bins are split into disjoint groups of blocks, one model per group (see the argument
+                 help). Outputs: pred_sd_groups in oof_predictions.tsv, enrichment_log.tsv. Off by default: nothing changes.
+
+NOTE (25/11/2026): "washed out by supply" test (Gab). New omics ratio_mis / ratio_trunc: SELECTION-ONLY target, fraction
+                 C / (C + syn) per bin, weighted binomial (weight C + syn) with offset log(expo_C / expo_syn): supply moves C and
+                 syn together and cancels. placebo_syn: random half of the synonymous / all synonymous (offset 0, nothing to
+                 learn). Same features, bins, CV, shadows as mut_*. Compare feature usage in mut_trunc (supply + selection)
+                 vs ratio_trunc (selection only) vs placebo_syn. Also --gene_na_to_zero (gene-level NA -> 0, as
+                 pilot_predictor_identity.py) and --add_validation_features (OG / TSG distance as features: control run).
+
 Uso (env py_ml_env):
   python pilot_omics_background.py --dataset <feature_matrix> --out_dir pilot_out [--chroms 1 8 17]
 """
@@ -105,9 +117,39 @@ p.add_argument("--class_exposure", choices=["sites", "cds", "wsites"], default="
                help="offset dei target per classe (mut_syn / mut_mis / mut_trunc): sites = log(siti della classe, sites_*); "
                     "cds = log(bp di CDS del bin, --exonic_col), uguale per tutte le classi (controllo: esposizione per lunghezza); "
                     "wsites = log(siti pesati per il contesto trinucleotidico, wsites_* da --exposure_file)")
+# NOTE (25/11/2026): ENRICHED TRAINING (Gab's idea: is selection washed out by the genome-wide supply signal?). Inside each
+# training fold, the top --enrich_top_frac of the training bins by RATE (target / exposure, i.e. events per possible site
+# for the mutation classes) always stay in training; the other training bins are split into disjoint groups of contiguous
+# blocks (--block_bins bins, within chromosomes), sized so that the top bins are --enrich_share of each group's training
+# set; one model per group, every low bin used once. Test bins are predicted by every group model (averaged); SHAP is
+# averaged over the group models; the spread of the group predictions is saved per bin (pred_sd_groups). Each group model
+# is recalibrated by one constant on the FULL training fold (sum observed / sum predicted), because a model trained on an
+# enriched sample over-predicts. Test folds are untouched. Poisson family (mutation classes) only. Off by default (0).
+# enrich_share <= enrich_top_frac means no enrichment (one model, as before).
+p.add_argument("--enrich_top_frac", type=float, default=0.0,
+               help="enriched training: fraction of training bins (top by rate = target / exposure) always kept; 0 = off")
+p.add_argument("--enrich_share", type=float, default=0.0,
+               help="enriched training: share of the top bins in each group's training set (e.g. 0.2, 0.35, 0.5)")
+# NOTE (25/11/2026): test of "selection washed out by the genome-wide supply signal" (Gab). Same model, features, bins, CV
+# and shadows as the count targets, but a SELECTION-ONLY target: omics ratio_mis / ratio_trunc = fraction C / (C + syn) per
+# bin (binomial, weight C + syn, offset log(expo_C / expo_syn)): supply moves C and syn together and cancels, selection
+# moves C only. Placebo omic placebo_syn = random half of the synonymous / all synonymous (offset 0): no supply, no selection.
+p.add_argument("--gene_na_to_zero", action="store_true",
+               help="NOTE (25/11/2026): NA of the gene-level features set to 0 before the >= 50%% NA filter (same list and "
+                    "rule as pilot_predictor_identity.py --gene_na_to_zero); default off = previous behaviour")
+p.add_argument("--add_validation_features", action="store_true",
+               help="NOTE (25/11/2026): use dist.to.closest.OG / TSG as FEATURES (known-answer control run only; by default "
+                    "they are validation-only and never model features)")
 p.add_argument("--n_jobs", type=int, default=4)
 p.add_argument("--seed", type=int, default=1)
 a = p.parse_args()
+if a.enrich_top_frac and not (0 < a.enrich_top_frac < 1 and 0 < a.enrich_share < 1):
+    sys.exit(f"--enrich_top_frac and --enrich_share must be in (0, 1); got {a.enrich_top_frac}, {a.enrich_share}")
+if a.enrich_top_frac and a.loss != "glm":
+    sys.exit("--enrich_top_frac requires --loss glm (the enrichment is defined on the Poisson rate of the mutation classes)")
+ENRICH = a.enrich_top_frac > 0
+if ENRICH and any(not o.startswith("mut_") for o in a.omics):
+    print(f"WARNING: enriched training is applied to the Poisson mutation classes only; other omics {[o for o in a.omics if not o.startswith('mut_')]} are fitted as usual")
 os.makedirs(a.out_dir, exist_ok=True)
 rng = np.random.default_rng(a.seed)
 t0 = time.time()
@@ -137,6 +179,9 @@ if a.loss == "glm" and a.exonic_col:
 else:
     print(f"Mutazioni: target = {a.mut_col} ({a.mut_target}), bp codificanti = {a.exonic_col}")
 VALIDATION_ONLY = [c for c in ("dist.to.closest.OG", "dist.to.closest.TSG") if c in D.columns]
+if a.add_validation_features:                                  # NOTE (25/11/2026): known-answer control run only
+    print(f"WARNING: --add_validation_features: {VALIDATION_ONLY} used as model FEATURES (control run, not for validation)")
+    VALIDATION_ONLY = []
 # la colonna dei bp esonici serve solo a filtrare i bin delle mutazioni: mai come feature
 EXONIC = [a.exonic_col] if a.exonic_col else []
 # siti per classe (sites_*): ESPOSIZIONE dei target per classe, usata come offset: mai come feature, altrimenti il
@@ -144,8 +189,23 @@ EXONIC = [a.exonic_col] if a.exonic_col else []
 EXPOSURE = [c for c in D.columns if c.startswith(("sites_", "wsites_"))]
 if a.exonic_col and a.exonic_col not in D.columns: sys.exit(f"--exonic_col {a.exonic_col} non e' una colonna del dataset")
 FEATS = [c for c in D.columns if c not in ALT + VALIDATION_ONLY + EXONIC + EXPOSURE + list(a.exclude_features) + ["binID", "chr", "idx"]]
+# NOTE (25/11/2026): --gene_na_to_zero, copied from pilot_predictor_identity.py (same list, same rule; see the comment there
+# on which zeros are exact and which are approximations). Before the >= 50% NA filter, so these features are not dropped.
+GENE_LEVEL_NA_TO_ZERO = [c for c in FEATS
+                         if c in ("ess_score", "haploinsufficiency_score", "complex_density", "n_complex_partners_trans",
+                                  "n_PPIs_trans", "n_ohnolog_bin", "n_paralogs_bin")
+                         or c.startswith(("GTEx_", "mean_n_ohnologs", "total_n_ohnologs", "mean_n_paralogs",
+                                          "total_n_paralogs"))]
+if a.gene_na_to_zero:
+    n_filled = {c: int(D[c].isna().sum()) for c in GENE_LEVEL_NA_TO_ZERO}
+    for c in GENE_LEVEL_NA_TO_ZERO:
+        D[c] = D[c].fillna(0)
+    print(f"--gene_na_to_zero: NA set to 0 in {len(GENE_LEVEL_NA_TO_ZERO)} gene-level features (NA count per feature): {n_filled}")
 for c in [c for c in FEATS if c.startswith("dist")]:
     D[c] = D[c].fillna(2e6)                                    # NA su cromosomi interi = nessun gene della lista: cap
+dropped_na = [c for c in FEATS if D[c].isna().mean() >= 0.5]
+if dropped_na:                                                 # NOTE (25/11/2026): log what the 50% NA filter removes
+    print(f"Features dropped (>= 50% NA): {dropped_na}")
 FEATS = [c for c in FEATS if D[c].isna().mean() < 0.5]
 print(f"[{time.time()-t0:.0f}s] {len(D)} bin, {len(FEATS)} feature agnostiche; escluse: {len(ALT)} di alterazione + {VALIDATION_ONLY} + {EXONIC} + {EXPOSURE} + {list(a.exclude_features)}")
 
@@ -165,6 +225,12 @@ TARGETS = {"cna_ampl": ("ampl.frequency", None), "cna_del": ("del.frequency", No
 # eventi per classe (campione x mutazione, sostituzioni singole) e loro esposizione (sostituzioni possibili)
 MUT_CLASSES = {"mut_syn": ("mut_n_syn", "sites_syn"), "mut_mis": ("mut_n_mis", "sites_mis"), "mut_trunc": ("mut_n_trunc", "sites_trunc")}
 for om_, (col_, _) in MUT_CLASSES.items(): TARGETS[om_] = (col_, None)
+# NOTE (25/11/2026): selection-only targets (class vs synonymous in the same bin) and their placebo (halves of synonymous)
+RATIO_CLASSES = {"ratio_mis": ("mut_n_mis", "sites_mis"), "ratio_trunc": ("mut_n_trunc", "sites_trunc"),
+                 "placebo_syn": ("mut_n_syn", "sites_syn")}
+for om_, (col_, _) in RATIO_CLASSES.items(): TARGETS[om_] = (col_, None)
+if any(o in RATIO_CLASSES for o in a.omics) and a.loss != "glm":
+    sys.exit("the ratio targets (ratio_mis / ratio_trunc / placebo_syn) require --loss glm (weighted binomial with offset)")
 if any(o in MUT_CLASSES for o in a.omics):
     print("Mutazioni per classe: esposizione (offset) = " + {"sites": "siti della classe (sites_*)", "cds": f"bp di CDS del bin ({a.exonic_col})",
                                                              "wsites": "siti della classe pesati per il contesto (wsites_*)"}[a.class_exposure])
@@ -183,8 +249,13 @@ def corr_len(y, max_lag=3000):
         if np.dot(y[:-lag], y[lag:]) / v < 0.5: return lag
     return max_lag
 
-def deviance(y, mu, family):
+def deviance(y, mu, family, weight=None):
     """Devianza (a meno di costanti moltiplicative, che si semplificano nel rapporto)."""
+    if family == "binomial_w":                                 # NOTE (25/11/2026): fraction y out of n = weight trials
+        mu = np.clip(mu, 1e-9, 1 - 1e-9)
+        t1 = np.where(y > 0, y * np.log(np.where(y > 0, y, 1) / mu), 0.0)
+        t0 = np.where(y < 1, (1 - y) * np.log(np.where(y < 1, 1 - y, 1) / (1 - mu)), 0.0)
+        return 2 * np.sum(weight * (t1 + t0))
     if family == "gaussian":
         return np.sum((y - mu) ** 2)
     if family == "poisson":
@@ -197,7 +268,19 @@ def deviance(y, mu, family):
         return 2 * np.sum(t1 + t0)
     raise ValueError(family)
 
-XGB_OBJ = {"gaussian": "reg:squarederror", "poisson": "count:poisson", "binomial": "binary:logistic"}
+XGB_OBJ = {"gaussian": "reg:squarederror", "poisson": "count:poisson", "binomial": "binary:logistic",
+           "binomial_w": "binary:logistic"}                    # NOTE (25/11/2026): weighted binomial with offset (ratio targets)
+
+def logit_intercept(y, n, off, n_iter=50):
+    """NOTE (25/11/2026): constant c such that sum n * expit(off + c) = sum n * y (weighted mean fraction with offset),
+    Newton in one dimension. Used as starting margin and as the null model of the ratio targets."""
+    c = 0.0
+    for _ in range(n_iter):
+        p_ = 1 / (1 + np.exp(-(off + c)))
+        step = (np.sum(n * y) - np.sum(n * p_)) / max(np.sum(n * p_ * (1 - p_)), 1e-12)
+        c += step
+        if abs(step) < 1e-10: break
+    return c
 
 def extra_fold_assignment(extra_binIDs, n_splits, block_bins):
     """Fold di ogni bin AGGIUNTO (non usato in training), con la STESSA regola deterministica di INTERLEAVED_KFOLD_IDXS:
@@ -210,7 +293,36 @@ def extra_fold_assignment(extra_binIDs, n_splits, block_bins):
     n = pd.Series(extra_binIDs, dtype=str).str.rsplit("_", n=1).str[1].astype(np.int64).to_numpy()
     return ((n - 1) // block_bins) % n_splits
 
-def fit_oof(X, y, binIDs, buffer_bins, want_shap=True, want_ridge=True, family="gaussian", offset=None, init_rate=None, extra=None):
+def enriched_training_sets(tr, y, off, chrom_of_bin):
+    """NOTE (25/11/2026) enriched training: list of training index arrays for one fold, each = top bins + one group of low
+    bins. Top = training bins with rate y / exp(off) >= the (1 - enrich_top_frac) quantile of the training rates. Low bins
+    are cut into blocks of --block_bins consecutive training bins (never across chromosomes), the blocks are shuffled and
+    dealt to groups so that each group has ~n_top * (1 - share) / share low bins. Returns (sets, n_top, n_low)."""
+    rate = y[tr] / np.exp(off[tr])
+    thr = np.quantile(rate, 1 - a.enrich_top_frac)
+    is_top = rate >= thr
+    top, low = tr[is_top], tr[~is_top]
+    if a.enrich_share <= is_top.mean():                      # already at (or above) the requested share: no enrichment
+        return [tr], len(top), len(low)
+    # blocks of consecutive low bins within a chromosome (tr is in genomic order)
+    blocks, cur = [], [low[0]]
+    for prev, nxt in zip(low[:-1], low[1:]):
+        if len(cur) >= a.block_bins or chrom_of_bin[nxt] != chrom_of_bin[prev]:
+            blocks.append(np.array(cur)); cur = []
+        cur.append(nxt)
+    blocks.append(np.array(cur))
+    per_group = len(top) * (1 - a.enrich_share) / a.enrich_share
+    n_groups = max(1, int(round(len(low) / per_group)))
+    order = rng.permutation(len(blocks))
+    groups = [[] for _ in range(n_groups)]
+    sizes = np.zeros(n_groups)
+    for b in order:                                          # deal each block to the currently smallest group
+        g = int(np.argmin(sizes)); groups[g].append(blocks[b]); sizes[g] += len(blocks[b])
+    sets = [np.sort(np.concatenate([top] + g)) for g in groups]
+    return sets, len(top), len(low)
+
+def fit_oof(X, y, binIDs, buffer_bins, want_shap=True, want_ridge=True, family="gaussian", offset=None, init_rate=None, extra=None,
+            weight=None):
     """OOF con fold intercalate + cuscinetto. family: gaussian / poisson (con offset = log esposizione) / binomial.
     init_rate (solo poisson): se True, il margine di partenza e' offset + log(tasso medio del training), invece del
     solo offset. Con base_margin XGBoost ignora base_score e parte da un tasso di 1 per unita' di esposizione: va bene
@@ -226,6 +338,9 @@ def fit_oof(X, y, binIDs, buffer_bins, want_shap=True, want_ridge=True, family="
     pred = np.full(len(y), np.nan); pred_lin = np.full(len(y), np.nan); null = np.full(len(y), np.nan)
     shap = np.zeros(X.shape) if want_shap else None
     fold_of = np.full(len(y), -1)
+    # NOTE (25/11/2026) enriched training: per-bin spread of the group predictions, per-fold log, chromosome of each bin
+    pred_sd_groups = np.full(len(y), np.nan); enrich_log = []
+    chrom_of_bin = pd.Series(binIDs, dtype=str).str.rsplit("_", n=1).str[0].to_numpy()
     params = dict(objective=XGB_OBJ[family], max_depth=5, eta=0.05, subsample=0.8, colsample_bytree=0.8,
                   min_child_weight=10, tree_method="hist", nthread=a.n_jobs, seed=a.seed)
     for k, (tr, te) in folds.items():
@@ -235,12 +350,47 @@ def fit_oof(X, y, binIDs, buffer_bins, want_shap=True, want_ridge=True, family="
                                  min_child_weight=10, tree_method="hist", n_jobs=a.n_jobs, random_state=a.seed)
             m.fit(X[tr], y[tr]); pred[te] = m.predict(X[te]); booster = m.get_booster()
             dte = xgb.DMatrix(X[te]); null[te] = y[tr].mean()
+        elif family == "binomial_w":
+            # NOTE (25/11/2026) ratio targets: fraction y of n = weight trials, offset = log(expo_C / expo_syn); start (and
+            # null model) = offset + constant fitted on the training fold only
+            c_tr = logit_intercept(y[tr], weight[tr], off[tr]); bm = off + c_tr
+            dtr = xgb.DMatrix(X[tr], label=y[tr], weight=weight[tr], base_margin=bm[tr])
+            dte = xgb.DMatrix(X[te], base_margin=bm[te])
+            booster = xgb.train(params, dtr, num_boost_round=300)
+            pred[te] = booster.predict(dte)                    # expected fraction C / (C + syn)
+            null[te] = 1 / (1 + np.exp(-bm[te]))
         else:
             bm = off
             if family == "poisson" and init_rate:
                 bm = off + np.log(max(y[tr].sum(), 1e-12) / np.exp(off[tr]).sum())   # tasso medio del training (no test)
-            dtr = xgb.DMatrix(X[tr], label=y[tr], base_margin=bm[tr] if family == "poisson" else None)
             dte = xgb.DMatrix(X[te], base_margin=bm[te] if family == "poisson" else None)
+            if ENRICH and family == "poisson":
+                # NOTE (25/11/2026) enriched training: one model per group of low bins (+ all top bins), each recalibrated by a
+                # constant on the full training fold; test (and extra) predictions and SHAP averaged over the group models
+                sets, n_top, n_low = enriched_training_sets(tr, y, off, chrom_of_bin)
+                preds_g, shap_g, extra_g = [], [], []
+                for s in sets:
+                    bs = off + np.log(max(y[s].sum(), 1e-12) / np.exp(off[s]).sum())   # start from the group's mean rate
+                    booster = xgb.train(params, xgb.DMatrix(X[s], label=y[s], base_margin=bs[s]), num_boost_round=300)
+                    shift = bs[0] - bm[0]                      # same constant for every bin: margin(bm) + shift = margin(bs)
+                    p_tr = booster.predict(xgb.DMatrix(X[tr], base_margin=bs[tr]))
+                    calib = y[tr].sum() / max(p_tr.sum(), 1e-12)  # recalibration on the FULL training fold (no test bins)
+                    preds_g.append(calib * booster.predict(xgb.DMatrix(X[te], base_margin=bs[te])))
+                    if want_shap:
+                        shap_g.append(booster.predict(xgb.DMatrix(X[te], base_margin=bs[te]), pred_contribs=True)[:, :-1])
+                    if extra is not None and (ex_fold == int(k)).any():
+                        mk = ex_fold == int(k); ebm = extra[2][mk] + (bm[tr][0] - off[tr][0]) + shift
+                        extra_g.append(calib * booster.predict(xgb.DMatrix(extra[0][mk], base_margin=ebm)))
+                pred[te] = np.mean(preds_g, axis=0)
+                pred_sd_groups[te] = np.std(preds_g, axis=0) if len(preds_g) > 1 else 0.0
+                if extra_g: pred_extra[ex_fold == int(k)] = np.mean(extra_g, axis=0)
+                enrich_log.append(dict(fold=int(k), n_top=n_top, n_low=n_low, n_groups=len(sets),
+                                       top_share=n_top / np.mean([len(s) for s in sets])))
+                if want_shap: shap[te] = np.mean(shap_g, axis=0)
+                if family == "poisson":
+                    null[te] = np.exp(off[te]) * y[tr].sum() / np.exp(off[tr]).sum()
+                continue                                       # ridge baseline not computed in enriched mode
+            dtr = xgb.DMatrix(X[tr], label=y[tr], base_margin=bm[tr] if family == "poisson" else None)
             booster = xgb.train(params, dtr, num_boost_round=300)
             pred[te] = booster.predict(dte)                    # media attesa (conteggio atteso / frazione attesa)
             if extra is not None and family == "poisson" and (ex_fold == int(k)).any():
@@ -264,13 +414,16 @@ def fit_oof(X, y, binIDs, buffer_bins, want_shap=True, want_ridge=True, family="
                                     eta=0.5, nthread=a.n_jobs, seed=a.seed), ltr, num_boost_round=200)
                 pred_lin[te] = lb.predict(lte)
     r2 = lambda p: 1 - np.sum((y - p) ** 2) / np.sum((y - y.mean()) ** 2)
-    d0 = deviance(y, null, family)
-    dev = dict(dev_expl=1 - deviance(y, pred, family) / d0,
-               dev_expl_lin=(1 - deviance(y, pred_lin, family) / d0) if want_ridge else np.nan)
+    d0 = deviance(y, null, family, weight)
+    dev = dict(dev_expl=1 - deviance(y, pred, family, weight) / d0,
+               dev_expl_lin=(1 - deviance(y, pred_lin, family, weight) / d0) if want_ridge else np.nan)
     if extra is not None: dev["pred_extra"] = pred_extra
+    dev["pred_sd_groups"] = pred_sd_groups; dev["enrich_log"] = enrich_log          # NOTE (25/11/2026) enriched training
     return pred, shap, r2(pred), (r2(pred_lin) if want_ridge else np.nan), pred_lin, fold_of, dev
 
-def pearson_resid(y, mu, family):
+def pearson_resid(y, mu, family, weight=None):
+    if family == "binomial_w":                                 # NOTE (25/11/2026): fraction of n = weight trials
+        return (y - mu) / np.sqrt(np.clip(mu * (1 - mu) / weight, 1e-12, None))
     if family == "poisson":  return (y - mu) / np.sqrt(np.clip(mu, 1e-12, None))
     if family == "binomial": return (y - mu) / np.sqrt(np.clip(mu * (1 - mu), 1e-12, None))
     return y - mu
@@ -320,6 +473,7 @@ def _shift_within(chroms):
     return idx
 
 floor_rows, floor_oof, imps_floor = [], [], []
+enrich_rows = []                                               # NOTE (25/11/2026) enriched training: per-fold log
 perf, imps, oof, sweep, perf_chr = [], [], [], [], []
 units = [[c] for c in chroms] if a.mode == "chrom" else [chroms]          # chrom: un modello per cromosoma
 for om in a.omics:
@@ -328,8 +482,19 @@ for om in a.omics:
     for unit in units:
         d = D[D["chr"].isin(unit)]
         d_all = d
-        if om == "mut" or om in MUT_CLASSES:                      # stessi bin per tutti i target delle mutazioni
+        if om == "mut" or om in MUT_CLASSES or om in RATIO_CLASSES:   # stessi bin per tutti i target delle mutazioni
             d = d[d[a.exonic_col] >= a.min_exonic_bp] if a.exonic_col else d[d["num.overlapping.genes_protein_coding"] > 0]
+        if om in RATIO_CLASSES:
+            # NOTE (25/11/2026) ratio targets: bins with sites of the class AND synonymous sites (weighted too with wsites),
+            # both counts defined, and at least one mutation of the two classes (C + syn = 0 carries no information)
+            sc = RATIO_CLASSES[om][1]
+            ok = (d[sc] > 0) & (d["sites_syn"] > 0) & d[col].notna() & d["mut_n_syn"].notna()
+            if a.class_exposure == "wsites": ok &= (d["w" + sc] > 0) & (d["wsites_syn"] > 0)
+            n0 = len(d); d = d[ok]
+            n_no_info = int(((d[col] + d["mut_n_syn"]) == 0).sum()) if om != "placebo_syn" else int((d["mut_n_syn"] == 0).sum())
+            d = d[(d[col] + d["mut_n_syn"]) > 0] if om != "placebo_syn" else d[d["mut_n_syn"] > 0]
+            print(f"  {om}: {n0} coding bins -> {len(d)} used ({n0 - len(d) - n_no_info} without sites, {n_no_info} with no "
+                  f"mutation of the two classes)")
         if om in MUT_CLASSES:
             sc = MUT_CLASSES[om][1]
             if sc not in d.columns: print(f"salto {om}: colonna {sc} assente"); continue
@@ -339,8 +504,20 @@ for om in a.omics:
         d = d[d[col].notna()]
         if len(d) < 50 * a.n_splits: continue
         y = d[col].to_numpy(float)
-        family, offset = "gaussian", None
-        if a.loss == "glm" and om.startswith("cna"):
+        family, offset, weight = "gaussian", None, None
+        if om in RATIO_CLASSES:
+            # NOTE (25/11/2026) ratio targets: y = fraction, weight = number of trials, offset = log expected odds
+            family = "binomial_w"
+            syn_n = d["mut_n_syn"].to_numpy(float)
+            if om == "placebo_syn":                            # random half of the synonymous: no supply, no selection
+                half = rng.binomial(syn_n.astype(int), 0.5).astype(float)
+                y, weight, offset = half / syn_n, syn_n, np.zeros(len(d))
+            else:
+                ex_c = ("w" if a.class_exposure == "wsites" else "") + RATIO_CLASSES[om][1]
+                ex_s = ("w" if a.class_exposure == "wsites" else "") + "sites_syn"
+                weight = y + syn_n; y = y / weight
+                offset = np.log(d[ex_c].to_numpy(float) / d[ex_s].to_numpy(float))
+        elif a.loss == "glm" and om.startswith("cna"):
             family = "binomial"                                  # frazione di pazienti con l'evento nel bin
             if y.min() < 0 or y.max() > 1: sys.exit(f"{col}: la perdita binomiale richiede una frazione in [0, 1]")
         elif a.loss == "glm" and om in MUT_CLASSES:
@@ -373,7 +550,8 @@ for om in a.omics:
                 extra = (Xe, de["binID"].to_numpy(), np.log(de[expo_col].to_numpy(float)))
         try:
             pred, shap, r2, r2_lin, pred_lin, fold_of, dev = fit_oof(Xd, y, d["binID"].to_numpy(), buf, family=family, offset=offset,
-                                                                     init_rate=om in MUT_CLASSES, extra=extra)
+                                                                     init_rate=om in MUT_CLASSES, extra=extra, weight=weight,
+                                                                     want_ridge=om not in RATIO_CLASSES)   # NOTE 25/11/2026
         except ValueError as e:
             print(f"  {om} {label}: {e}"); continue
         perf.append(dict(omic=om, unit=label, family=family, n_bins=len(y), ell_bins=ell, buffer_bins=buf, R2=r2, R2_ridge=r2_lin,
@@ -386,8 +564,14 @@ for om in a.omics:
             mabs = np.abs(shap[rep_ids == rid]).mean(axis=0)
             imps.append(pd.DataFrame(dict(omic=om, chr=rid, feature=names, imp=mabs / mabs.sum())))
         oof.append(pd.DataFrame(dict(omic=om, binID=d["binID"].to_numpy(), obs=y, pred=pred,
-                                     resid=pearson_resid(y, pred, family), resid_raw=y - pred, pred_ridge=pred_lin, family=family,
-                                     in_training=True)))
+                                     resid=pearson_resid(y, pred, family, weight), resid_raw=y - pred, pred_ridge=pred_lin, family=family,
+                                     in_training=True, pred_sd_groups=dev["pred_sd_groups"],
+                                     n_trials=weight if weight is not None else np.nan)))   # NOTE 25/11/2026: ratio targets
+        if dev["enrich_log"]:                                  # NOTE (25/11/2026) enriched training: per-fold summary
+            el = pd.DataFrame(dev["enrich_log"]).assign(omic=om); enrich_rows.append(el)
+            print(f"  {om} {label} enriched training: top {a.enrich_top_frac:.0%} by rate kept, target share {a.enrich_share:.0%}; "
+                  f"per fold {el.n_top.iloc[0]} top + {el.n_low.iloc[0]} low bins -> {el.n_groups.iloc[0]} groups, "
+                  f"realised top share {el.top_share.mean():.2f}")
         if extra is not None:                                  # bin con poca CDS: predetti, non usati per allenare ne' per le metriche
             pe = dev["pred_extra"]; ye = de[col].to_numpy(float); ok_ = np.isfinite(pe)
             oof.append(pd.DataFrame(dict(omic=om, binID=de["binID"].to_numpy()[ok_], obs=ye[ok_], pred=pe[ok_],
@@ -398,9 +582,11 @@ for om in a.omics:
         for rep in range(a.n_floor):                            # PAVIMENTO: target spostato, stessa CV e stesse feature
             sh = circular_shift_index(ch_arr)
             ys = y[sh]; offs = None if offset is None else offset[sh]          # conteggio ed esposizione si spostano insieme
+            ws = None if weight is None else weight[sh]        # NOTE (25/11/2026): ratio targets, trials shift with the target
             try:
                 ps, shs, r2s, _, _, fold_s, devs = fit_oof(Xd, ys, d["binID"].to_numpy(), buf, want_shap=a.floor_importance,
-                                                           want_ridge=False, family=family, offset=offs, init_rate=om in MUT_CLASSES)
+                                                           want_ridge=False, family=family, offset=offs, init_rate=om in MUT_CLASSES,
+                                                           weight=ws)
             except ValueError as e:
                 print(f"  pavimento {om} {label} rep {rep}: {e}"); continue
             floor_rows.append(dict(omic=om, unit=label, rep=rep, family=family, scope=a.floor_scope, R2=r2s, dev_expl=devs["dev_expl"]))
@@ -435,6 +621,8 @@ if floor_rows:
           FL.groupby("omic")[["R2", "dev_expl"]].mean().round(3))
 perf = pd.DataFrame(perf); imp = pd.concat(imps); oof = pd.concat(oof)
 perf.to_csv(f"{a.out_dir}/performance.tsv", sep="\t", index=False)
+if enrich_rows:                                                # NOTE (25/11/2026) enriched training
+    pd.concat(enrich_rows).to_csv(f"{a.out_dir}/enrichment_log.tsv", sep="\t", index=False)
 imp.to_csv(f"{a.out_dir}/importance_per_chr.tsv", sep="\t", index=False)
 oof.to_csv(f"{a.out_dir}/oof_predictions.tsv", sep="\t", index=False)
 print("\nR2 per omica (mode chrom: mediana tra cromosomi; mode genome: modello unico):\n",
@@ -466,7 +654,13 @@ if a.mode == "chrom":
     good = perf[perf["R2"] > 0][["omic", "unit"]].rename(columns={"unit": "chr"})   # solo cromosomi dove il modello impara
     I = imp.merge(good, on=["omic", "chr"])
 else:
-    I = imp[imp["omic"].isin(perf.loc[perf["R2"] > 0, "omic"])]                 # repliche = fold
+    # NOTE (25/11/2026): the ratio targets and their placebo are kept even with R2 <= 0: a selection-only target has a tiny
+    # explainable share (negative held-out deviance on toy data even when the selection feature is learned), and the test
+    # compares feature usage against the shadows and the placebo, not the fit. Rule unchanged for every other omic.
+    keep_om = set(perf.loc[perf["R2"] > 0, "omic"]) | (set(perf["omic"]) & set(RATIO_CLASSES))
+    low = sorted(set(perf.loc[perf["R2"] <= 0, "omic"]) & set(RATIO_CLASSES))
+    if low: print(f"NOTE: ratio/placebo omics kept in the usage tables despite R2 <= 0: {low}")
+    I = imp[imp["omic"].isin(keep_om)]                                           # repliche = fold
 IS_DECOY = lambda f: f.str.startswith("DECOY_") | f.str.startswith("SHADOW")
 def usage(I):
     """Criterio di uso per gruppo. 'used' = come prima: somma dell'importanza del gruppo > quantile --used_quantile delle
