@@ -113,6 +113,11 @@ p.add_argument("--no_predict_low_cds", action="store_true",
                     ">= --min_exonic_bp di CDS, ma PREDICONO anche i bin con meno CDS e almeno un sito della classe (out-of-fold: "
                     "ogni bin aggiunto e' predetto dal modello della fold del suo blocco, stessa regola di INTERLEAVED_KFOLD_IDXS). "
                     "Le metriche restano sui soli bin di training. Con questa opzione: comportamento precedente (nessun bin aggiunto)")
+# NOTE (26/11/2026): neutral-training test (pilot_mut_neutral_training.py). Bins listed in the file are removed from the
+# TRAINING indices of every fold of the mutation classes; they stay test bins of their own fold (predicted out-of-fold).
+p.add_argument("--exclude_training_bins", default=None,
+               help="file with one binID per line: never used to train mut_syn / mut_mis / mut_trunc, but predicted out-of-fold "
+                    "(in_training = False in oof_predictions.tsv). Other omics are not affected")
 p.add_argument("--class_exposure", choices=["sites", "cds", "wsites"], default="sites",
                help="offset dei target per classe (mut_syn / mut_mis / mut_trunc): sites = log(siti della classe, sites_*); "
                     "cds = log(bp di CDS del bin, --exonic_col), uguale per tutte le classi (controllo: esposizione per lunghezza); "
@@ -208,6 +213,17 @@ if dropped_na:                                                 # NOTE (25/11/202
     print(f"Features dropped (>= 50% NA): {dropped_na}")
 FEATS = [c for c in FEATS if D[c].isna().mean() < 0.5]
 print(f"[{time.time()-t0:.0f}s] {len(D)} bin, {len(FEATS)} feature agnostiche; escluse: {len(ALT)} di alterazione + {VALIDATION_ONLY} + {EXONIC} + {EXPOSURE} + {list(a.exclude_features)}")
+
+# NOTE (26/11/2026): bins excluded from the training of the mutation classes (--exclude_training_bins)
+EXCLUDED_TRAIN = set()
+if a.exclude_training_bins:
+    if not os.path.isfile(a.exclude_training_bins):
+        sys.exit(f"--exclude_training_bins: file not found: {a.exclude_training_bins}")
+    EXCLUDED_TRAIN = set(pd.read_csv(a.exclude_training_bins, header=None, dtype=str)[0].str.strip())
+    n_in_ds = int(D["binID"].isin(EXCLUDED_TRAIN).sum())
+    print(f"--exclude_training_bins: {len(EXCLUDED_TRAIN)} binIDs in {a.exclude_training_bins}, {n_in_ds} in the dataset; "
+          f"removed from the training of {[o for o in a.omics if o in ('mut_syn', 'mut_mis', 'mut_trunc')]} only")
+    if n_in_ds == 0: sys.exit("--exclude_training_bins: none of the listed binIDs is in the dataset (check the format chr_index)")
 
 # orientamento degli autovettori Hi-C per cromosoma (segno arbitrario nell'output di Hi-C)
 if a.orient_eigen == "gc":
@@ -322,7 +338,7 @@ def enriched_training_sets(tr, y, off, chrom_of_bin):
     return sets, len(top), len(low)
 
 def fit_oof(X, y, binIDs, buffer_bins, want_shap=True, want_ridge=True, family="gaussian", offset=None, init_rate=None, extra=None,
-            weight=None):
+            weight=None, no_train=None):
     """OOF con fold intercalate + cuscinetto. family: gaussian / poisson (con offset = log esposizione) / binomial.
     init_rate (solo poisson): se True, il margine di partenza e' offset + log(tasso medio del training), invece del
     solo offset. Con base_margin XGBoost ignora base_score e parte da un tasso di 1 per unita' di esposizione: va bene
@@ -344,6 +360,8 @@ def fit_oof(X, y, binIDs, buffer_bins, want_shap=True, want_ridge=True, family="
     params = dict(objective=XGB_OBJ[family], max_depth=5, eta=0.05, subsample=0.8, colsample_bytree=0.8,
                   min_child_weight=10, tree_method="hist", nthread=a.n_jobs, seed=a.seed)
     for k, (tr, te) in folds.items():
+        if no_train is not None:                               # NOTE (26/11/2026): --exclude_training_bins; these bins stay
+            tr = tr[~no_train[tr]]                             # test bins of their fold (real decoys, same buffer as without)
         fold_of[te] = int(k)
         if family == "gaussian":
             m = xgb.XGBRegressor(n_estimators=300, max_depth=5, learning_rate=0.05, subsample=0.8, colsample_bytree=0.8,
@@ -548,10 +566,21 @@ for om in a.omics:
                 Xe = de[FEATS][keep].to_numpy(float)
                 Xe = np.column_stack([Xe, np.full((len(de), Xd.shape[1] - X.shape[1]), np.nan)])   # esche: mancanti nei bin aggiunti
                 extra = (Xe, de["binID"].to_numpy(), np.log(de[expo_col].to_numpy(float)))
+        # NOTE (26/11/2026): --exclude_training_bins. The listed bins stay in d (same correlation length, buffer and decoys as
+        # without the option) but are removed from the training indices of every fold, so they are predicted as ordinary
+        # out-of-fold test bins. They are NOT routed through the low-CDS 'extra' prediction, whose decoy columns are NaN
+        # (that biases extra predictions when the model splits on decoys: seen on toy data, pre-existing, not changed here).
+        # R2 / deviance in performance.tsv still include them (as test bins); in oof_predictions.tsv in_training = False.
+        no_train = None
+        if om in MUT_CLASSES and EXCLUDED_TRAIN:
+            no_train = d["binID"].isin(EXCLUDED_TRAIN).to_numpy()
+            print(f"  {om} {unit[0] if a.mode == 'chrom' else 'genome'}: {int(no_train.sum())} bins never used for training "
+                  f"(--exclude_training_bins), predicted out-of-fold")
         try:
             pred, shap, r2, r2_lin, pred_lin, fold_of, dev = fit_oof(Xd, y, d["binID"].to_numpy(), buf, family=family, offset=offset,
                                                                      init_rate=om in MUT_CLASSES, extra=extra, weight=weight,
-                                                                     want_ridge=om not in RATIO_CLASSES)   # NOTE 25/11/2026
+                                                                     want_ridge=om not in RATIO_CLASSES,   # NOTE 25/11/2026
+                                                                     no_train=no_train)
         except ValueError as e:
             print(f"  {om} {label}: {e}"); continue
         perf.append(dict(omic=om, unit=label, family=family, n_bins=len(y), ell_bins=ell, buffer_bins=buf, R2=r2, R2_ridge=r2_lin,
@@ -565,7 +594,8 @@ for om in a.omics:
             imps.append(pd.DataFrame(dict(omic=om, chr=rid, feature=names, imp=mabs / mabs.sum())))
         oof.append(pd.DataFrame(dict(omic=om, binID=d["binID"].to_numpy(), obs=y, pred=pred,
                                      resid=pearson_resid(y, pred, family, weight), resid_raw=y - pred, pred_ridge=pred_lin, family=family,
-                                     in_training=True, pred_sd_groups=dev["pred_sd_groups"],
+                                     in_training=True if no_train is None else ~no_train,   # NOTE (26/11/2026)
+                                     pred_sd_groups=dev["pred_sd_groups"],
                                      n_trials=weight if weight is not None else np.nan)))   # NOTE 25/11/2026: ratio targets
         if dev["enrich_log"]:                                  # NOTE (25/11/2026) enriched training: per-fold summary
             el = pd.DataFrame(dev["enrich_log"]).assign(omic=om); enrich_rows.append(el)
@@ -586,7 +616,7 @@ for om in a.omics:
             try:
                 ps, shs, r2s, _, _, fold_s, devs = fit_oof(Xd, ys, d["binID"].to_numpy(), buf, want_shap=a.floor_importance,
                                                            want_ridge=False, family=family, offset=offs, init_rate=om in MUT_CLASSES,
-                                                           weight=ws)
+                                                           weight=ws, no_train=no_train)   # NOTE (26/11/2026)
             except ValueError as e:
                 print(f"  pavimento {om} {label} rep {rep}: {e}"); continue
             floor_rows.append(dict(omic=om, unit=label, rep=rep, family=family, scope=a.floor_scope, R2=r2s, dev_expl=devs["dev_expl"]))
