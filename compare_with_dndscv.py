@@ -6,7 +6,7 @@ sui geni; stesso universo (geni presenti in entrambi) e stessa lista di driver (
 Corrispondenze: missense -> pmis_cv; troncanti -> ptrunc_cv; non sinonime -> pallsubs_cv (tutte le sostituzioni).
 Punteggi: nostro = residuo (-log10 coda binomiale negativa), osservato = conteggio; dNdScv = -log10 p.
 Uso: python compare_with_dndscv.py --ours analyses/pilot_classes/100000bp/drivers_gene_level --label 100kb \
-       --dndscv analyses/dndscv_BRCA/sel_cv_hg19.tsv [--dndscv_label dNdScv] --out_dir DIR
+       --dndscv analyses/dndscv_BRCA/sel_cv_hg19.tsv [--dndscv_label dNdScv] --cohort_label "breast cancer" --out_dir DIR
 """
 import argparse, os
 import numpy as np, pandas as pd
@@ -18,6 +18,10 @@ p.add_argument("--ours_variants", nargs="*", default=[],
                help="altri attesi nostri da gene_scores_variants_<classe>.tsv (es. sites length length+syn model+syn)")
 p.add_argument("--n_boot", type=int, default=1000); p.add_argument("--seed", type=int, default=1)
 p.add_argument("--out_dir", default="compare_dndscv")
+# NOTE (26/11/2026): the figure title was hardcoded to "breast cancer", so LUAD figures were mislabelled.
+# The cohort name now comes from --cohort_label (required, so a missing label fails instead of being wrong).
+p.add_argument("--cohort_label", required=True,
+               help='cohort name for the figure title, e.g. "breast cancer" or "lung adenocarcinoma"')
 a = p.parse_args(); os.makedirs(a.out_dir, exist_ok=True); rng = np.random.default_rng(a.seed)
 dl = a.dndscv_label or [os.path.basename(f).replace(".tsv", "") for f in a.dndscv]
 MAP = {"mis": "pmis_cv", "trunc": "ptrunc_cv", "nonsyn": "pallsubs_cv"}
@@ -77,7 +81,7 @@ for i, cls in enumerate(MAP):
         ax.set_ylim(0, R[R.cls == cls]["AP_hi"].max() * 1.25)
         if i == 0: ax.set_title(f"our background: {olab}", fontsize=9)
         if j == 0: ax.set_ylabel(f"{NAME[cls]}\naverage precision (95% CI)", fontsize=8)
-fig.suptitle(f"Known breast cancer drivers (IntOGen) at gene level: our residual vs dNdScv on the same mutations\n"
+fig.suptitle(f"Known {a.cohort_label} drivers (IntOGen) at gene level: our residual vs dNdScv on the same mutations\n"
              f"same gene universe and driver list; {int(R['n_drivers'].iloc[0])} drivers", fontsize=10)
 fig.tight_layout()
 for ext in ("png", "pdf"): fig.savefig(f"{a.out_dir}/fig_comparison_with_dndscv.{ext}", dpi=200, bbox_inches="tight")

@@ -12,7 +12,7 @@ Criterio "ritrovato" (--mode):
                   confronta le classifiche a parita' di numero di geni chiamati, senza dipendere dalla calibrazione.
 In basso a destra: quanti NON driver ciascun metodo chiama (possibili scoperte o falsi positivi).
 Uso: python venn_drivers_vs_dndscv.py --ours_dir analyses/v2/20000bp/pilot_classes/drivers_gene_level --cls nonsyn \
-       --dndscv analyses/dndscv_BRCA/sel_cv_hg19_hg38_epigenome_pcawg.tsv [--score residual|<variante>] [--mode q|top] --out_dir DIR
+       --dndscv analyses/dndscv_BRCA/sel_cv_hg19_hg38_epigenome_pcawg.tsv [--score residual|<variante>] [--mode q|top] --cohort_label "breast cancer" --out_dir DIR
 """
 import argparse, os, textwrap
 import numpy as np, pandas as pd
@@ -24,6 +24,10 @@ p.add_argument("--dndscv", required=True); p.add_argument("--dndscv_label", defa
 p.add_argument("--score", default="residual", help="residual (nostro modello) o una colonna di gene_scores_variants_<classe>.tsv (es. model+syn)")
 p.add_argument("--mode", default="q", choices=["q", "top"]); p.add_argument("--q", type=float, default=0.1)
 p.add_argument("--label", default=""); p.add_argument("--out_dir", default="venn_drivers")
+# NOTE (26/11/2026): the figure title was hardcoded to "breast cancer", so LUAD figures were mislabelled.
+# The cohort name now comes from --cohort_label (required, so a missing label fails instead of being wrong).
+p.add_argument("--cohort_label", required=True,
+               help='cohort name for the figure title, e.g. "breast cancer" or "lung adenocarcinoma"')
 a = p.parse_args(); os.makedirs(a.out_dir, exist_ok=True)
 QCOL = {"mis": "qmis_cv", "trunc": "qtrunc_cv", "nonsyn": "qallsubs_cv"}
 PCOL = {"mis": "pmis_cv", "trunc": "ptrunc_cv", "nonsyn": "pallsubs_cv"}
@@ -65,7 +69,7 @@ ax.text(-2.9, -2.05, textwrap.fill(f"found by neither ({len(nn)}): " + ", ".join
 ax.text(2.9, 1.95, f"non-driver genes called\nours: {len(nd_o)}   {a.dndscv_label}: {len(nd_d)}", ha="right", va="top", fontsize=7.5, color="0.3")
 ax.set_xlim(-3.1, 3.1); ax.set_ylim(-2.3, 2.6); ax.set_aspect("equal"); ax.axis("off")
 cn = {"mis": "missense", "trunc": "truncating", "nonsyn": "non-synonymous"}[a.cls]
-ax.set_title(f"Known breast cancer drivers found by our method and by {a.dndscv_label} ({cn}{', ' + a.label if a.label else ''})\n"
+ax.set_title(f"Known {a.cohort_label} drivers found by our method and by {a.dndscv_label} ({cn}{', ' + a.label if a.label else ''})\n"
              f"called = {crit}; within each region ordered by significance", fontsize=9.5)
 tag = f"{a.cls}_{a.score.replace('+', 'plus')}_{a.mode}"
 for ext in ("png", "pdf"): fig.savefig(f"{a.out_dir}/fig_venn_drivers_{tag}.{ext}", dpi=200, bbox_inches="tight")
