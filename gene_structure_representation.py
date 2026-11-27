@@ -12,6 +12,13 @@ MODEL (Poisson GLM-PCA with offset, Townes et al. 2019 Genome Biol, written here
     b_g         gene intercept (overall rate of the gene)  -> K = 0 is "gene rate x cell-class rate", no shared pattern
     V[:,k]      pattern k over the 94 columns (shared by all genes); U[g,k] loading of gene g on pattern k
   Entries with sites = 0 are not modelled (no exposure). Penalty lambda/2 (||U||^2 + ||V||^2) (glmpca default 1).
+  NOTE (27/11/2026): gene intercepts are SHRUNK towards 0 with penalty --gene_penalty/2 * sum_g b_g^2 (Gab's choice,
+  option a), i.e. b_g ~ N(0, 1/gene_penalty): the overall level sits in the column intercepts a_j, each gene deviates from
+  it only as far as its own counts support. Reason: the first cluster run (job 9512042) failed - with a free b_g, genes
+  whose events all fall in the held-out fold get b_g -> -inf (no finite estimate on 89-98% zero entries), and genes with
+  NO training entries started at b_g = log(1e-8/1e-300) = +672 and never moved -> held-out deviance ~1e14 for every K and
+  no convergence for K >= 2. Consequence: per-gene totals are no longer reproduced exactly (sparse genes are pulled
+  towards the average rate); the log reports how far.
   Fitted by L-BFGS on the penalized Poisson likelihood. After fitting, U V^T is rotated by SVD so that patterns are
   orthonormal and ordered by strength (the fit itself is unchanged by the rotation).
 
@@ -47,6 +54,8 @@ p.add_argument("--map", required=True, help="gene_map_long.tsv of gene_structure
 p.add_argument("--k_grid", default="0,1,2,3,4,5,6,8,10,12,15")
 p.add_argument("--n_folds", type=int, default=5)
 p.add_argument("--penalty", type=float, default=1.0, help="L2 penalty on U and V (glmpca default 1)")
+p.add_argument("--gene_penalty", type=float, default=1.0,
+               help="L2 shrinkage of the gene intercepts towards 0 (b_g ~ N(0, 1/gene_penalty)); 0 = free intercepts")
 p.add_argument("--max_iter", type=int, default=3000)
 p.add_argument("--seed", type=int, default=1)
 p.add_argument("--out_dir", default="gene_structure_representation")
@@ -77,17 +86,15 @@ def to_matrix(long_df, col_order=None):
 
 
 # ---------------- Poisson GLM-PCA with offset ----------------
-def fit_glmpca(Y, S, mask, K, penalty, max_iter, seed):
+def fit_glmpca(Y, S, mask, K, penalty, max_iter, seed, gene_penalty):
     """Fit log mu = log S + a_j + b_g + U V^T on the entries in mask (bool, genes x columns). Returns dict of params."""
     G, J = Y.shape
     logS = np.where(S > 0, np.log(np.where(S > 0, S, 1.0)), 0.0)
     m = mask.astype(float)
-    # starting values: column and gene intercepts from a few alternating closed-form updates (K = 0 Poisson MLE)
-    a_ = np.zeros(J)
+    # NOTE (27/11/2026): starting values = column rates over all genes, gene intercepts at 0 (their prior mean). The old
+    # start (alternating closed-form updates) gave b_g = +672 to genes without training entries (see header).
+    a_ = np.log(np.maximum((Y * m).sum(0), 0.5) / np.maximum((S * m).sum(0), 1.0))
     b_ = np.zeros(G)
-    for _ in range(50):
-        a_ = np.log(np.maximum((Y * m).sum(0), 1e-8) / np.maximum((S * np.exp(b_)[:, None] * m).sum(0), 1e-300))
-        b_ = np.log(np.maximum((Y * m).sum(1), 1e-8) / np.maximum((S * np.exp(a_)[None, :] * m).sum(1), 1e-300))
     r = np.random.default_rng(seed)
     U0 = r.normal(0, 0.01, (G, K))
     V0 = r.normal(0, 0.01, (J, K))
@@ -104,9 +111,11 @@ def fit_glmpca(Y, S, mask, K, penalty, max_iter, seed):
         eta = logS + a1[None, :] + b1[:, None] + U @ V.T
         eta = np.minimum(eta, 30.0)                     # guard against overflow in early iterations
         mu = np.exp(eta)
-        nll = np.sum(m * (mu - Y * eta)) + 0.5 * penalty * (np.sum(U ** 2) + np.sum(V ** 2))
+        nll = (np.sum(m * (mu - Y * eta)) + 0.5 * penalty * (np.sum(U ** 2) + np.sum(V ** 2))
+               + 0.5 * gene_penalty * np.sum(b1 ** 2))
         R = m * (mu - Y)                                # d nll / d eta
-        grad = np.concatenate([R.sum(0), R.sum(1), (R @ V + penalty * U).ravel(), (R.T @ U + penalty * V).ravel()])
+        grad = np.concatenate([R.sum(0), R.sum(1) + gene_penalty * b1,
+                               (R @ V + penalty * U).ravel(), (R.T @ U + penalty * V).ravel()])
         return nll, grad
 
     x0 = np.concatenate([a_, b_, U0.ravel(), V0.ravel()])
@@ -154,7 +163,7 @@ for K in K_GRID:
     for f in range(a.n_folds):
         held = np.zeros_like(obs)
         held[idx[fold == f, 0], idx[fold == f, 1]] = True
-        fit = fit_glmpca(Y, S, obs & ~held, K, a.penalty, a.max_iter, a.seed + f)
+        fit = fit_glmpca(Y, S, obs & ~held, K, a.penalty, a.max_iter, a.seed + f, a.gene_penalty)
         dev = poisson_deviance(Y[held], fit["mu"][held])
         rows.append({"K": K, "fold": f, "heldout_deviance": dev, "heldout_entries": int(held.sum()),
                      "converged": fit["converged"], "n_iter": fit["n_iter"]})
@@ -176,7 +185,7 @@ if not KS["converged"].all():
         f"fits are approximate")
 
 # ---------------- final fit ----------------
-fit = fit_glmpca(Y, S, obs, K_best, a.penalty, a.max_iter, a.seed)
+fit = fit_glmpca(Y, S, obs, K_best, a.penalty, a.max_iter, a.seed, a.gene_penalty)
 log(f"final fit K = {K_best}: converged {fit['converged']} ({fit['n_iter']} iterations, {fit['message']}); "
     f"in-sample deviance {poisson_deviance(Y[obs], fit['mu'][obs]):.1f}")
 U, V = rotate(fit["U"], fit["V"])
@@ -193,6 +202,13 @@ RB.to_csv(f"{a.out_dir}/rebuilt_counts.tsv", sep="\t", index=False)
 TOT = RB.groupby(["gene", "cls"])[["sites", "events", "rebuilt"]].sum().unstack("cls")
 TOT.columns = [f"{v}_{c}" for v, c in TOT.columns]
 TOT.to_csv(f"{a.out_dir}/gene_rebuilt_totals.tsv", sep="\t")
+# NOTE (27/11/2026): with shrunk gene intercepts the gene totals are not reproduced exactly: report how far they move
+g_obs = Y.sum(1)
+g_reb = fit["mu"].sum(1)
+log(f"gene intercepts: sd {np.std(fit['b']):.3f} (gene_penalty {a.gene_penalty}); gene totals rebuilt / observed over all "
+    f"genes {g_reb.sum() / g_obs.sum():.4f}; genes with 0 events: {int((g_obs == 0).sum())}, their rebuilt total median "
+    f"{np.median(g_reb[g_obs == 0]) if (g_obs == 0).any() else float('nan'):.3f}; genes with >= 10 events: median "
+    f"rebuilt/observed {np.median(g_reb[g_obs >= 10] / g_obs[g_obs >= 10]) if (g_obs >= 10).any() else float('nan'):.3f}")
 for k in ("syn", "mis", "trunc"):
     log(f"  {k:5s}: observed {int(TOT[f'events_{k}'].sum())}, rebuilt {TOT[f'rebuilt_{k}'].sum():.1f}; "
         f"per-gene correlation observed vs rebuilt {np.corrcoef(TOT[f'events_{k}'].fillna(0), TOT[f'rebuilt_{k}'].fillna(0))[0, 1]:.3f}")
@@ -211,7 +227,7 @@ LP = pd.concat(half + [L[L["cls"] != "syn"]], ignore_index=True)
 LP["col"] = LP["cell"] + "|" + LP["cls"]
 COLS_P = [f"{c}|{k}" for c in CELL_ORDER for k in ("synA", "synB", "mis", "trunc") if f"{c}|{k}" in set(LP["col"])]
 gp, cp, YP, SP = to_matrix(LP, COLS_P)
-fp = fit_glmpca(YP, SP, SP > 0, K_best, a.penalty, a.max_iter, a.seed)
+fp = fit_glmpca(YP, SP, SP > 0, K_best, a.penalty, a.max_iter, a.seed, a.gene_penalty)
 log(f"placebo fit K = {K_best}: converged {fp['converged']} ({fp['n_iter']} iterations)")
 UP, VP = rotate(fp["U"], fp["V"])
 colsP = list(cp)
