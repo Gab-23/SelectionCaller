@@ -36,6 +36,9 @@ OUTPUTS (--out_dir)
                             pooled). DESCRIPTIVE dN/dS-like ratio: not corrected for trinucleotide context, no background.
   transcript_structure.tsv  per gene: number of exons, ORF nucleotides per category, flags (pen55 window extends beyond the
                             penultimate exon; last exon without coding sites)
+  bin_category_sites.tsv    NOTE (27/11/2026): per backbone bin with coding sites, possible substitutions by exon category
+                            (first / internal / pen55 / last / splice) and class, counted as the pipeline's sites_* (union of
+                            canonical transcripts, most severe class); checked against --dataset sites_* when given
   check_vs_gene_scores.tsv  regression check against gene_scores_<cls>.tsv of gene_level_drivers_classes.py (if
                             --gene_scores_dir is given): sites summed over the map cells must equal column 'sites';
                             events WITHOUT the backbone restriction must equal column 'O' (that script does not restrict
@@ -58,6 +61,8 @@ p = argparse.ArgumentParser()
 for k in ("gtf", "genome", "backbone", "events"):
     p.add_argument(f"--{k}", required=True)
 p.add_argument("--gene_scores_dir", default=None, help="folder with gene_scores_<cls>.tsv for the regression check")
+# NOTE (27/11/2026): optional feature matrix, only to check the per-bin category sites against its sites_* columns
+p.add_argument("--dataset", default=None, help="feature matrix (binID + sites_*) to check bin_category_sites.tsv")
 p.add_argument("--hypermutator_max", default="3000")
 p.add_argument("--n_bins", type=int, default=10, help="relative-position bins in first / internal / last")
 p.add_argument("--pen_nt", type=int, default=55, help="mRNA nucleotides before the last exon-exon junction (NMD window)")
@@ -270,12 +275,21 @@ bb["chr"] = bb["chr"].map(strip)
 bb["start"] += 1
 bb = bb.reset_index(drop=True)
 BB = {ch: (x["start"].to_numpy(), x["end"].to_numpy()) for ch, x in bb.sort_values(["chr", "start"]).groupby("chr")}
+BB_IX = {ch: x.index.to_numpy() for ch, x in bb.sort_values(["chr", "start"]).groupby("chr")}
 def in_backbone(ch, pos):
     if ch not in BB:
         return np.zeros(len(pos), bool)
     s, e = BB[ch]
     i = np.searchsorted(s, pos, side="right") - 1
     return (i >= 0) & (pos <= e[np.clip(i, 0, None)])
+def to_bin(ch, pos):
+    """Row of bb holding each position, -1 outside the backbone (NOTE 27/11/2026: for the per-bin category sites)."""
+    if ch not in BB:
+        return np.full(len(pos), -1)
+    s, e = BB[ch]
+    i = np.searchsorted(s, pos, side="right") - 1
+    ok = (i >= 0) & (pos <= e[np.clip(i, 0, None)])
+    return np.where(ok, BB_IX[ch][np.clip(i, 0, None)], -1)
 
 # ---------------- sites per gene and cell ----------------
 genes = sorted({tx_gene[t] for t in use})
@@ -283,6 +297,7 @@ GI = {g: i for i, g in enumerate(genes)}
 sites = np.zeros((len(genes), N_CELLS, 3), np.int64)      # sites inside the backbone, per gene x cell x class
 GK = {}                                                  # gene -> [(chromosome, sorted keys, severity, cell)]
 struct_rows, bad = [], {}
+UNION_PARTS = {}                                         # chromosome -> [(keys, severity, cell)] of every transcript (per-bin output)
 for tx, d in G.groupby("tx"):
     res, info = tx_sites_cells(tx, d)
     if res is None:
@@ -298,6 +313,7 @@ for tx, d in G.groupby("tx"):
     first = np.r_[True, key[1:] != key[:-1]]
     key, S, C = key[first], S[first], C[first]
     GK.setdefault(tx_gene[tx], []).append((ch, key, S, C))
+    UNION_PARTS.setdefault(ch, []).append((key, S, C))
     cls = SEV_TO_CLASS[S]
     m = (cls >= 0) & in_backbone(ch, key // 4)
     np.add.at(sites, (gi, C[m], cls[m]), 1)
@@ -307,6 +323,47 @@ for tx, d in G.groupby("tx"):
                         "last_exon_without_orf": info["last_exon_without_orf"]})
 for reason, n in bad.items():
     log(f"transcripts excluded: {n} ({reason})")
+
+# NOTE (27/11/2026): per-BIN coding sites by exon category (Gab: map categories as bin features for the class interaction
+# test). Sites counted as the pipeline counts sites_* per bin: union of the canonical transcripts, one entry per
+# substitution (position + base) with the MOST SEVERE class; the category is the one of the transcript entry that gives
+# that class (ties: first in key order). Categories: first / internal / pen55 / last / splice (splice = truncating only).
+CAT_OF_CELL = np.array([0] * NB + [1] * NB + [2] + [3] * NB + [4])
+BIN_CAT_NAMES = ["first", "internal", "pen55", "last", "splice"]
+bin_cat_sites = np.zeros((len(bb), 5, 3), np.int64)       # bin x category x class
+for ch, parts in UNION_PARTS.items():
+    k = np.concatenate([x[0] for x in parts])
+    s = np.concatenate([x[1] for x in parts])
+    c = np.concatenate([x[2] for x in parts])
+    o = np.lexsort((-s, k))
+    k, s, c = k[o], s[o], c[o]
+    first = np.r_[True, k[1:] != k[:-1]]
+    k, s, c = k[first], s[first], c[first]
+    cls = SEV_TO_CLASS[s]
+    b_ = to_bin(ch, k // 4)
+    m = (cls >= 0) & (b_ >= 0)
+    np.add.at(bin_cat_sites, (b_[m], CAT_OF_CELL[c[m]], cls[m]), 1)
+del UNION_PARTS
+BC = pd.DataFrame({"binID": bb["binID"].to_numpy()})
+for ci_, cat in enumerate(BIN_CAT_NAMES):
+    for k_, cl in enumerate(CLASS_NAMES):
+        if cat == "splice" and cl != "trunc":
+            continue
+        BC[f"sites_{cat}_{cl}"] = bin_cat_sites[:, ci_, k_]
+BC = BC[bin_cat_sites.sum(axis=(1, 2)) > 0]
+BC.to_csv(f"{a.out_dir}/bin_category_sites.tsv", sep="\t", index=False)
+log(f"bin_category_sites.tsv: {len(BC)} bins with coding sites")
+if a.dataset:
+    # check: summed over categories, the per-bin sites must equal sites_* of the dataset (same union rule)
+    DS = pd.read_csv(a.dataset, sep="\t", usecols=["binID", "sites_syn", "sites_mis", "sites_trunc"], dtype={"binID": str})
+    DS = DS.set_index("binID").reindex(bb["binID"]).fillna(0)
+    for k_, cl in enumerate(CLASS_NAMES):
+        mine = bin_cat_sites[:, :, k_].sum(axis=1)
+        n_diff = int((mine != DS[f"sites_{cl}"].to_numpy()).sum())
+        log(f"CHECK bin sites {cl:5s}: bins different from the dataset {n_diff} of {len(bb)}; total here {int(mine.sum())}, "
+            f"dataset {int(DS[f'sites_{cl}'].sum())}")
+        if n_diff:
+            log(f"WARNING: per-bin {cl} sites differ from the dataset: do NOT use bin_category_sites.tsv before understanding why")
 ST = pd.DataFrame(struct_rows)
 ST.to_csv(f"{a.out_dir}/transcript_structure.tsv", sep="\t", index=False)
 log(f"transcripts mapped: {len(ST)} ({ST['gene'].nunique()} genes); single-exon: {int((ST['n_exons'] == 1).sum())}, "
