@@ -19,9 +19,12 @@ Model, one feature at a time (z = rank-based normal score of the feature over th
 
 Inference:
   * stratified bootstrap: non-driver bins resampled in contiguous blocks of --block_bins (within chromosomes, as the
-    original test); driver bins resampled as CLUSTERS (driver bins of the same chromosome at most --driver_gap bins apart
-    = one cluster, so one long gene or two neighbouring drivers are one unit). Each replicate draws as many blocks and
-    clusters as there are. SE, 95% percentile CI, p = 2 * P(N(0,1) > |est| / SE).
+    original test); driver bins resampled as GENE CLUSTERS (all coding bins of one driver gene = one unit; driver genes
+    sharing a bin are merged into one unit). Each replicate draws as many blocks and clusters as there are. SE, 95%
+    percentile CI, p = 2 * P(N(0,1) > |est| / SE).
+    NOTE (27/11/2026): first version clustered driver bins by adjacency (<= 1 bin apart): a gene whose coding bins are
+    separated by intron-only bins (not in the coding set) became several units (BRCA cohort: 78 clusters for 46 genes),
+    making the driver part of the bootstrap SE too small. Replaced by gene clusters; --driver_gap removed.
   * random gene-set null for zD (calibration): D is replaced by --n_null random sets of NON-driver genes, matched one
     by one to the driver genes on total coding sites (strata = --n_strata quantiles of log total sites). Candidate genes
     exclude every IntOGen compendium gene (any cancer type) and the cohort list. Real driver bins are REMOVED from the
@@ -82,7 +85,6 @@ p.add_argument("--driver_list", choices=["cohort", "cancer_type", "pancancer"], 
 p.add_argument("--exclude_genes", nargs="*", default=[])
 p.add_argument("--out_dir", required=True)
 p.add_argument("--block_bins", type=int, default=500, help="non-driver bins per bootstrap block (contiguous, within chromosome)")
-p.add_argument("--driver_gap", type=int, default=1, help="driver bins at most this many bins apart = one bootstrap cluster")
 p.add_argument("--n_boot", type=int, default=1000)
 p.add_argument("--n_null", type=int, default=200)
 p.add_argument("--n_strata", type=int, default=20, help="quantile strata of log total coding sites for gene matching")
@@ -205,15 +207,29 @@ D["is_driver"] = D["binID"].isin(driver_bins).astype(float)
 coding = D["expo_syn"] > 0
 log(f"driver bins with coding sites: {int((D.is_driver.astype(bool) & coding).sum())} of {int(coding.sum())} coding bins")
 
-# bootstrap clusters of driver bins (same chromosome, at most --driver_gap bins apart)
-D["driver_cluster"] = -1
-cid, prev_chr, prev_idx = -1, None, None
-for r in np.flatnonzero(D["is_driver"].to_numpy() == 1):
-    if D.at[r, "chr"] != prev_chr or D.at[r, "idx"] - prev_idx > a.driver_gap:
-        cid += 1
-    D.at[r, "driver_cluster"] = cid
-    prev_chr, prev_idx = D.at[r, "chr"], D.at[r, "idx"]
-log(f"driver bins form {cid + 1} bootstrap clusters (gap <= {a.driver_gap} bins)")
+# NOTE (27/11/2026): bootstrap clusters = driver GENES (all their coding bins), genes sharing a bin merged (union-find
+# over genes). Replaces the adjacency rule, which split a gene with intron-only gaps into several units.
+drv_gene_bins = gene_bins[gene_bins.gene.isin(drivers) & gene_bins.binID.isin(D.binID)]
+parent = {g: g for g in drv_gene_bins.gene.unique()}
+def find(g):
+    while parent[g] != g:
+        parent[g] = parent[parent[g]]
+        g = parent[g]
+    return g
+for _, genes_in_bin in drv_gene_bins.groupby("binID")["gene"]:
+    genes_in_bin = genes_in_bin.tolist()
+    for g in genes_in_bin[1:]:
+        parent[find(g)] = find(genes_in_bin[0])
+bin_to_root = {b: find(g) for b, g in zip(drv_gene_bins.binID, drv_gene_bins.gene)}
+# clusters numbered by genomic order of their first bin (reproducible numbering)
+root_id = {}
+for b in D.loc[D["binID"].isin(bin_to_root.keys()), "binID"]:
+    root_id.setdefault(bin_to_root[b], len(root_id))
+D["driver_cluster"] = D["binID"].map(lambda b: root_id[bin_to_root[b]] if b in bin_to_root else -1).astype(int)
+unassigned = int(((D["is_driver"] == 1) & (D["driver_cluster"] < 0)).sum())
+if unassigned:
+    raise SystemExit(f"ERROR: {unassigned} driver bins without a gene cluster (inconsistent gene -> bin map)")
+log(f"driver bins form {len(root_id)} bootstrap clusters (one per driver gene; genes sharing a bin merged)")
 
 bin_cluster = D.set_index("binID")["driver_cluster"]
 units = gene_bins[gene_bins.gene.isin(drivers) & gene_bins.binID.isin(D.binID)].copy()
@@ -226,11 +242,15 @@ units.to_csv(f"{a.out_dir}/driver_units.tsv", sep="\t", index=False)
 candidates = gene_sites[~gene_sites.index.isin(any_known_driver)]
 if a.exclude_genes:
     candidates = candidates[~candidates.index.isin(a.exclude_genes)]
-log_all = np.log(pd.concat([candidates, gene_sites[list(drivers)]]))
+# NOTE (27/11/2026): genes SORTED before drawing - iterating a Python set of strings changes order between processes
+# (hash randomisation), so the first version drew different null gene sets at every run with the same --seed.
+drivers_sorted = sorted(drivers)
+candidates = candidates.sort_index()
+log_all = np.log(pd.concat([candidates, gene_sites[drivers_sorted]]))
 edges = np.unique(np.quantile(log_all, np.linspace(0, 1, a.n_strata + 1)))
 stratum_of = lambda s: np.clip(np.searchsorted(edges, np.log(s), side="right") - 1, 0, len(edges) - 2)
 cand_stratum = pd.Series(stratum_of(candidates.to_numpy()), index=candidates.index)
-driver_strata = pd.Series(stratum_of(gene_sites[list(drivers)].to_numpy())).value_counts()
+driver_strata = pd.Series(stratum_of(gene_sites[drivers_sorted].to_numpy())).value_counts().sort_index()
 for k, n_need in driver_strata.items():
     n_have = int((cand_stratum == k).sum())
     if n_have < n_need:
